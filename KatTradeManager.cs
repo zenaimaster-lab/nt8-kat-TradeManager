@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 0.03 (2026-07-24)
+ * Version: 0.04 (2026-07-24)
  * NinjaTrader 8 TradeManager Indicator
  */
 
@@ -25,7 +25,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 	public class KatTradeManager : Indicator
 	{
-		public const string VERSION = "0.03";
+		public const string VERSION = "0.04";
 		public const string RELEASE_DATE = "2026-07-24";
 
 		#region Variables
@@ -116,7 +116,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				HorizontalAlignment = HorizontalAlignment.Stretch,
 				VerticalAlignment = VerticalAlignment.Top
 			};
-			Panel.SetZIndex(panelBorder, 9999);
+			System.Windows.Controls.Panel.SetZIndex(panelBorder, 9999);
 
 			mainPanel = new StackPanel();
 
@@ -281,7 +281,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (panelBorder != null)
 			{
 				DependencyObject parent = VisualTreeHelper.GetParent(panelBorder);
-				if (parent is Panel p)
+				if (parent is System.Windows.Controls.Panel p)
 				{
 					p.Children.Remove(panelBorder);
 				}

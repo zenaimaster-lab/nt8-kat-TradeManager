@@ -21,6 +21,11 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.04] - 2026-07-24
+- **Fixed CS1061 `SetZIndex` Namespace Collision**:
+  - Replaced ambiguous `Panel.SetZIndex(...)` with fully qualified `System.Windows.Controls.Panel.SetZIndex(...)` to prevent collision with NinjaScript's `Panel` integer property.
+  - Redeployed clean `KatTradeManager.cs` to `Documents\NinjaTrader 8\bin\Custom\Indicators\KatTradeManager.cs`.
+
 ### [v0.03] - 2026-07-24
 - **ChartTrader Integration & UI Placement**:
   - Embedded WPF panel directly into ChartTrader right-side panel below position display.
