@@ -26,7 +26,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 	public class KatTradeManager : Indicator
 	{
-		public const string VERSION = "0.15";
+		public const string VERSION = "0.16";
 		public const string RELEASE_DATE = "2026-07-24";
 
 		#region Variables
@@ -393,7 +393,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			chartGrid.Children.Add(panelBorder);
 		}
 
-		private void AddGridRow(Grid grid, string labelText, UIElement inputElement)
+		private void AddGridRow(Grid grid, string labelText, FrameworkElement inputElement)
 		{
 			int rowIdx = grid.RowDefinitions.Count;
 			grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(28) });

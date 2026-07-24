@@ -21,6 +21,10 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.16] - 2026-07-24
+- **Fixed CS1061 Compilation Error in AddGridRow**:
+  - Changed `AddGridRow` parameter type from base `UIElement` to `FrameworkElement` to enable property access for `VerticalAlignment`, `HorizontalAlignment`, and `Height`.
+
 ### [v0.15] - 2026-07-24
 - **Refined WPF Panel Layout & Auto-Synced Contracts Quantity**:
   - Replaced stacked panels with a 2-column WPF `Grid` (`paramGrid`) for perfect vertical/horizontal alignment of labels and input controls.
