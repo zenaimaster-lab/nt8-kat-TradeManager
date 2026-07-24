@@ -1,19 +1,21 @@
 # NT8 Kat TradeManager
 
-**Current Version**: `v0.04` (Released: `2026-07-24`)
+**Current Version**: `v0.12` (Released: `2026-07-24`)
 
 An advanced TradeManager Indicator for **NinjaTrader 8 (NT8)** designed for fast execution, candle-based pending stop orders, and dynamic risk management.
 
 ## 🚀 Features
 
-- **On-Chart WPF Control Panel**: Interactive buttons directly on your NinjaTrader 8 charts.
+- **On-Chart WPF Control Panel**: Interactive buttons and dropdown selectors directly on your NinjaTrader 8 charts.
 - **Candle-Based Pending Stops**:
   - Place **Buy Stop** / **Sell Stop** at High/Low of **Current Candle** or **Previous Candle**.
   - Multi-timeframe support (30s, 1m, 2m candles).
+  - Configurable **Buffer (Ticks)** padding to set orders above/below highs/lows.
 - **Automated Risk Management**:
-  - Auto Stop Loss (SL) & Take Profit (TP) in ticks/points.
-  - Dynamic **Trailing Stop Loss** engine.
-- **One-Click Order Cancellation & Position Management**: Quick buttons to Close All Positions or Cancel Pending Orders.
+  - Automatically loads and applies your native **NT8 ATM Strategy templates** (selectable directly via a dropdown menu).
+  - Submits brackets server-side for maximum reliability and protection against network lag.
+- **Visual SL/TP Levels**: Renders dashed horizontal lines on the chart (Red for SL, Green for TP) while pending orders are active.
+- **One-Click Order Cancellation & Position Management**: Quick buttons to Close All Positions or Cancel Pending Orders, instantly cleaning up visual objects.
 
 ## 🛠️ Installation in NinjaTrader 8
 

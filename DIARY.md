@@ -21,6 +21,11 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.12] - 2026-07-24
+- **Fixed compilation errors and integrated ATM strategy selection dropdown**:
+  - Corrected `Draw.Line` parameter overload mismatch by passing `false` as the third parameter (`isAutoScale`).
+  - Swapped the manual TextBox ATM template string input with a ComboBox dropdown (`ATM:`) populated automatically from the NinjaTrader saved ATM files directory (`Documents\NinjaTrader 8\templates\AtmStrategy`).
+
 ### [v0.11] - 2026-07-24
 - **Fixed Button Press Errors (barsAgo & NullReferenceExceptions) & Synced Version**:
   - Replaced direct UI-thread `Highs`/`Lows` calls with thread-safe volatile caches updated via `OnBarUpdate` on the data thread.

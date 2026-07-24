@@ -26,7 +26,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 	public class KatTradeManager : Indicator
 	{
-		public const string VERSION = "0.11";
+		public const string VERSION = "0.12";
 		public const string RELEASE_DATE = "2026-07-24";
 
 		#region Variables
@@ -39,7 +39,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private TextBox txtBuffer;
 		private TextBox txtSL;
 		private TextBox txtTP;
-		private TextBox txtAtmTemplate;
+		private ComboBox atmSelector;
 		private System.Windows.Threading.DispatcherTimer panelWatchdog;
 		private bool isTerminated;
 
@@ -202,8 +202,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				cachedTfIndex = tfSelector.SelectedIndex;
 			if (txtBuffer != null)
 				cachedBufferTicks = int.TryParse(txtBuffer.Text, out int b) ? b : DefaultBufferTicks;
-			if (txtAtmTemplate != null)
-				cachedAtmTemplate = txtAtmTemplate.Text;
+			if (atmSelector != null && atmSelector.SelectedItem != null)
+				cachedAtmTemplate = atmSelector.SelectedItem.ToString();
 		}
 
 		private void CreateWpfControls()
@@ -320,7 +320,45 @@ namespace NinjaTrader.NinjaScript.Indicators
 			mainPanel.Children.Add(CreateInputRow("Buffer (Ticks):", out txtBuffer, DefaultBufferTicks.ToString()));
 			mainPanel.Children.Add(CreateInputRow("SL (Ticks):", out txtSL, DefaultStopLossTicks.ToString()));
 			mainPanel.Children.Add(CreateInputRow("TP (Ticks):", out txtTP, DefaultTakeProfitTicks.ToString()));
-			mainPanel.Children.Add(CreateInputRow("ATM Template:", out txtAtmTemplate, DefaultAtmTemplate));
+
+			// ATM Selection Dropdown
+			StackPanel atmPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 5) };
+			atmPanel.Children.Add(new TextBlock { Text = "ATM: ", Foreground = Brushes.White, Width = 55, VerticalAlignment = VerticalAlignment.Center });
+			atmSelector = new ComboBox { Width = 125, Height = 22 };
+			string atmDir = System.IO.Path.Combine(NinjaTrader.Core.Globals.UserDataDir, "templates", "AtmStrategy");
+			if (System.IO.Directory.Exists(atmDir))
+			{
+				var files = System.IO.Directory.GetFiles(atmDir, "*.xml");
+				foreach (var file in files)
+				{
+					string name = System.IO.Path.GetFileNameWithoutExtension(file);
+					atmSelector.Items.Add(name);
+				}
+			}
+			if (atmSelector.Items.Count > 0)
+			{
+				bool selected = false;
+				for (int i = 0; i < atmSelector.Items.Count; i++)
+				{
+					if (atmSelector.Items[i].ToString().Equals(DefaultAtmTemplate, StringComparison.OrdinalIgnoreCase))
+					{
+						atmSelector.SelectedIndex = i;
+						selected = true;
+						break;
+					}
+				}
+				if (!selected)
+					atmSelector.SelectedIndex = 0;
+			}
+			atmSelector.SelectionChanged += (s, ev) =>
+			{
+				if (atmSelector.SelectedItem != null)
+				{
+					cachedAtmTemplate = atmSelector.SelectedItem.ToString();
+				}
+			};
+			atmPanel.Children.Add(atmSelector);
+			mainPanel.Children.Add(atmPanel);
 
 			// Buttons Section
 			mainPanel.Children.Add(CreateButton("🟢 BUY STOP (Prev High)", Brushes.LimeGreen, (s, ev) => PlacePendingStop(OrderAction.Buy, false)));
@@ -476,9 +514,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 					}
 
 					if (slTicks > 0)
-						Draw.Line(this, "KAT_SL_LINE", 15, expectedSLPrice, -10, expectedSLPrice, Brushes.Red, DashStyleHelper.Dash, 2);
+						Draw.Line(this, "KAT_SL_LINE", false, 15, expectedSLPrice, -10, expectedSLPrice, Brushes.Red, DashStyleHelper.Dash, 2);
 					if (tpTicks > 0)
-						Draw.Line(this, "KAT_TP_LINE", 15, expectedTPPrice, -10, expectedTPPrice, Brushes.Green, DashStyleHelper.Dash, 2);
+						Draw.Line(this, "KAT_TP_LINE", false, 15, expectedTPPrice, -10, expectedTPPrice, Brushes.Green, DashStyleHelper.Dash, 2);
 
 					isExpectedLinesDrawn = true;
 					ForceRefresh();
@@ -607,6 +645,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		#endregion
 	}
 }
+
 
 
 #region NinjaScript generated code. Neither change nor remove.
