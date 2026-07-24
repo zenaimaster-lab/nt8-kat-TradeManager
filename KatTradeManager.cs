@@ -26,7 +26,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 	public class KatTradeManager : Indicator
 	{
-		public const string VERSION = "0.14";
+		public const string VERSION = "0.15";
 		public const string RELEASE_DATE = "2026-07-24";
 
 		#region Variables
@@ -55,6 +55,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private int atmBETrigger = 0;
 		private int atmSL1Trigger = 0;
 		private int atmSL2Trigger = 0;
+		private int atmQuantity = 1;
 
 		private bool isExpectedLinesDrawn = false;
 
@@ -278,20 +279,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 				HorizontalAlignment = HorizontalAlignment.Center
 			});
 
+			// Layout Grid for Parameters (Acc, TF, Contracts, Buffer, ATM)
+			Grid paramGrid = new Grid { Margin = new Thickness(0, 0, 0, 8) };
+			paramGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(85) }); // labels column
+			paramGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // input controls stretch column
+
 			// Account Selection
-			StackPanel accPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 5) };
-			accPanel.Children.Add(new TextBlock { Text = "Acc: ", Foreground = Brushes.White, Width = 55, VerticalAlignment = VerticalAlignment.Center });
-			ComboBox accSelector = new ComboBox { Width = 125, Height = 22 };
+			ComboBox accSelector = new ComboBox { FontSize = 11, Height = 22 };
 			if (Account.All != null)
 			{
-				foreach (var acc in Account.All)
-				{
-					accSelector.Items.Add(acc.Name);
-				}
-				if (account != null)
-				{
-					accSelector.SelectedItem = account.Name;
-				}
+				foreach (var acc in Account.All) accSelector.Items.Add(acc.Name);
+				if (account != null) accSelector.SelectedItem = account.Name;
 			}
 			accSelector.SelectionChanged += (s, ev) =>
 			{
@@ -302,29 +300,26 @@ namespace NinjaTrader.NinjaScript.Indicators
 					Print(string.Format("[KatTradeManager] Account changed via UI to: {0}", selectedName));
 				}
 			};
-			accPanel.Children.Add(accSelector);
-			mainPanel.Children.Add(accPanel);
+			AddGridRow(paramGrid, "Acc:", accSelector);
 
 			// Timeframe Selection
-			StackPanel tfPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 5) };
-			tfPanel.Children.Add(new TextBlock { Text = "TF: ", Foreground = Brushes.White, Width = 55, VerticalAlignment = VerticalAlignment.Center });
-			tfSelector = new ComboBox { Width = 125, Height = 22 };
+			tfSelector = new ComboBox { FontSize = 11, Height = 22 };
 			tfSelector.Items.Add("Chart TF");
 			tfSelector.Items.Add("30s");
 			tfSelector.Items.Add("1m");
 			tfSelector.Items.Add("2m");
 			tfSelector.SelectedIndex = 0;
-			tfPanel.Children.Add(tfSelector);
-			mainPanel.Children.Add(tfPanel);
+			AddGridRow(paramGrid, "TF:", tfSelector);
 
 			// Quantity & Buffer Inputs
-			mainPanel.Children.Add(CreateInputRow("Contracts:", out txtQuantity, DefaultQuantity.ToString()));
-			mainPanel.Children.Add(CreateInputRow("Buffer (Ticks):", out txtBuffer, DefaultBufferTicks.ToString()));
+			txtQuantity = new TextBox { Text = DefaultQuantity.ToString(), FontSize = 11, Height = 22, Background = Brushes.Black, Foreground = Brushes.White, BorderBrush = Brushes.Gray, Padding = new Thickness(4, 0, 4, 0), VerticalContentAlignment = VerticalAlignment.Center };
+			AddGridRow(paramGrid, "Contracts:", txtQuantity);
+
+			txtBuffer = new TextBox { Text = DefaultBufferTicks.ToString(), FontSize = 11, Height = 22, Background = Brushes.Black, Foreground = Brushes.White, BorderBrush = Brushes.Gray, Padding = new Thickness(4, 0, 4, 0), VerticalContentAlignment = VerticalAlignment.Center };
+			AddGridRow(paramGrid, "Buffer (Ticks):", txtBuffer);
 
 			// ATM Selection Dropdown
-			StackPanel atmPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 5) };
-			atmPanel.Children.Add(new TextBlock { Text = "ATM: ", Foreground = Brushes.White, Width = 55, VerticalAlignment = VerticalAlignment.Center });
-			atmSelector = new ComboBox { Width = 125, Height = 22 };
+			atmSelector = new ComboBox { FontSize = 11, Height = 22 };
 			string atmDir = System.IO.Path.Combine(NinjaTrader.Core.Globals.UserDataDir, "templates", "AtmStrategy");
 			if (System.IO.Directory.Exists(atmDir))
 			{
@@ -363,8 +358,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 					LoadAtmTemplateSettings(cachedAtmTemplate);
 				}
 			};
-			atmPanel.Children.Add(atmSelector);
-			mainPanel.Children.Add(atmPanel);
+			AddGridRow(paramGrid, "ATM:", atmSelector);
+
+			mainPanel.Children.Add(paramGrid);
 
 			// Buttons Section
 			mainPanel.Children.Add(CreateButton("🟢 BUY STOP (Prev High)", Brushes.LimeGreen, (s, ev) => PlacePendingStop(OrderAction.Buy, false)));
@@ -372,11 +368,23 @@ namespace NinjaTrader.NinjaScript.Indicators
 			mainPanel.Children.Add(CreateButton("🔴 SELL STOP (Prev Low)", Brushes.Crimson, (s, ev) => PlacePendingStop(OrderAction.Sell, false)));
 			mainPanel.Children.Add(CreateButton("🔴 SELL STOP (Curr Low)", Brushes.DarkRed, (s, ev) => PlacePendingStop(OrderAction.Sell, true)));
 
-			// Management Buttons
-			StackPanel mgrPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 0) };
-			mgrPanel.Children.Add(CreateSmallButton("Cancel", Brushes.Orange, (s, ev) => CancelAllOrders()));
-			mgrPanel.Children.Add(CreateSmallButton("Close", Brushes.Red, (s, ev) => ClosePosition()));
-			mainPanel.Children.Add(mgrPanel);
+			// Management Buttons (Cancel / Close Grid)
+			Grid mgrGrid = new Grid { Margin = new Thickness(0, 6, 0, 0) };
+			mgrGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			mgrGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(6) }); // Spacing gap
+			mgrGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+			Button btnCancel = CreateButton("Cancel", Brushes.Orange, (s, ev) => CancelAllOrders());
+			btnCancel.Height = 22;
+			Grid.SetColumn(btnCancel, 0);
+			mgrGrid.Children.Add(btnCancel);
+
+			Button btnClose = CreateButton("Close", Brushes.Red, (s, ev) => ClosePosition());
+			btnClose.Height = 22;
+			Grid.SetColumn(btnClose, 2);
+			mgrGrid.Children.Add(btnClose);
+
+			mainPanel.Children.Add(mgrGrid);
 
 			panelBorder.Child = mainPanel;
 
@@ -385,13 +393,29 @@ namespace NinjaTrader.NinjaScript.Indicators
 			chartGrid.Children.Add(panelBorder);
 		}
 
-		private UIElement CreateInputRow(string label, out TextBox textBox, string defaultValue)
+		private void AddGridRow(Grid grid, string labelText, UIElement inputElement)
 		{
-			StackPanel row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 4) };
-			row.Children.Add(new TextBlock { Text = label, Foreground = Brushes.LightGray, Width = 100, VerticalAlignment = VerticalAlignment.Center });
-			textBox = new TextBox { Text = defaultValue, Width = 80, Height = 20, Background = Brushes.Black, Foreground = Brushes.White, BorderBrush = Brushes.Gray };
-			row.Children.Add(textBox);
-			return row;
+			int rowIdx = grid.RowDefinitions.Count;
+			grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(28) });
+
+			TextBlock label = new TextBlock
+			{
+				Text = labelText,
+				Foreground = Brushes.LightGray,
+				VerticalAlignment = VerticalAlignment.Center,
+				HorizontalAlignment = HorizontalAlignment.Left,
+				FontSize = 11
+			};
+			Grid.SetRow(label, rowIdx);
+			Grid.SetColumn(label, 0);
+			grid.Children.Add(label);
+
+			inputElement.VerticalAlignment = VerticalAlignment.Center;
+			inputElement.HorizontalAlignment = HorizontalAlignment.Stretch;
+			inputElement.Height = 22;
+			Grid.SetRow(inputElement, rowIdx);
+			Grid.SetColumn(inputElement, 1);
+			grid.Children.Add(inputElement);
 		}
 
 		private Button CreateButton(string text, Brush bg, RoutedEventHandler handler)
@@ -401,26 +425,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Content = text,
 				Background = bg,
 				Foreground = Brushes.White,
-				FontWeight = FontWeights.SemiBold,
+				FontWeight = FontWeights.Normal,
+				FontSize = 10,
 				Margin = new Thickness(0, 2, 0, 2),
-				Padding = new Thickness(4),
-				Height = 26,
-				BorderThickness = new Thickness(0)
-			};
-			btn.Click += handler;
-			return btn;
-		}
-
-		private Button CreateSmallButton(string text, Brush bg, RoutedEventHandler handler)
-		{
-			Button btn = new Button
-			{
-				Content = text,
-				Background = bg,
-				Foreground = Brushes.White,
-				Width = 90,
+				Padding = new Thickness(2),
 				Height = 24,
-				Margin = new Thickness(2, 0, 2, 0),
 				BorderThickness = new Thickness(0)
 			};
 			btn.Click += handler;
@@ -541,6 +550,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			atmBETrigger = 0;
 			atmSL1Trigger = 0;
 			atmSL2Trigger = 0;
+			atmQuantity = 0;
 
 			if (string.IsNullOrEmpty(templateName)) return;
 
@@ -558,6 +568,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 				System.Xml.XmlNode targetNode = doc.SelectSingleNode("//AtmStrategy/Brackets/Bracket/Target");
 				if (targetNode != null) int.TryParse(targetNode.InnerText, out atmTarget);
 
+				System.Xml.XmlNode qtyNode = doc.SelectSingleNode("//AtmStrategy/DefaultQuantity");
+				if (qtyNode != null) int.TryParse(qtyNode.InnerText, out atmQuantity);
+
 				System.Xml.XmlNode beNode = doc.SelectSingleNode("//AtmStrategy/Brackets/Bracket/StopStrategy/AutoBreakEvenProfitTrigger");
 				if (beNode != null) int.TryParse(beNode.InnerText, out atmBETrigger);
 
@@ -574,6 +587,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 						System.Xml.XmlNode st2 = trailSteps[1].SelectSingleNode("ProfitTrigger");
 						if (st2 != null) int.TryParse(st2.InnerText, out atmSL2Trigger);
 					}
+				}
+
+				if (txtQuantity != null && atmQuantity > 0)
+				{
+					txtQuantity.Text = atmQuantity.ToString();
 				}
 			}
 			catch (Exception ex)

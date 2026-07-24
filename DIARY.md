@@ -21,6 +21,13 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.15] - 2026-07-24
+- **Refined WPF Panel Layout & Auto-Synced Contracts Quantity**:
+  - Replaced stacked panels with a 2-column WPF `Grid` (`paramGrid`) for perfect vertical/horizontal alignment of labels and input controls.
+  - Set `FontSize = 10` for order buttons and reduced vertical heights to eliminate visual strain.
+  - Automatically populates the `Contracts` input box from the `<DefaultQuantity>` tag of the selected ATM Template XML.
+  - Converted `Cancel` and `Close` management buttons to a star-stretched Grid layout (`mgrGrid`) to align seamlessly with left/right panel margins.
+
 ### [v0.14] - 2026-07-24
 - **Fixed double-to-int line width compilation error**:
   - Changed the visual line widths of BE, SL1, and SL2 target lines from double `1.5` to int `1` in `Draw.Line()`.
