@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 0.02 (2026-07-24)
+ * Version: 0.03 (2026-07-24)
  * NinjaTrader 8 TradeManager Indicator
  */
 
@@ -25,7 +25,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 	public class KatTradeManager : Indicator
 	{
-		public const string VERSION = "0.02";
+		public const string VERSION = "0.03";
 		public const string RELEASE_DATE = "2026-07-24";
 
 		#region Variables
@@ -107,16 +107,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			panelBorder = new Border
 			{
-				Background = new SolidColorBrush(Color.FromArgb(220, 20, 24, 33)),
+				Background = new SolidColorBrush(Color.FromArgb(240, 20, 24, 33)),
 				BorderBrush = Brushes.DodgerBlue,
 				BorderThickness = new Thickness(1.5),
 				CornerRadius = new CornerRadius(6),
-				Margin = new Thickness(10, 30, 0, 0),
-				HorizontalAlignment = HorizontalAlignment.Left,
-				VerticalAlignment = VerticalAlignment.Top,
+				Margin = new Thickness(4),
 				Padding = new Thickness(8),
-				Width = 220
+				HorizontalAlignment = HorizontalAlignment.Stretch,
+				VerticalAlignment = VerticalAlignment.Top
 			};
+			Panel.SetZIndex(panelBorder, 9999);
 
 			mainPanel = new StackPanel();
 
@@ -134,8 +134,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			// Timeframe Selection
 			StackPanel tfPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 5) };
-			tfPanel.Children.Add(new TextBlock { Text = "TF: ", Foreground = Brushes.White, Width = 60, VerticalAlignment = VerticalAlignment.Center });
-			tfSelector = new ComboBox { Width = 130, Height = 22 };
+			tfPanel.Children.Add(new TextBlock { Text = "TF: ", Foreground = Brushes.White, Width = 55, VerticalAlignment = VerticalAlignment.Center });
+			tfSelector = new ComboBox { Width = 125, Height = 22 };
 			tfSelector.Items.Add("Chart TF");
 			tfSelector.Items.Add("30s");
 			tfSelector.Items.Add("1m");
@@ -175,13 +175,69 @@ namespace NinjaTrader.NinjaScript.Indicators
 			mainPanel.Children.Add(mgrPanel);
 
 			panelBorder.Child = mainPanel;
-			chartGrid.Children.Add(panelBorder);
+
+			// Docking logic: Try to embed into ChartTrader right panel
+			bool attached = false;
+			ChartTrader chartTrader = GetChartTrader();
+			if (chartTrader != null)
+			{
+				StackPanel ctPanel = FindVisualChild<StackPanel>(chartTrader);
+				if (ctPanel != null)
+				{
+					ctPanel.Children.Add(panelBorder);
+					attached = true;
+				}
+				else
+				{
+					Grid ctGrid = FindVisualChild<Grid>(chartTrader);
+					if (ctGrid != null)
+					{
+						ctGrid.Children.Add(panelBorder);
+						attached = true;
+					}
+				}
+			}
+
+			// Fallback: Dock to bottom-right of chart container if ChartTrader panel not found
+			if (!attached)
+			{
+				panelBorder.Width = 210;
+				panelBorder.HorizontalAlignment = HorizontalAlignment.Right;
+				panelBorder.VerticalAlignment = VerticalAlignment.Bottom;
+				panelBorder.Margin = new Thickness(0, 0, 15, 35);
+				chartGrid.Children.Add(panelBorder);
+			}
+		}
+
+		private ChartTrader GetChartTrader()
+		{
+			if (ChartControl == null) return null;
+			Window window = Window.GetWindow(ChartControl);
+			if (window == null) return null;
+			return FindVisualChild<ChartTrader>(window);
+		}
+
+		private T FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+		{
+			if (parent == null) return null;
+			int count = VisualTreeHelper.GetChildrenCount(parent);
+			for (int i = 0; i < count; i++)
+			{
+				DependencyObject child = VisualTreeHelper.GetChild(parent, i);
+				if (child is T typedChild)
+					return typedChild;
+
+				T childOfChild = FindVisualChild<T>(child);
+				if (childOfChild != null)
+					return childOfChild;
+			}
+			return null;
 		}
 
 		private UIElement CreateInputRow(string label, out TextBox textBox, string defaultValue)
 		{
 			StackPanel row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 4) };
-			row.Children.Add(new TextBlock { Text = label, Foreground = Brushes.LightGray, Width = 110, VerticalAlignment = VerticalAlignment.Center });
+			row.Children.Add(new TextBlock { Text = label, Foreground = Brushes.LightGray, Width = 100, VerticalAlignment = VerticalAlignment.Center });
 			textBox = new TextBox { Text = defaultValue, Width = 80, Height = 20, Background = Brushes.Black, Foreground = Brushes.White, BorderBrush = Brushes.Gray };
 			row.Children.Add(textBox);
 			return row;
@@ -211,7 +267,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Content = text,
 				Background = bg,
 				Foreground = Brushes.White,
-				Width = 98,
+				Width = 90,
 				Height = 24,
 				Margin = new Thickness(2, 0, 2, 0),
 				BorderThickness = new Thickness(0)
@@ -222,9 +278,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private void RemoveWpfControls()
 		{
-			if (chartGrid != null && panelBorder != null)
+			if (panelBorder != null)
 			{
-				chartGrid.Children.Remove(panelBorder);
+				DependencyObject parent = VisualTreeHelper.GetParent(panelBorder);
+				if (parent is Panel p)
+				{
+					p.Children.Remove(panelBorder);
+				}
+				else if (chartGrid != null)
+				{
+					chartGrid.Children.Remove(panelBorder);
+				}
 			}
 		}
 		#endregion

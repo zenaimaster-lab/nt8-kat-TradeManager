@@ -21,6 +21,13 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.03] - 2026-07-24
+- **ChartTrader Integration & UI Placement**:
+  - Embedded WPF panel directly into ChartTrader right-side panel below position display.
+  - Added visual tree searching (`GetChartTrader()`, `FindVisualChild<T>()`) to locate ChartTrader container.
+  - Added fallback docking to bottom-right of chart with `Panel.SetZIndex = 9999` so controls are never hidden.
+  - Redeployed `KatTradeManager.cs` to `Documents\NinjaTrader 8\bin\Custom\Indicators\KatTradeManager.cs`.
+
 ### [v0.02] - 2026-07-24
 - **NinjaTrader 8 API Fixes**:
   - Fixed `CS0118`: Removed indicator-incompatible `OrderFillResolution` assignment.
