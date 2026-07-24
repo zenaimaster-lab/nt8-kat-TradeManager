@@ -398,7 +398,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				int qty = cachedQuantity > 0 ? cachedQuantity : DefaultQuantity;
 				string entryName = action == OrderAction.Buy ? "KAT_BUY_STOP" : "KAT_SELL_STOP";
 
-				entryOrder = account.CreateOrder(Instrument, action, OrderType.StopMarket, OrderEntry.Manual, TimeInForce.Gtc, qty, 0, triggerPrice, "", entryName, DateTime.MaxValue, null);
+				entryOrder = account.CreateOrder(Instrument, action, OrderType.StopMarket, OrderEntry.Manual, TimeInForce.Gtc, qty, 0, triggerPrice, "", entryName, NinjaTrader.Core.Globals.MaxDate, null);
 				if (entryOrder != null)
 				{
 					account.Submit(new[] { entryOrder });
@@ -411,7 +411,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			catch (Exception ex)
 			{
-				Print(string.Format("[KatTradeManager] Error placing order: {0}", ex.Message));
+				Print(string.Format("[KatTradeManager] Error placing order: {0}", ex.ToString()));
 			}
 		}
 
@@ -431,7 +431,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (pos != null && pos.MarketPosition != MarketPosition.Flat)
 			{
 				OrderAction action = pos.MarketPosition == MarketPosition.Long ? OrderAction.Sell : OrderAction.Buy;
-				Order closeOrder = account.CreateOrder(Instrument, action, OrderType.Market, OrderEntry.Manual, TimeInForce.Gtc, pos.Quantity, 0, 0, "", "KAT_CLOSE", DateTime.MaxValue, null);
+				Order closeOrder = account.CreateOrder(Instrument, action, OrderType.Market, OrderEntry.Manual, TimeInForce.Gtc, pos.Quantity, 0, 0, "", "KAT_CLOSE", NinjaTrader.Core.Globals.MaxDate, null);
 				account.Submit(new[] { closeOrder });
 			}
 			CancelAllOrders();
@@ -535,3 +535,60 @@ namespace NinjaTrader.NinjaScript.Indicators
 		#endregion
 	}
 }
+
+#region NinjaScript generated code. Neither change nor remove.
+
+namespace NinjaTrader.NinjaScript.Indicators
+{
+	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
+	{
+		private KatTradeManager[] cacheKatTradeManager;
+		public KatTradeManager KatTradeManager(bool isPanelVisible, int defaultQuantity, int defaultStopLossTicks, int defaultTakeProfitTicks, int defaultTrailingSLTicks)
+		{
+			return KatTradeManager(Input, isPanelVisible, defaultQuantity, defaultStopLossTicks, defaultTakeProfitTicks, defaultTrailingSLTicks);
+		}
+
+		public KatTradeManager KatTradeManager(ISeries<double> input, bool isPanelVisible, int defaultQuantity, int defaultStopLossTicks, int defaultTakeProfitTicks, int defaultTrailingSLTicks)
+		{
+			if (cacheKatTradeManager != null)
+				for (int idx = 0; idx < cacheKatTradeManager.Length; idx++)
+					if (cacheKatTradeManager[idx] != null && cacheKatTradeManager[idx].IsPanelVisible == isPanelVisible && cacheKatTradeManager[idx].DefaultQuantity == defaultQuantity && cacheKatTradeManager[idx].DefaultStopLossTicks == defaultStopLossTicks && cacheKatTradeManager[idx].DefaultTakeProfitTicks == defaultTakeProfitTicks && cacheKatTradeManager[idx].DefaultTrailingSLTicks == defaultTrailingSLTicks && cacheKatTradeManager[idx].EqualsInput(input))
+						return cacheKatTradeManager[idx];
+			return CacheIndicator<KatTradeManager>(new KatTradeManager(){ IsPanelVisible = isPanelVisible, DefaultQuantity = defaultQuantity, DefaultStopLossTicks = defaultStopLossTicks, DefaultTakeProfitTicks = defaultTakeProfitTicks, DefaultTrailingSLTicks = defaultTrailingSLTicks }, input, ref cacheKatTradeManager);
+		}
+	}
+}
+
+namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
+{
+	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
+	{
+		public Indicators.KatTradeManager KatTradeManager(bool isPanelVisible, int defaultQuantity, int defaultStopLossTicks, int defaultTakeProfitTicks, int defaultTrailingSLTicks)
+		{
+			return indicator.KatTradeManager(Input, isPanelVisible, defaultQuantity, defaultStopLossTicks, defaultTakeProfitTicks, defaultTrailingSLTicks);
+		}
+
+		public Indicators.KatTradeManager KatTradeManager(ISeries<double> input , bool isPanelVisible, int defaultQuantity, int defaultStopLossTicks, int defaultTakeProfitTicks, int defaultTrailingSLTicks)
+		{
+			return indicator.KatTradeManager(input, isPanelVisible, defaultQuantity, defaultStopLossTicks, defaultTakeProfitTicks, defaultTrailingSLTicks);
+		}
+	}
+}
+
+namespace NinjaTrader.NinjaScript.Strategies
+{
+	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
+	{
+		public Indicators.KatTradeManager KatTradeManager(bool isPanelVisible, int defaultQuantity, int defaultStopLossTicks, int defaultTakeProfitTicks, int defaultTrailingSLTicks)
+		{
+			return indicator.KatTradeManager(Input, isPanelVisible, defaultQuantity, defaultStopLossTicks, defaultTakeProfitTicks, defaultTrailingSLTicks);
+		}
+
+		public Indicators.KatTradeManager KatTradeManager(ISeries<double> input , bool isPanelVisible, int defaultQuantity, int defaultStopLossTicks, int defaultTakeProfitTicks, int defaultTrailingSLTicks)
+		{
+			return indicator.KatTradeManager(input, isPanelVisible, defaultQuantity, defaultStopLossTicks, defaultTakeProfitTicks, defaultTrailingSLTicks);
+		}
+	}
+}
+
+#endregion
