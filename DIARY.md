@@ -21,6 +21,15 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.02] - 2026-07-24
+- **NinjaTrader 8 API Fixes**:
+  - Fixed `CS0118`: Removed indicator-incompatible `OrderFillResolution` assignment.
+  - Fixed `CS0117`: Changed `Account.AllAccounts` to valid NT8 `Account.All`.
+  - Fixed `CS1501`: Updated `Account.CreateOrder` 12-argument overload signature including `DateTime.MaxValue`.
+  - Fixed `CS1061`: Corrected `order.State` to `order.OrderState`.
+  - Fixed `CS1501`: Updated `Account.Change` overload to pass array of orders after mutating `StopPrice`.
+  - Redeployed clean `KatTradeManager.cs` to `Documents\NinjaTrader 8\bin\Custom\Indicators\KatTradeManager.cs`.
+
 ### [v0.01] - 2026-07-24
 - **Initial Release & Infrastructure**:
   - Created initial repository layout and `.gitignore`.

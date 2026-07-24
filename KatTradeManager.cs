@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 0.01 (2026-07-24)
+ * Version: 0.02 (2026-07-24)
  * NinjaTrader 8 TradeManager Indicator
  */
 
@@ -25,7 +25,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 	public class KatTradeManager : Indicator
 	{
-		public const string VERSION = "0.01";
+		public const string VERSION = "0.02";
 		public const string RELEASE_DATE = "2026-07-24";
 
 		#region Variables
@@ -60,7 +60,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 				DrawHorizontalGridLines				= false;
 				DrawVerticalGridLines				= false;
 				IsAutoScale							= false;
-				OrderFillResolution					= OrderFillResolution.Standard;
 
 				// Default Settings
 				DefaultQuantity						= 1;
@@ -77,8 +76,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			else if (State == State.DataLoaded)
 			{
-				if (Account.AllAccounts.Count > 0)
-					account = Account.AllAccounts.FirstOrDefault(a => a.Name == "Sim301") ?? Account.AllAccounts.FirstOrDefault();
+				if (Account.All != null && Account.All.Count > 0)
+					account = Account.All.FirstOrDefault(a => a.Name == "Sim301") ?? Account.All.FirstOrDefault();
 
 				if (ChartControl != null)
 				{
@@ -262,18 +261,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 
 			int qty = int.TryParse(txtQuantity.Text, out int q) ? q : DefaultQuantity;
-			int slTicks = int.TryParse(txtSL.Text, out int sl) ? sl : DefaultStopLossTicks;
-			int tpTicks = int.TryParse(txtTP.Text, out int tp) ? tp : DefaultTakeProfitTicks;
+			string entryName = action == OrderAction.Buy ? "KAT_BUY_STOP" : "KAT_SELL_STOP";
 
-			if (action == OrderAction.Buy)
-			{
-				entryOrder = account.CreateOrder(Instrument, action, OrderType.StopMarket, OrderEntry.Manual, TimeInForce.Gtc, qty, 0, triggerPrice, "", "KAT_BUY_STOP", null);
-			}
-			else
-			{
-				entryOrder = account.CreateOrder(Instrument, action, OrderType.StopMarket, OrderEntry.Manual, TimeInForce.Gtc, qty, 0, triggerPrice, "", "KAT_SELL_STOP", null);
-			}
-
+			entryOrder = account.CreateOrder(Instrument, action, OrderType.StopMarket, OrderEntry.Manual, TimeInForce.Gtc, qty, 0, triggerPrice, "", entryName, DateTime.MaxValue, null);
 			account.Submit(new[] { entryOrder });
 			Print(string.Format("[KatTradeManager] Submitted {0} Stop Order at {1} (BarIdx: {2}, Shift: {3})", action, triggerPrice, barIdx, shift));
 		}
@@ -281,7 +271,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private void CancelAllOrders()
 		{
 			if (account == null) return;
-			foreach (Order order in account.Orders.Where(o => o.State == OrderState.Working || o.State == OrderState.Accepted))
+			foreach (Order order in account.Orders.Where(o => o.OrderState == OrderState.Working || o.OrderState == OrderState.Accepted))
 			{
 				account.Cancel(new[] { order });
 			}
@@ -294,7 +284,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (pos != null && pos.MarketPosition != MarketPosition.Flat)
 			{
 				OrderAction action = pos.MarketPosition == MarketPosition.Long ? OrderAction.Sell : OrderAction.Buy;
-				Order closeOrder = account.CreateOrder(Instrument, action, OrderType.Market, OrderEntry.Manual, TimeInForce.Gtc, pos.Quantity, 0, 0, "", "KAT_CLOSE", null);
+				Order closeOrder = account.CreateOrder(Instrument, action, OrderType.Market, OrderEntry.Manual, TimeInForce.Gtc, pos.Quantity, 0, 0, "", "KAT_CLOSE", DateTime.MaxValue, null);
 				account.Submit(new[] { closeOrder });
 			}
 			CancelAllOrders();
@@ -343,7 +333,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				if ((isLong && newSLPrice > slOrder.StopPrice) || (!isLong && newSLPrice < slOrder.StopPrice))
 				{
-					account.Change(new[] { slOrder }, slOrder.Quantity, 0, newSLPrice);
+					slOrder.StopPrice = newSLPrice;
+					account.Change(new[] { slOrder });
 					Print(string.Format("[KatTradeManager] Trailed SL to {0}", newSLPrice));
 				}
 			}
