@@ -26,6 +26,7 @@ graph TD
   - Replaced direct UI-thread `Highs`/`Lows` calls with thread-safe volatile caches updated via `OnBarUpdate` on the data thread.
   - Added verification that `basePrice > 0` before submitting stop orders to prevent default-price execution.
   - Implemented null reference protection on the returned `entryOrder` from `account.CreateOrder` before calling `account.Submit`.
+  - Fixed `NullReferenceException` inside `CreateOrder` by replacing `DateTime.MaxValue` with `NinjaTrader.Core.Globals.MaxDate` (since SQL-equivalent date conversion of 9999 overflows/crashes in NinjaTrader).
   - Overwrote the running NinjaTrader 8 `KatTradeManager.cs` indicator file to resolve the version display mismatch (running v0.10 vs codebase v0.11).
 
 ### [v0.07] - 2026-07-24
