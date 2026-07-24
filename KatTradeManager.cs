@@ -1,3 +1,9 @@
+/*
+ * KatTradeManager.cs
+ * Version: 0.01 (2026-07-24)
+ * NinjaTrader 8 TradeManager Indicator
+ */
+
 #region Using declarations
 using System;
 using System.Collections.Generic;
@@ -19,6 +25,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 	public class KatTradeManager : Indicator
 	{
+		public const string VERSION = "0.01";
+		public const string RELEASE_DATE = "2026-07-24";
+
 		#region Variables
 		private Account account;
 		private Grid chartGrid;
@@ -43,7 +52,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			if (State == State.SetDefaults)
 			{
-				Description							= @"Kat TradeManager for NinjaTrader 8 with Candle-based Pending Stop Orders and Trailing SL.";
+				Description							= @"Kat TradeManager v" + VERSION + @" for NinjaTrader 8 with Candle-based Pending Stop Orders and Trailing SL.";
 				Name								= "KatTradeManager";
 				Calculate							= Calculate.OnPriceChange;
 				IsOverlay							= true;
@@ -115,10 +124,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 			// Header Title
 			TextBlock header = new TextBlock
 			{
-				Text = "⚡ KAT TradeManager",
+				Text = string.Format("⚡ KAT TradeManager v{0}", VERSION),
 				Foreground = Brushes.Cyan,
 				FontWeight = FontWeights.Bold,
-				FontSize = 13,
+				FontSize = 12,
 				Margin = new Thickness(0, 0, 0, 8),
 				HorizontalAlignment = HorizontalAlignment.Center
 			};
