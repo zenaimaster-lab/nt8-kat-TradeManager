@@ -26,7 +26,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 	public class KatTradeManager : Indicator
 	{
-		public const string VERSION = "0.12";
+		public const string VERSION = "0.13";
 		public const string RELEASE_DATE = "2026-07-24";
 
 		#region Variables
@@ -37,8 +37,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private ComboBox tfSelector;
 		private TextBox txtQuantity;
 		private TextBox txtBuffer;
-		private TextBox txtSL;
-		private TextBox txtTP;
 		private ComboBox atmSelector;
 		private System.Windows.Threading.DispatcherTimer panelWatchdog;
 		private bool isTerminated;
@@ -51,9 +49,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private Order entryOrder = null;
 
-		// expected SL/TP price levels (only for drawing lines)
-		private double expectedSLPrice = 0;
-		private double expectedTPPrice = 0;
+		// parsed ATM parameters for line drawing
+		private int atmStopLoss = 0;
+		private int atmTarget = 0;
+		private int atmBETrigger = 0;
+		private int atmSL1Trigger = 0;
+		private int atmSL2Trigger = 0;
+
 		private bool isExpectedLinesDrawn = false;
 
 		// ponytail: cached bar prices updated on data thread, read from UI thread — avoids barsAgo exception
@@ -315,11 +317,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 			tfPanel.Children.Add(tfSelector);
 			mainPanel.Children.Add(tfPanel);
 
-			// Quantity & SL/TP Inputs
+			// Quantity & Buffer Inputs
 			mainPanel.Children.Add(CreateInputRow("Contracts:", out txtQuantity, DefaultQuantity.ToString()));
 			mainPanel.Children.Add(CreateInputRow("Buffer (Ticks):", out txtBuffer, DefaultBufferTicks.ToString()));
-			mainPanel.Children.Add(CreateInputRow("SL (Ticks):", out txtSL, DefaultStopLossTicks.ToString()));
-			mainPanel.Children.Add(CreateInputRow("TP (Ticks):", out txtTP, DefaultTakeProfitTicks.ToString()));
 
 			// ATM Selection Dropdown
 			StackPanel atmPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 5) };
@@ -350,11 +350,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (!selected)
 					atmSelector.SelectedIndex = 0;
 			}
+			if (atmSelector.SelectedItem != null)
+			{
+				cachedAtmTemplate = atmSelector.SelectedItem.ToString();
+				LoadAtmTemplateSettings(cachedAtmTemplate);
+			}
 			atmSelector.SelectionChanged += (s, ev) =>
 			{
 				if (atmSelector.SelectedItem != null)
 				{
 					cachedAtmTemplate = atmSelector.SelectedItem.ToString();
+					LoadAtmTemplateSettings(cachedAtmTemplate);
 				}
 			};
 			atmPanel.Children.Add(atmSelector);
@@ -444,19 +450,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 		}
 
-		// ponytail: reads only cached values — zero bar data access from UI thread
 		private void PlacePendingStop(OrderAction action, bool isCurrentCandle)
 		{
 			if (account == null || Instrument == null) return;
 
 			try
 			{
-				Print(string.Format("[KatTradeManager] Debug: Account={0}, Connection={1}, Instrument={2}, MasterInstrument={3}",
-					account.Name,
-					account.Connection != null ? "not null" : "null",
-					Instrument.FullName,
-					Instrument.MasterInstrument != null ? Instrument.MasterInstrument.Name : "null"
-				));
 				int barIdx = GetBarsInProgressIndex();
 				if (barIdx < 0 || barIdx >= NUM_SERIES) return;
 
@@ -470,66 +469,128 @@ namespace NinjaTrader.NinjaScript.Indicators
 					basePrice = isCurrentCandle ? cachedCurrentLow[barIdx] : cachedPrevLow[barIdx];
 				}
 
-				if (basePrice <= 0)
-				{
-					Print(string.Format("[KatTradeManager] No valid cached price for series {0} yet", barIdx));
-					return;
-				}
+				if (basePrice <= 0) return;
 
 				double triggerPrice = action == OrderAction.Buy 
 					? basePrice + (cachedBufferTicks * cachedTickSize) 
 					: basePrice - (cachedBufferTicks * cachedTickSize);
 
 				int qty = cachedQuantity > 0 ? cachedQuantity : DefaultQuantity;
-				string entryName = "Entry"; // Required for ATM linkage
+				string entryName = "Entry";
 
 				entryOrder = account.CreateOrder(Instrument, action, OrderType.StopMarket, OrderEntry.Manual, TimeInForce.Gtc, qty, 0, triggerPrice, "", entryName, NinjaTrader.Core.Globals.MaxDate, null);
 				if (entryOrder != null)
 				{
-					// Start ATM Strategy
 					if (!string.IsNullOrEmpty(cachedAtmTemplate))
 					{
 						NinjaTrader.NinjaScript.AtmStrategy.StartAtmStrategy(cachedAtmTemplate, entryOrder);
-						Print(string.Format("[KatTradeManager] Started ATM Strategy '{0}' for Stop Order at {1} (BarIdx: {2})", cachedAtmTemplate, triggerPrice, barIdx));
 					}
 					else
 					{
 						account.Submit(new[] { entryOrder });
-						Print(string.Format("[KatTradeManager] Submitted Stop Order at {0} (BarIdx: {1}, No ATM)", triggerPrice, barIdx));
 					}
 
-					// Draw visual SL/TP lines
-					int slTicks = int.TryParse(txtSL.Text, out int s) ? s : DefaultStopLossTicks;
-					int tpTicks = int.TryParse(txtTP.Text, out int t) ? t : DefaultTakeProfitTicks;
+					double slPrice = 0;
+					double tpPrice = 0;
+					double bePrice = 0;
+					double sl1Price = 0;
+					double sl2Price = 0;
 
 					if (action == OrderAction.Buy)
 					{
-						expectedSLPrice = triggerPrice - (slTicks * cachedTickSize);
-						expectedTPPrice = triggerPrice + (tpTicks * cachedTickSize);
+						slPrice = triggerPrice - (atmStopLoss * cachedTickSize);
+						tpPrice = triggerPrice + (atmTarget * cachedTickSize);
+						bePrice = triggerPrice + (atmBETrigger * cachedTickSize);
+						sl1Price = triggerPrice + (atmSL1Trigger * cachedTickSize);
+						sl2Price = triggerPrice + (atmSL2Trigger * cachedTickSize);
 					}
 					else
 					{
-						expectedSLPrice = triggerPrice + (slTicks * cachedTickSize);
-						expectedTPPrice = triggerPrice - (tpTicks * cachedTickSize);
+						slPrice = triggerPrice + (atmStopLoss * cachedTickSize);
+						tpPrice = triggerPrice - (atmTarget * cachedTickSize);
+						bePrice = triggerPrice - (atmBETrigger * cachedTickSize);
+						sl1Price = triggerPrice - (atmSL1Trigger * cachedTickSize);
+						sl2Price = triggerPrice - (atmSL2Trigger * cachedTickSize);
 					}
 
-					if (slTicks > 0)
-						Draw.Line(this, "KAT_SL_LINE", false, 15, expectedSLPrice, -10, expectedSLPrice, Brushes.Red, DashStyleHelper.Dash, 2);
-					if (tpTicks > 0)
-						Draw.Line(this, "KAT_TP_LINE", false, 15, expectedTPPrice, -10, expectedTPPrice, Brushes.Green, DashStyleHelper.Dash, 2);
+					if (atmStopLoss > 0)
+						Draw.Line(this, "KAT_SL_LINE", false, 15, slPrice, -10, slPrice, Brushes.Red, DashStyleHelper.Dash, 2);
+					if (atmTarget > 0)
+						Draw.Line(this, "KAT_TP_LINE", false, 15, tpPrice, -10, tpPrice, Brushes.Green, DashStyleHelper.Dash, 2);
+					if (atmBETrigger > 0)
+						Draw.Line(this, "KAT_BE_LINE", false, 15, bePrice, -10, bePrice, Brushes.DeepSkyBlue, DashStyleHelper.DashDot, 1.5);
+					if (atmSL1Trigger > 0)
+						Draw.Line(this, "KAT_SL1_LINE", false, 15, sl1Price, -10, sl1Price, Brushes.Orange, DashStyleHelper.Dot, 1.5);
+					if (atmSL2Trigger > 0)
+						Draw.Line(this, "KAT_SL2_LINE", false, 15, sl2Price, -10, sl2Price, Brushes.Magenta, DashStyleHelper.Dot, 1.5);
 
 					isExpectedLinesDrawn = true;
 					ForceRefresh();
-				}
-				else
-				{
-					Print("[KatTradeManager] Error: CreateOrder returned null");
 				}
 			}
 			catch (Exception ex)
 			{
 				Print(string.Format("[KatTradeManager] Error placing order: {0}", ex.ToString()));
 			}
+		}
+
+		private void LoadAtmTemplateSettings(string templateName)
+		{
+			atmStopLoss = 0;
+			atmTarget = 0;
+			atmBETrigger = 0;
+			atmSL1Trigger = 0;
+			atmSL2Trigger = 0;
+
+			if (string.IsNullOrEmpty(templateName)) return;
+
+			try
+			{
+				string path = System.IO.Path.Combine(NinjaTrader.Core.Globals.UserDataDir, "templates", "AtmStrategy", templateName + ".xml");
+				if (!System.IO.File.Exists(path)) return;
+
+				System.Xml.XmlDocument doc = new System.Xml.XmlDocument();
+				doc.Load(path);
+
+				System.Xml.XmlNode slNode = doc.SelectSingleNode("//AtmStrategy/Brackets/Bracket/StopLoss");
+				if (slNode != null) int.TryParse(slNode.InnerText, out atmStopLoss);
+
+				System.Xml.XmlNode targetNode = doc.SelectSingleNode("//AtmStrategy/Brackets/Bracket/Target");
+				if (targetNode != null) int.TryParse(targetNode.InnerText, out atmTarget);
+
+				System.Xml.XmlNode beNode = doc.SelectSingleNode("//AtmStrategy/Brackets/Bracket/StopStrategy/AutoBreakEvenProfitTrigger");
+				if (beNode != null) int.TryParse(beNode.InnerText, out atmBETrigger);
+
+				System.Xml.XmlNodeList trailSteps = doc.SelectNodes("//AtmStrategy/Brackets/Bracket/StopStrategy/AutoTrailSteps/AutoTrailStep");
+				if (trailSteps != null)
+				{
+					if (trailSteps.Count > 0)
+					{
+						System.Xml.XmlNode st1 = trailSteps[0].SelectSingleNode("ProfitTrigger");
+						if (st1 != null) int.TryParse(st1.InnerText, out atmSL1Trigger);
+					}
+					if (trailSteps.Count > 1)
+					{
+						System.Xml.XmlNode st2 = trailSteps[1].SelectSingleNode("ProfitTrigger");
+						if (st2 != null) int.TryParse(st2.InnerText, out atmSL2Trigger);
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				Print(string.Format("[KatTradeManager] Error parsing ATM XML: {0}", ex.Message));
+			}
+		}
+
+		private void RemoveExpectedLines()
+		{
+			RemoveDrawObject("KAT_SL_LINE");
+			RemoveDrawObject("KAT_TP_LINE");
+			RemoveDrawObject("KAT_BE_LINE");
+			RemoveDrawObject("KAT_SL1_LINE");
+			RemoveDrawObject("KAT_SL2_LINE");
+			isExpectedLinesDrawn = false;
+			ForceRefresh();
 		}
 
 		private void CancelAllOrders()
@@ -539,12 +600,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				account.Cancel(new[] { order });
 			}
-			RemoveDrawObject("KAT_SL_LINE");
-			RemoveDrawObject("KAT_TP_LINE");
-			isExpectedLinesDrawn = false;
-			expectedSLPrice = 0;
-			expectedTPPrice = 0;
-			ForceRefresh();
+			RemoveExpectedLines();
 		}
 
 		private void ClosePosition()
@@ -566,7 +622,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			try
 			{
-				// Cache bar prices for ALL series so UI thread can read them safely
 				int bip = BarsInProgress;
 				if (bip < NUM_SERIES && CurrentBars[bip] >= 0)
 				{
@@ -581,26 +636,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 				if (bip != 0 || account == null || Instrument == null) return;
 
-				// Monitor entryOrder to auto-remove SL/TP lines when no longer working
 				if (entryOrder != null)
 				{
 					bool isWorking = entryOrder.OrderState == OrderState.Working || entryOrder.OrderState == OrderState.Accepted;
 					if (!isWorking && isExpectedLinesDrawn)
 					{
-						RemoveDrawObject("KAT_SL_LINE");
-						RemoveDrawObject("KAT_TP_LINE");
-						isExpectedLinesDrawn = false;
-						expectedSLPrice = 0;
-						expectedTPPrice = 0;
+						RemoveExpectedLines();
 					}
 				}
 				else if (isExpectedLinesDrawn)
 				{
-					RemoveDrawObject("KAT_SL_LINE");
-					RemoveDrawObject("KAT_TP_LINE");
-					isExpectedLinesDrawn = false;
-					expectedSLPrice = 0;
-					expectedTPPrice = 0;
+					RemoveExpectedLines();
 				}
 			}
 			catch (Exception ex)
