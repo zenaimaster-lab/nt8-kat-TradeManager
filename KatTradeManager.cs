@@ -375,6 +375,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			try
 			{
+				Print(string.Format("[KatTradeManager] Debug: Account={0}, Connection={1}, Instrument={2}, MasterInstrument={3}",
+					account.Name,
+					account.Connection != null ? "not null" : "null",
+					Instrument.FullName,
+					Instrument.MasterInstrument != null ? Instrument.MasterInstrument.Name : "null"
+				));
 				int barIdx = GetBarsInProgressIndex();
 				if (barIdx < 0 || barIdx >= NUM_SERIES) return;
 
