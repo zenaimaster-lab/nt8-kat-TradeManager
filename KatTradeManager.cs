@@ -30,7 +30,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public const string RELEASE_DATE = "2026-07-24";
 
 		#region Variables
-		private Account account;
+		private volatile Account account;
 		private Grid chartGrid;
 		private Border panelBorder;
 		private StackPanel mainPanel;
@@ -273,6 +273,33 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Margin = new Thickness(0, 0, 0, 8),
 				HorizontalAlignment = HorizontalAlignment.Center
 			});
+
+			// Account Selection
+			StackPanel accPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 5) };
+			accPanel.Children.Add(new TextBlock { Text = "Acc: ", Foreground = Brushes.White, Width = 55, VerticalAlignment = VerticalAlignment.Center });
+			ComboBox accSelector = new ComboBox { Width = 125, Height = 22 };
+			if (Account.All != null)
+			{
+				foreach (var acc in Account.All)
+				{
+					accSelector.Items.Add(acc.Name);
+				}
+				if (account != null)
+				{
+					accSelector.SelectedItem = account.Name;
+				}
+			}
+			accSelector.SelectionChanged += (s, ev) =>
+			{
+				if (accSelector.SelectedItem != null)
+				{
+					string selectedName = accSelector.SelectedItem.ToString();
+					account = Account.All.FirstOrDefault(a => a.Name == selectedName);
+					Print(string.Format("[KatTradeManager] Account changed via UI to: {0}", selectedName));
+				}
+			};
+			accPanel.Children.Add(accSelector);
+			mainPanel.Children.Add(accPanel);
 
 			// Timeframe Selection
 			StackPanel tfPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 5) };
@@ -563,6 +590,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		#endregion
 	}
 }
+
 
 #region NinjaScript generated code. Neither change nor remove.
 
