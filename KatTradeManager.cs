@@ -84,6 +84,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				DefaultStopLossTicks				= 20;
 				DefaultTakeProfitTicks				= 40;
 				DefaultTrailingSLTicks				= 15;
+				AccountName							= "Sim101";
 			}
 			else if (State == State.Configure)
 			{
@@ -101,7 +102,24 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Print(string.Format("[KatTradeManager] v{0} loaded — cached mode active", VERSION));
 
 				if (Account.All != null && Account.All.Count > 0)
-					account = Account.All.FirstOrDefault(a => a.Name == "Sim301") ?? Account.All.FirstOrDefault();
+				{
+					Print("[KatTradeManager] Available Accounts:");
+					foreach (var acc in Account.All)
+					{
+						Print(string.Format("  - {0} ({1})", acc.Name, acc.Connection != null ? "Connected" : "Disconnected"));
+					}
+
+					account = Account.All.FirstOrDefault(a => a.Name.Equals(AccountName, StringComparison.OrdinalIgnoreCase))
+					          ?? Account.All.FirstOrDefault(a => a.Name == "Sim101")
+					          ?? Account.All.FirstOrDefault(a => a.Name == "Sim301")
+					          ?? Account.All.FirstOrDefault(a => a.Connection != null)
+					          ?? Account.All.FirstOrDefault();
+
+					if (account != null)
+					{
+						Print(string.Format("[KatTradeManager] Selected Account: {0}", account.Name));
+					}
+				}
 
 				if (ChartControl != null)
 					ChartControl.Dispatcher.InvokeAsync(StartPanelWatchdog);
@@ -538,6 +556,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Range(1, 1000)]
 		[Display(Name="Default Trailing SL (Ticks)", Order=4, GroupName="Parameters")]
 		public int DefaultTrailingSLTicks { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Account Name", Order=5, GroupName="Parameters")]
+		public string AccountName { get; set; }
 		#endregion
 	}
 }
@@ -549,18 +571,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
 	{
 		private KatTradeManager[] cacheKatTradeManager;
-		public KatTradeManager KatTradeManager(bool isPanelVisible, int defaultQuantity, int defaultStopLossTicks, int defaultTakeProfitTicks, int defaultTrailingSLTicks)
+		public KatTradeManager KatTradeManager(bool isPanelVisible, int defaultQuantity, int defaultStopLossTicks, int defaultTakeProfitTicks, int defaultTrailingSLTicks, string accountName)
 		{
-			return KatTradeManager(Input, isPanelVisible, defaultQuantity, defaultStopLossTicks, defaultTakeProfitTicks, defaultTrailingSLTicks);
+			return KatTradeManager(Input, isPanelVisible, defaultQuantity, defaultStopLossTicks, defaultTakeProfitTicks, defaultTrailingSLTicks, accountName);
 		}
 
-		public KatTradeManager KatTradeManager(ISeries<double> input, bool isPanelVisible, int defaultQuantity, int defaultStopLossTicks, int defaultTakeProfitTicks, int defaultTrailingSLTicks)
+		public KatTradeManager KatTradeManager(ISeries<double> input, bool isPanelVisible, int defaultQuantity, int defaultStopLossTicks, int defaultTakeProfitTicks, int defaultTrailingSLTicks, string accountName)
 		{
 			if (cacheKatTradeManager != null)
 				for (int idx = 0; idx < cacheKatTradeManager.Length; idx++)
-					if (cacheKatTradeManager[idx] != null && cacheKatTradeManager[idx].IsPanelVisible == isPanelVisible && cacheKatTradeManager[idx].DefaultQuantity == defaultQuantity && cacheKatTradeManager[idx].DefaultStopLossTicks == defaultStopLossTicks && cacheKatTradeManager[idx].DefaultTakeProfitTicks == defaultTakeProfitTicks && cacheKatTradeManager[idx].DefaultTrailingSLTicks == defaultTrailingSLTicks && cacheKatTradeManager[idx].EqualsInput(input))
+					if (cacheKatTradeManager[idx] != null && cacheKatTradeManager[idx].IsPanelVisible == isPanelVisible && cacheKatTradeManager[idx].DefaultQuantity == defaultQuantity && cacheKatTradeManager[idx].DefaultStopLossTicks == defaultStopLossTicks && cacheKatTradeManager[idx].DefaultTakeProfitTicks == defaultTakeProfitTicks && cacheKatTradeManager[idx].DefaultTrailingSLTicks == defaultTrailingSLTicks && cacheKatTradeManager[idx].AccountName == accountName && cacheKatTradeManager[idx].EqualsInput(input))
 						return cacheKatTradeManager[idx];
-			return CacheIndicator<KatTradeManager>(new KatTradeManager(){ IsPanelVisible = isPanelVisible, DefaultQuantity = defaultQuantity, DefaultStopLossTicks = defaultStopLossTicks, DefaultTakeProfitTicks = defaultTakeProfitTicks, DefaultTrailingSLTicks = defaultTrailingSLTicks }, input, ref cacheKatTradeManager);
+			return CacheIndicator<KatTradeManager>(new KatTradeManager(){ IsPanelVisible = isPanelVisible, DefaultQuantity = defaultQuantity, DefaultStopLossTicks = defaultStopLossTicks, DefaultTakeProfitTicks = defaultTakeProfitTicks, DefaultTrailingSLTicks = defaultTrailingSLTicks, AccountName = accountName }, input, ref cacheKatTradeManager);
 		}
 	}
 }
@@ -569,14 +591,14 @@ namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
 {
 	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
 	{
-		public Indicators.KatTradeManager KatTradeManager(bool isPanelVisible, int defaultQuantity, int defaultStopLossTicks, int defaultTakeProfitTicks, int defaultTrailingSLTicks)
+		public Indicators.KatTradeManager KatTradeManager(bool isPanelVisible, int defaultQuantity, int defaultStopLossTicks, int defaultTakeProfitTicks, int defaultTrailingSLTicks, string accountName)
 		{
-			return indicator.KatTradeManager(Input, isPanelVisible, defaultQuantity, defaultStopLossTicks, defaultTakeProfitTicks, defaultTrailingSLTicks);
+			return indicator.KatTradeManager(Input, isPanelVisible, defaultQuantity, defaultStopLossTicks, defaultTakeProfitTicks, defaultTrailingSLTicks, accountName);
 		}
 
-		public Indicators.KatTradeManager KatTradeManager(ISeries<double> input , bool isPanelVisible, int defaultQuantity, int defaultStopLossTicks, int defaultTakeProfitTicks, int defaultTrailingSLTicks)
+		public Indicators.KatTradeManager KatTradeManager(ISeries<double> input , bool isPanelVisible, int defaultQuantity, int defaultStopLossTicks, int defaultTakeProfitTicks, int defaultTrailingSLTicks, string accountName)
 		{
-			return indicator.KatTradeManager(input, isPanelVisible, defaultQuantity, defaultStopLossTicks, defaultTakeProfitTicks, defaultTrailingSLTicks);
+			return indicator.KatTradeManager(input, isPanelVisible, defaultQuantity, defaultStopLossTicks, defaultTakeProfitTicks, defaultTrailingSLTicks, accountName);
 		}
 	}
 }
@@ -585,14 +607,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
 	{
-		public Indicators.KatTradeManager KatTradeManager(bool isPanelVisible, int defaultQuantity, int defaultStopLossTicks, int defaultTakeProfitTicks, int defaultTrailingSLTicks)
+		public Indicators.KatTradeManager KatTradeManager(bool isPanelVisible, int defaultQuantity, int defaultStopLossTicks, int defaultTakeProfitTicks, int defaultTrailingSLTicks, string accountName)
 		{
-			return indicator.KatTradeManager(Input, isPanelVisible, defaultQuantity, defaultStopLossTicks, defaultTakeProfitTicks, defaultTrailingSLTicks);
+			return indicator.KatTradeManager(Input, isPanelVisible, defaultQuantity, defaultStopLossTicks, defaultTakeProfitTicks, defaultTrailingSLTicks, accountName);
 		}
 
-		public Indicators.KatTradeManager KatTradeManager(ISeries<double> input , bool isPanelVisible, int defaultQuantity, int defaultStopLossTicks, int defaultTakeProfitTicks, int defaultTrailingSLTicks)
+		public Indicators.KatTradeManager KatTradeManager(ISeries<double> input , bool isPanelVisible, int defaultQuantity, int defaultStopLossTicks, int defaultTakeProfitTicks, int defaultTrailingSLTicks, string accountName)
 		{
-			return indicator.KatTradeManager(input, isPanelVisible, defaultQuantity, defaultStopLossTicks, defaultTakeProfitTicks, defaultTrailingSLTicks);
+			return indicator.KatTradeManager(input, isPanelVisible, defaultQuantity, defaultStopLossTicks, defaultTakeProfitTicks, defaultTrailingSLTicks, accountName);
 		}
 	}
 }
