@@ -26,7 +26,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 	public class KatTradeManager : Indicator
 	{
-		public const string VERSION = "0.13";
+		public const string VERSION = "0.14";
 		public const string RELEASE_DATE = "2026-07-24";
 
 		#region Variables
@@ -518,11 +518,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 					if (atmTarget > 0)
 						Draw.Line(this, "KAT_TP_LINE", false, 15, tpPrice, -10, tpPrice, Brushes.Green, DashStyleHelper.Dash, 2);
 					if (atmBETrigger > 0)
-						Draw.Line(this, "KAT_BE_LINE", false, 15, bePrice, -10, bePrice, Brushes.DeepSkyBlue, DashStyleHelper.DashDot, 1.5);
+						Draw.Line(this, "KAT_BE_LINE", false, 15, bePrice, -10, bePrice, Brushes.DeepSkyBlue, DashStyleHelper.DashDot, 1);
 					if (atmSL1Trigger > 0)
-						Draw.Line(this, "KAT_SL1_LINE", false, 15, sl1Price, -10, sl1Price, Brushes.Orange, DashStyleHelper.Dot, 1.5);
+						Draw.Line(this, "KAT_SL1_LINE", false, 15, sl1Price, -10, sl1Price, Brushes.Orange, DashStyleHelper.Dot, 1);
 					if (atmSL2Trigger > 0)
-						Draw.Line(this, "KAT_SL2_LINE", false, 15, sl2Price, -10, sl2Price, Brushes.Magenta, DashStyleHelper.Dot, 1.5);
+						Draw.Line(this, "KAT_SL2_LINE", false, 15, sl2Price, -10, sl2Price, Brushes.Magenta, DashStyleHelper.Dot, 1);
 
 					isExpectedLinesDrawn = true;
 					ForceRefresh();

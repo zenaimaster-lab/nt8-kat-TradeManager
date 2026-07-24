@@ -21,6 +21,18 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.14] - 2026-07-24
+- **Fixed double-to-int line width compilation error**:
+  - Changed the visual line widths of BE, SL1, and SL2 target lines from double `1.5` to int `1` in `Draw.Line()`.
+
+### [v0.13] - 2026-07-24
+- **Implemented XML ATM Template Parsing & Automatic Chart Brackets Drawing**:
+  - Automatically loads and parses settings from the selected ATM Template XML file.
+  - Extracts parameters: SL, TP, Break-even (BE), and Trailing Steps (SL1, SL2).
+  - Removed manual `SL (Ticks)` and `TP (Ticks)` textbox inputs from the WPF panel UI.
+  - Automatically draws all 5 expected target/trailing trigger lines on the chart.
+  - Added a clean auto-wipe system to instantly erase all lines when cancelling orders or closing positions.
+
 ### [v0.12] - 2026-07-24
 - **Fixed compilation errors and integrated ATM strategy selection dropdown**:
   - Corrected `Draw.Line` parameter overload mismatch by passing `false` as the third parameter (`isAutoScale`).
