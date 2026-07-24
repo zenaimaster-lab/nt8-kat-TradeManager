@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 0.04 (2026-07-24)
+ * Version: 0.22 (2026-07-24)
  * NinjaTrader 8 TradeManager Indicator
  */
 
@@ -26,10 +26,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 	public class KatTradeManager : Indicator
 	{
-		public const string VERSION = "0.16";
+		#region Metadata & Variables
+		public const string VERSION = "0.22";
 		public const string RELEASE_DATE = "2026-07-24";
 
-		#region Variables
 		private volatile Account account;
 		private Grid chartGrid;
 		private Border panelBorder;
@@ -37,6 +37,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private ComboBox tfSelector;
 		private TextBox txtQuantity;
 		private TextBox txtBuffer;
+		private TextBox txtDistance;
 		private ComboBox atmSelector;
 		private System.Windows.Threading.DispatcherTimer panelWatchdog;
 		private bool isTerminated;
@@ -45,11 +46,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private volatile int cachedQuantity;
 		private volatile int cachedTfIndex;
 		private volatile int cachedBufferTicks;
+		private volatile int cachedDistanceTicks;
 		private volatile string cachedAtmTemplate = "";
 
 		private Order entryOrder = null;
 
-		// parsed ATM parameters for line drawing
+		// Parsed ATM parameters for line drawing
 		private int atmStopLoss = 0;
 		private int atmTarget = 0;
 		private int atmBETrigger = 0;
@@ -59,15 +61,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private bool isExpectedLinesDrawn = false;
 
-		// ponytail: cached bar prices updated on data thread, read from UI thread — avoids barsAgo exception
+		// Thread synchronization lock for bar price caching
+		private readonly object priceLock = new object();
 		private const int NUM_SERIES = 4; // chart + 30s + 1m + 2m
 		private double[] cachedCurrentHigh = new double[NUM_SERIES];
 		private double[] cachedCurrentLow  = new double[NUM_SERIES];
 		private double[] cachedPrevHigh    = new double[NUM_SERIES];
 		private double[] cachedPrevLow     = new double[NUM_SERIES];
 		private double cachedTickSize;
+		private double cachedCurrentPrice;
 		#endregion
 
+		#region Indicator Lifecycle
 		protected override void OnStateChange()
 		{
 			if (State == State.SetDefaults)
@@ -84,10 +89,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 				// Default Settings
 				IsPanelVisible						= true;
 				DefaultQuantity						= 1;
-				DefaultStopLossTicks				= 20;
-				DefaultTakeProfitTicks				= 40;
 				AccountName							= "Sim101";
 				DefaultBufferTicks                  = 2;
+				DefaultDistanceTicks                = 320; // Default 80 points = 320 ticks
 				DefaultAtmTemplate                  = "Sim101_ATM";
 			}
 			else if (State == State.Configure)
@@ -103,6 +107,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				cachedTfIndex = 0;
 				cachedTickSize = TickSize;
 				cachedBufferTicks = DefaultBufferTicks;
+				cachedDistanceTicks = DefaultDistanceTicks;
 				cachedAtmTemplate = DefaultAtmTemplate;
 				Print(string.Format("[KatTradeManager] v{0} loaded — cached mode active", VERSION));
 
@@ -143,9 +148,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 				}
 			}
 		}
+		#endregion
 
-		#region WPF UI Construction
-
+		#region WPF UI Construction & Handlers
 		private void StartPanelWatchdog()
 		{
 			if (panelWatchdog != null) return;
@@ -196,7 +201,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 		}
 
-		// ponytail: Sync WPF control values → plain volatile fields so OnBarUpdate (data thread) never touches WPF.
 		private void SyncCachedValues()
 		{
 			if (txtQuantity != null)
@@ -205,6 +209,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				cachedTfIndex = tfSelector.SelectedIndex;
 			if (txtBuffer != null)
 				cachedBufferTicks = int.TryParse(txtBuffer.Text, out int b) ? b : DefaultBufferTicks;
+			if (txtDistance != null)
+				cachedDistanceTicks = int.TryParse(txtDistance.Text, out int d) ? d : DefaultDistanceTicks;
 			if (atmSelector != null && atmSelector.SelectedItem != null)
 				cachedAtmTemplate = atmSelector.SelectedItem.ToString();
 		}
@@ -222,7 +228,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				BorderBrush = Brushes.DodgerBlue,
 				BorderThickness = new Thickness(1.5),
 				CornerRadius = new CornerRadius(6),
-				Width = 210,
+				Width = 240,
 				HorizontalAlignment = HorizontalAlignment.Right,
 				VerticalAlignment = VerticalAlignment.Top,
 				Margin = new Thickness(0, 30, 20, 0),
@@ -279,10 +285,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 				HorizontalAlignment = HorizontalAlignment.Center
 			});
 
-			// Layout Grid for Parameters (Acc, TF, Contracts, Buffer, ATM)
+			// Layout Grid for Parameters
 			Grid paramGrid = new Grid { Margin = new Thickness(0, 0, 0, 8) };
-			paramGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(85) }); // labels column
-			paramGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // input controls stretch column
+			paramGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(85) });
+			paramGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
 			// Account Selection
 			ComboBox accSelector = new ComboBox { FontSize = 11, Height = 22 };
@@ -311,12 +317,42 @@ namespace NinjaTrader.NinjaScript.Indicators
 			tfSelector.SelectedIndex = 0;
 			AddGridRow(paramGrid, "TF:", tfSelector);
 
-			// Quantity & Buffer Inputs
+			// Quantity, Buffer & Fixed Distance Inputs
 			txtQuantity = new TextBox { Text = DefaultQuantity.ToString(), FontSize = 11, Height = 22, Background = Brushes.Black, Foreground = Brushes.White, BorderBrush = Brushes.Gray, Padding = new Thickness(4, 0, 4, 0), VerticalContentAlignment = VerticalAlignment.Center };
+			txtQuantity.PreviewKeyDown += (s, ev) =>
+			{
+				if (ev.Key == Key.Enter)
+				{
+					SyncCachedValues();
+					if (ChartControl != null) ChartControl.Focus();
+					ev.Handled = true;
+				}
+			};
 			AddGridRow(paramGrid, "Contracts:", txtQuantity);
 
 			txtBuffer = new TextBox { Text = DefaultBufferTicks.ToString(), FontSize = 11, Height = 22, Background = Brushes.Black, Foreground = Brushes.White, BorderBrush = Brushes.Gray, Padding = new Thickness(4, 0, 4, 0), VerticalContentAlignment = VerticalAlignment.Center };
+			txtBuffer.PreviewKeyDown += (s, ev) =>
+			{
+				if (ev.Key == Key.Enter)
+				{
+					SyncCachedValues();
+					if (ChartControl != null) ChartControl.Focus();
+					ev.Handled = true;
+				}
+			};
 			AddGridRow(paramGrid, "Buffer (Ticks):", txtBuffer);
+
+			txtDistance = new TextBox { Text = DefaultDistanceTicks.ToString(), FontSize = 11, Height = 22, Background = Brushes.Black, Foreground = Brushes.White, BorderBrush = Brushes.Gray, Padding = new Thickness(4, 0, 4, 0), VerticalContentAlignment = VerticalAlignment.Center };
+			txtDistance.PreviewKeyDown += (s, ev) =>
+			{
+				if (ev.Key == Key.Enter)
+				{
+					SyncCachedValues();
+					if (ChartControl != null) ChartControl.Focus();
+					ev.Handled = true;
+				}
+			};
+			AddGridRow(paramGrid, "Dist (Ticks):", txtDistance);
 
 			// ATM Selection Dropdown
 			atmSelector = new ComboBox { FontSize = 11, Height = 22 };
@@ -363,32 +399,53 @@ namespace NinjaTrader.NinjaScript.Indicators
 			mainPanel.Children.Add(paramGrid);
 
 			// Buttons Section
-			mainPanel.Children.Add(CreateButton("🟢 BUY STOP (Prev High)", Brushes.LimeGreen, (s, ev) => PlacePendingStop(OrderAction.Buy, false)));
-			mainPanel.Children.Add(CreateButton("🟢 BUY STOP (Curr High)", Brushes.ForestGreen, (s, ev) => PlacePendingStop(OrderAction.Buy, true)));
-			mainPanel.Children.Add(CreateButton("🔴 SELL STOP (Prev Low)", Brushes.Crimson, (s, ev) => PlacePendingStop(OrderAction.Sell, false)));
-			mainPanel.Children.Add(CreateButton("🔴 SELL STOP (Curr Low)", Brushes.DarkRed, (s, ev) => PlacePendingStop(OrderAction.Sell, true)));
+			Grid orderBtnGrid = new Grid { Margin = new Thickness(0, 4, 0, 4) };
+			orderBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			orderBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
+			orderBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-			// Management Buttons (Cancel / Close Grid)
+			SolidColorBrush buyPrevBg  = new SolidColorBrush(Color.FromRgb(34, 112, 62));
+			SolidColorBrush buyCurrBg  = new SolidColorBrush(Color.FromRgb(24, 82, 45));
+			SolidColorBrush buyFixedBg = new SolidColorBrush(Color.FromRgb(16, 56, 30));
+			SolidColorBrush sellPrevBg = new SolidColorBrush(Color.FromRgb(148, 48, 54));
+			SolidColorBrush sellCurrBg = new SolidColorBrush(Color.FromRgb(110, 32, 38));
+			SolidColorBrush sellFixedBg = new SolidColorBrush(Color.FromRgb(75, 20, 24));
+			SolidColorBrush cancelBg   = new SolidColorBrush(Color.FromRgb(160, 90, 25));
+			SolidColorBrush closeBg    = new SolidColorBrush(Color.FromRgb(140, 35, 35));
+
+			StackPanel buyCol = new StackPanel();
+			buyCol.Children.Add(CreateButton("BUY Previous", buyPrevBg, (s, ev) => PlaceOrder(OrderAction.Buy, false), 48, 12));
+			buyCol.Children.Add(CreateButton("BUY Current", buyCurrBg, (s, ev) => PlaceOrder(OrderAction.Buy, true), 24, 10));
+			buyCol.Children.Add(CreateButton("BUY +Distance", buyFixedBg, (s, ev) => PlaceFixedDistanceOrder(OrderAction.Buy), 24, 10));
+			Grid.SetColumn(buyCol, 0);
+
+			StackPanel sellCol = new StackPanel();
+			sellCol.Children.Add(CreateButton("SELL Previous", sellPrevBg, (s, ev) => PlaceOrder(OrderAction.Sell, false), 48, 12));
+			sellCol.Children.Add(CreateButton("SELL Current", sellCurrBg, (s, ev) => PlaceOrder(OrderAction.Sell, true), 24, 10));
+			sellCol.Children.Add(CreateButton("SELL -Distance", sellFixedBg, (s, ev) => PlaceFixedDistanceOrder(OrderAction.Sell), 24, 10));
+			Grid.SetColumn(sellCol, 2);
+
+			orderBtnGrid.Children.Add(buyCol);
+			orderBtnGrid.Children.Add(sellCol);
+			mainPanel.Children.Add(orderBtnGrid);
+
+			// Management Buttons
 			Grid mgrGrid = new Grid { Margin = new Thickness(0, 6, 0, 0) };
 			mgrGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			mgrGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(6) }); // Spacing gap
+			mgrGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(6) });
 			mgrGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-			Button btnCancel = CreateButton("Cancel", Brushes.Orange, (s, ev) => CancelAllOrders());
-			btnCancel.Height = 22;
+			Button btnCancel = CreateButton("Cancel", cancelBg, (s, ev) => CancelAllOrders(), 22, 10);
 			Grid.SetColumn(btnCancel, 0);
 			mgrGrid.Children.Add(btnCancel);
 
-			Button btnClose = CreateButton("Close", Brushes.Red, (s, ev) => ClosePosition());
-			btnClose.Height = 22;
+			Button btnClose = CreateButton("Close", closeBg, (s, ev) => ClosePosition(), 22, 10);
 			Grid.SetColumn(btnClose, 2);
 			mgrGrid.Children.Add(btnClose);
 
 			mainPanel.Children.Add(mgrGrid);
-
 			panelBorder.Child = mainPanel;
 
-			// Attach to chartGrid
 			Grid.SetColumnSpan(panelBorder, 3);
 			chartGrid.Children.Add(panelBorder);
 		}
@@ -418,18 +475,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 			grid.Children.Add(inputElement);
 		}
 
-		private Button CreateButton(string text, Brush bg, RoutedEventHandler handler)
+		private Button CreateButton(string text, Brush bg, RoutedEventHandler handler, double height = 24, double fontSize = 10)
 		{
 			Button btn = new Button
 			{
 				Content = text,
 				Background = bg,
 				Foreground = Brushes.White,
-				FontWeight = FontWeights.Normal,
-				FontSize = 10,
+				FontWeight = FontWeights.Bold,
+				FontSize = fontSize,
 				Margin = new Thickness(0, 2, 0, 2),
 				Padding = new Thickness(2),
-				Height = 24,
+				Height = height,
 				BorderThickness = new Thickness(0)
 			};
 			btn.Click += handler;
@@ -446,10 +503,55 @@ namespace NinjaTrader.NinjaScript.Indicators
 		}
 		#endregion
 
-		#region Trading Operations
+		#region Price Caching & OnBarUpdate
+		protected override void OnBarUpdate()
+		{
+			try
+			{
+				int bip = BarsInProgress;
+				if (bip < NUM_SERIES && CurrentBars[bip] >= 0)
+				{
+					lock (priceLock)
+					{
+						cachedCurrentHigh[bip] = Highs[bip][0];
+						cachedCurrentLow[bip]  = Lows[bip][0];
+						if (bip == 0)
+						{
+							cachedCurrentPrice = Closes[0][0];
+						}
+						if (CurrentBars[bip] >= 1)
+						{
+							cachedPrevHigh[bip] = Highs[bip][1];
+							cachedPrevLow[bip]  = Lows[bip][1];
+						}
+					}
+				}
+
+				if (bip != 0 || account == null || Instrument == null) return;
+
+				if (entryOrder != null)
+				{
+					bool isWorking = entryOrder.OrderState == OrderState.Working || entryOrder.OrderState == OrderState.Accepted;
+					if (!isWorking && isExpectedLinesDrawn)
+					{
+						RemoveExpectedLines();
+					}
+				}
+				else if (isExpectedLinesDrawn)
+				{
+					RemoveExpectedLines();
+				}
+			}
+			catch (Exception ex)
+			{
+				Print(string.Format("[KatTradeManager] OnBarUpdate error: {0}", ex.Message));
+			}
+		}
+		#endregion
+
+		#region Order Execution & Trading Operations
 		private int GetBarsInProgressIndex()
 		{
-			// ponytail: reads cached value (synced from UI thread) instead of WPF control
 			switch (cachedTfIndex)
 			{
 				case 1: return 1; // 30s
@@ -459,7 +561,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 		}
 
-		private void PlacePendingStop(OrderAction action, bool isCurrentCandle)
+		private void PlaceOrder(OrderAction action, bool isCurrentCandle)
 		{
 			if (account == null || Instrument == null) return;
 
@@ -469,25 +571,79 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (barIdx < 0 || barIdx >= NUM_SERIES) return;
 
 				double basePrice = 0;
-				if (action == OrderAction.Buy)
+				double currentPx = 0;
+
+				lock (priceLock)
 				{
-					basePrice = isCurrentCandle ? cachedCurrentHigh[barIdx] : cachedPrevHigh[barIdx];
-				}
-				else
-				{
-					basePrice = isCurrentCandle ? cachedCurrentLow[barIdx] : cachedPrevLow[barIdx];
+					if (action == OrderAction.Buy)
+					{
+						basePrice = isCurrentCandle ? cachedCurrentHigh[barIdx] : cachedPrevHigh[barIdx];
+					}
+					else
+					{
+						basePrice = isCurrentCandle ? cachedCurrentLow[barIdx] : cachedPrevLow[barIdx];
+					}
+					currentPx = cachedCurrentPrice > 0 ? cachedCurrentPrice : basePrice;
 				}
 
 				if (basePrice <= 0) return;
 
-				double triggerPrice = action == OrderAction.Buy 
-					? basePrice + (cachedBufferTicks * cachedTickSize) 
-					: basePrice - (cachedBufferTicks * cachedTickSize);
+				double triggerPrice = KatTradeCalculator.CalculateTriggerPrice(action, basePrice, cachedBufferTicks, cachedTickSize);
+				OrderType orderType = KatTradeCalculator.DetermineOrderType(action, triggerPrice, currentPx, out double limitPrice, out double stopPrice);
 
+				PlaceOrderInternal(action, triggerPrice, orderType, limitPrice, stopPrice, "placing order");
+			}
+			catch (Exception ex)
+			{
+				Print(string.Format("[KatTradeManager] Error placing order: {0}", ex.ToString()));
+			}
+		}
+
+		private void PlaceFixedDistanceOrder(OrderAction action)
+		{
+			if (account == null || Instrument == null) return;
+
+			try
+			{
+				double currentPx = 0;
+				lock (priceLock)
+				{
+					currentPx = cachedCurrentPrice;
+					if (currentPx <= 0)
+					{
+						int barIdx = GetBarsInProgressIndex();
+						if (barIdx >= 0 && barIdx < NUM_SERIES)
+							currentPx = cachedCurrentHigh[barIdx] > 0 ? cachedCurrentHigh[barIdx] : 0;
+					}
+				}
+
+				if (currentPx <= 0) return;
+
+				int distTicks = cachedDistanceTicks > 0 ? cachedDistanceTicks : DefaultDistanceTicks;
+				double triggerPrice = KatTradeCalculator.CalculateFixedDistanceTriggerPrice(action, currentPx, distTicks, cachedTickSize);
+
+				OrderType orderType = OrderType.StopMarket;
+				double limitPrice = 0;
+				double stopPrice = triggerPrice;
+
+				PlaceOrderInternal(action, triggerPrice, orderType, limitPrice, stopPrice, "placing fixed distance order");
+			}
+			catch (Exception ex)
+			{
+				Print(string.Format("[KatTradeManager] Error placing fixed distance order: {0}", ex.ToString()));
+			}
+		}
+
+		private void PlaceOrderInternal(OrderAction action, double triggerPrice, OrderType orderType, double limitPrice, double stopPrice, string errorContext)
+		{
+			if (account == null || Instrument == null) return;
+
+			try
+			{
 				int qty = cachedQuantity > 0 ? cachedQuantity : DefaultQuantity;
 				string entryName = "Entry";
 
-				entryOrder = account.CreateOrder(Instrument, action, OrderType.StopMarket, OrderEntry.Manual, TimeInForce.Gtc, qty, 0, triggerPrice, "", entryName, NinjaTrader.Core.Globals.MaxDate, null);
+				entryOrder = account.CreateOrder(Instrument, action, orderType, OrderEntry.Manual, TimeInForce.Gtc, qty, limitPrice, stopPrice, "", entryName, NinjaTrader.Core.Globals.MaxDate, null);
 				if (entryOrder != null)
 				{
 					if (!string.IsNullOrEmpty(cachedAtmTemplate))
@@ -499,39 +655,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 						account.Submit(new[] { entryOrder });
 					}
 
-					double slPrice = 0;
-					double tpPrice = 0;
-					double bePrice = 0;
-					double sl1Price = 0;
-					double sl2Price = 0;
-
-					if (action == OrderAction.Buy)
-					{
-						slPrice = triggerPrice - (atmStopLoss * cachedTickSize);
-						tpPrice = triggerPrice + (atmTarget * cachedTickSize);
-						bePrice = triggerPrice + (atmBETrigger * cachedTickSize);
-						sl1Price = triggerPrice + (atmSL1Trigger * cachedTickSize);
-						sl2Price = triggerPrice + (atmSL2Trigger * cachedTickSize);
-					}
-					else
-					{
-						slPrice = triggerPrice + (atmStopLoss * cachedTickSize);
-						tpPrice = triggerPrice - (atmTarget * cachedTickSize);
-						bePrice = triggerPrice - (atmBETrigger * cachedTickSize);
-						sl1Price = triggerPrice - (atmSL1Trigger * cachedTickSize);
-						sl2Price = triggerPrice - (atmSL2Trigger * cachedTickSize);
-					}
+					KatTradeCalculator.AtmLevels levels = KatTradeCalculator.CalculateAtmLevels(
+						action, triggerPrice, atmStopLoss, atmTarget, atmBETrigger, atmSL1Trigger, atmSL2Trigger, cachedTickSize);
 
 					if (atmStopLoss > 0)
-						Draw.Line(this, "KAT_SL_LINE", false, 15, slPrice, -10, slPrice, Brushes.Red, DashStyleHelper.Dash, 2);
+						Draw.Line(this, "KAT_SL_LINE", false, 15, levels.SlPrice, -10, levels.SlPrice, Brushes.Red, DashStyleHelper.Dash, 2);
 					if (atmTarget > 0)
-						Draw.Line(this, "KAT_TP_LINE", false, 15, tpPrice, -10, tpPrice, Brushes.Green, DashStyleHelper.Dash, 2);
+						Draw.Line(this, "KAT_TP_LINE", false, 15, levels.TpPrice, -10, levels.TpPrice, Brushes.Green, DashStyleHelper.Dash, 2);
 					if (atmBETrigger > 0)
-						Draw.Line(this, "KAT_BE_LINE", false, 15, bePrice, -10, bePrice, Brushes.DeepSkyBlue, DashStyleHelper.DashDot, 1);
+						Draw.Line(this, "KAT_BE_LINE", false, 15, levels.BePrice, -10, levels.BePrice, Brushes.DeepSkyBlue, DashStyleHelper.DashDot, 1);
 					if (atmSL1Trigger > 0)
-						Draw.Line(this, "KAT_SL1_LINE", false, 15, sl1Price, -10, sl1Price, Brushes.Orange, DashStyleHelper.Dot, 1);
+						Draw.Line(this, "KAT_SL1_LINE", false, 15, levels.Sl1Price, -10, levels.Sl1Price, Brushes.Orange, DashStyleHelper.Dot, 1);
 					if (atmSL2Trigger > 0)
-						Draw.Line(this, "KAT_SL2_LINE", false, 15, sl2Price, -10, sl2Price, Brushes.Magenta, DashStyleHelper.Dot, 1);
+						Draw.Line(this, "KAT_SL2_LINE", false, 15, levels.Sl2Price, -10, levels.Sl2Price, Brushes.Magenta, DashStyleHelper.Dot, 1);
 
 					isExpectedLinesDrawn = true;
 					ForceRefresh();
@@ -539,76 +675,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			catch (Exception ex)
 			{
-				Print(string.Format("[KatTradeManager] Error placing order: {0}", ex.ToString()));
+				Print(string.Format("[KatTradeManager] Error {0}: {1}", errorContext, ex.ToString()));
 			}
-		}
-
-		private void LoadAtmTemplateSettings(string templateName)
-		{
-			atmStopLoss = 0;
-			atmTarget = 0;
-			atmBETrigger = 0;
-			atmSL1Trigger = 0;
-			atmSL2Trigger = 0;
-			atmQuantity = 0;
-
-			if (string.IsNullOrEmpty(templateName)) return;
-
-			try
-			{
-				string path = System.IO.Path.Combine(NinjaTrader.Core.Globals.UserDataDir, "templates", "AtmStrategy", templateName + ".xml");
-				if (!System.IO.File.Exists(path)) return;
-
-				System.Xml.XmlDocument doc = new System.Xml.XmlDocument();
-				doc.Load(path);
-
-				System.Xml.XmlNode slNode = doc.SelectSingleNode("//AtmStrategy/Brackets/Bracket/StopLoss");
-				if (slNode != null) int.TryParse(slNode.InnerText, out atmStopLoss);
-
-				System.Xml.XmlNode targetNode = doc.SelectSingleNode("//AtmStrategy/Brackets/Bracket/Target");
-				if (targetNode != null) int.TryParse(targetNode.InnerText, out atmTarget);
-
-				System.Xml.XmlNode qtyNode = doc.SelectSingleNode("//AtmStrategy/DefaultQuantity");
-				if (qtyNode != null) int.TryParse(qtyNode.InnerText, out atmQuantity);
-
-				System.Xml.XmlNode beNode = doc.SelectSingleNode("//AtmStrategy/Brackets/Bracket/StopStrategy/AutoBreakEvenProfitTrigger");
-				if (beNode != null) int.TryParse(beNode.InnerText, out atmBETrigger);
-
-				System.Xml.XmlNodeList trailSteps = doc.SelectNodes("//AtmStrategy/Brackets/Bracket/StopStrategy/AutoTrailSteps/AutoTrailStep");
-				if (trailSteps != null)
-				{
-					if (trailSteps.Count > 0)
-					{
-						System.Xml.XmlNode st1 = trailSteps[0].SelectSingleNode("ProfitTrigger");
-						if (st1 != null) int.TryParse(st1.InnerText, out atmSL1Trigger);
-					}
-					if (trailSteps.Count > 1)
-					{
-						System.Xml.XmlNode st2 = trailSteps[1].SelectSingleNode("ProfitTrigger");
-						if (st2 != null) int.TryParse(st2.InnerText, out atmSL2Trigger);
-					}
-				}
-
-				if (txtQuantity != null && atmQuantity > 0)
-				{
-					txtQuantity.Text = atmQuantity.ToString();
-				}
-			}
-			catch (Exception ex)
-			{
-				Print(string.Format("[KatTradeManager] Error parsing ATM XML: {0}", ex.Message));
-			}
-		}
-
-		private void RemoveExpectedLines()
-		{
-			RemoveDrawObject("KAT_SL_LINE");
-			RemoveDrawObject("KAT_TP_LINE");
-			RemoveDrawObject("KAT_BE_LINE");
-			RemoveDrawObject("KAT_SL1_LINE");
-			RemoveDrawObject("KAT_SL2_LINE");
-			isExpectedLinesDrawn = false;
-			ForceRefresh();
 		}
 
 		private void CancelAllOrders()
@@ -635,46 +703,57 @@ namespace NinjaTrader.NinjaScript.Indicators
 		}
 		#endregion
 
-		#region OnBarUpdate & Visual Lines Auto-clean
-		protected override void OnBarUpdate()
+		#region ATM XML Template Parsing
+		private void LoadAtmTemplateSettings(string templateName)
 		{
+			atmStopLoss = 0;
+			atmTarget = 0;
+			atmBETrigger = 0;
+			atmSL1Trigger = 0;
+			atmSL2Trigger = 0;
+			atmQuantity = 0;
+
+			if (string.IsNullOrEmpty(templateName)) return;
+
 			try
 			{
-				int bip = BarsInProgress;
-				if (bip < NUM_SERIES && CurrentBars[bip] >= 0)
-				{
-					cachedCurrentHigh[bip] = Highs[bip][0];
-					cachedCurrentLow[bip]  = Lows[bip][0];
-					if (CurrentBars[bip] >= 1)
-					{
-						cachedPrevHigh[bip] = Highs[bip][1];
-						cachedPrevLow[bip]  = Lows[bip][1];
-					}
-				}
+				string path = System.IO.Path.Combine(NinjaTrader.Core.Globals.UserDataDir, "templates", "AtmStrategy", templateName + ".xml");
+				AtmTemplateData data = KatAtmXmlParser.ParseFile(path);
 
-				if (bip != 0 || account == null || Instrument == null) return;
+				atmStopLoss = data.StopLoss;
+				atmTarget = data.Target;
+				atmBETrigger = data.BETrigger;
+				atmSL1Trigger = data.SL1Trigger;
+				atmSL2Trigger = data.SL2Trigger;
+				atmQuantity = data.Quantity;
 
-				if (entryOrder != null)
+				if (txtQuantity != null && atmQuantity > 0)
 				{
-					bool isWorking = entryOrder.OrderState == OrderState.Working || entryOrder.OrderState == OrderState.Accepted;
-					if (!isWorking && isExpectedLinesDrawn)
-					{
-						RemoveExpectedLines();
-					}
-				}
-				else if (isExpectedLinesDrawn)
-				{
-					RemoveExpectedLines();
+					txtQuantity.Text = atmQuantity.ToString();
+					cachedQuantity = atmQuantity;
 				}
 			}
 			catch (Exception ex)
 			{
-				Print(string.Format("[KatTradeManager] OnBarUpdate error: {0}", ex.Message));
+				Print(string.Format("[KatTradeManager] Error parsing ATM XML: {0}", ex.Message));
 			}
 		}
 		#endregion
 
-		#region Properties
+		#region Chart Visuals & Line Drawing
+		private void RemoveExpectedLines()
+		{
+			RemoveDrawObject("KAT_SL_LINE");
+			RemoveDrawObject("KAT_TP_LINE");
+			RemoveDrawObject("KAT_BE_LINE");
+			RemoveDrawObject("KAT_SL1_LINE");
+			RemoveDrawObject("KAT_SL2_LINE");
+			isExpectedLinesDrawn = false;
+			ForceRefresh();
+		}
+		#endregion
+
+		#region NinjaScript Properties
 		[NinjaScriptProperty]
 		[Display(Name="Show Control Panel", Order=0, GroupName="Parameters")]
 		public bool IsPanelVisible { get; set; }
@@ -685,32 +764,25 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public int DefaultQuantity { get; set; }
 
 		[NinjaScriptProperty]
-		[Range(1, 1000)]
-		[Display(Name="Default StopLoss (Ticks)", Order=2, GroupName="Parameters")]
-		public int DefaultStopLossTicks { get; set; }
-
-		[NinjaScriptProperty]
-		[Range(1, 1000)]
-		[Display(Name="Default TakeProfit (Ticks)", Order=3, GroupName="Parameters")]
-		public int DefaultTakeProfitTicks { get; set; }
-
-		[NinjaScriptProperty]
-		[Display(Name="Account Name", Order=4, GroupName="Parameters")]
+		[Display(Name="Account Name", Order=2, GroupName="Parameters")]
 		public string AccountName { get; set; }
 
 		[NinjaScriptProperty]
 		[Range(0, 100)]
-		[Display(Name="Default Buffer (Ticks)", Order=5, GroupName="Parameters")]
+		[Display(Name="Default Buffer (Ticks)", Order=3, GroupName="Parameters")]
 		public int DefaultBufferTicks { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name="Default ATM Template", Order=6, GroupName="Parameters")]
+		[Display(Name="Default ATM Template", Order=4, GroupName="Parameters")]
 		public string DefaultAtmTemplate { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(1, 10000)]
+		[Display(Name="Default Distance (Ticks)", Order=5, GroupName="Parameters")]
+		public int DefaultDistanceTicks { get; set; }
 		#endregion
 	}
 }
-
-
 
 #region NinjaScript generated code. Neither change nor remove.
 
@@ -719,18 +791,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
 	{
 		private KatTradeManager[] cacheKatTradeManager;
-		public KatTradeManager KatTradeManager(bool isPanelVisible, int defaultQuantity, int defaultStopLossTicks, int defaultTakeProfitTicks, string accountName, int defaultBufferTicks, string defaultAtmTemplate)
+		public KatTradeManager KatTradeManager(bool isPanelVisible, int defaultQuantity, string accountName, int defaultBufferTicks, string defaultAtmTemplate, int defaultDistanceTicks)
 		{
-			return KatTradeManager(Input, isPanelVisible, defaultQuantity, defaultStopLossTicks, defaultTakeProfitTicks, accountName, defaultBufferTicks, defaultAtmTemplate);
+			return KatTradeManager(Input, isPanelVisible, defaultQuantity, accountName, defaultBufferTicks, defaultAtmTemplate, defaultDistanceTicks);
 		}
 
-		public KatTradeManager KatTradeManager(ISeries<double> input, bool isPanelVisible, int defaultQuantity, int defaultStopLossTicks, int defaultTakeProfitTicks, string accountName, int defaultBufferTicks, string defaultAtmTemplate)
+		public KatTradeManager KatTradeManager(ISeries<double> input, bool isPanelVisible, int defaultQuantity, string accountName, int defaultBufferTicks, string defaultAtmTemplate, int defaultDistanceTicks)
 		{
 			if (cacheKatTradeManager != null)
 				for (int idx = 0; idx < cacheKatTradeManager.Length; idx++)
-					if (cacheKatTradeManager[idx] != null && cacheKatTradeManager[idx].IsPanelVisible == isPanelVisible && cacheKatTradeManager[idx].DefaultQuantity == defaultQuantity && cacheKatTradeManager[idx].DefaultStopLossTicks == defaultStopLossTicks && cacheKatTradeManager[idx].DefaultTakeProfitTicks == defaultTakeProfitTicks && cacheKatTradeManager[idx].AccountName == accountName && cacheKatTradeManager[idx].DefaultBufferTicks == defaultBufferTicks && cacheKatTradeManager[idx].DefaultAtmTemplate == defaultAtmTemplate && cacheKatTradeManager[idx].EqualsInput(input))
+					if (cacheKatTradeManager[idx] != null && cacheKatTradeManager[idx].IsPanelVisible == isPanelVisible && cacheKatTradeManager[idx].DefaultQuantity == defaultQuantity && cacheKatTradeManager[idx].AccountName == accountName && cacheKatTradeManager[idx].DefaultBufferTicks == defaultBufferTicks && cacheKatTradeManager[idx].DefaultAtmTemplate == defaultAtmTemplate && cacheKatTradeManager[idx].DefaultDistanceTicks == defaultDistanceTicks && cacheKatTradeManager[idx].EqualsInput(input))
 						return cacheKatTradeManager[idx];
-			return CacheIndicator<KatTradeManager>(new KatTradeManager(){ IsPanelVisible = isPanelVisible, DefaultQuantity = defaultQuantity, DefaultStopLossTicks = defaultStopLossTicks, DefaultTakeProfitTicks = defaultTakeProfitTicks, AccountName = accountName, DefaultBufferTicks = defaultBufferTicks, DefaultAtmTemplate = defaultAtmTemplate }, input, ref cacheKatTradeManager);
+			return CacheIndicator<KatTradeManager>(new KatTradeManager(){ IsPanelVisible = isPanelVisible, DefaultQuantity = defaultQuantity, AccountName = accountName, DefaultBufferTicks = defaultBufferTicks, DefaultAtmTemplate = defaultAtmTemplate, DefaultDistanceTicks = defaultDistanceTicks }, input, ref cacheKatTradeManager);
 		}
 	}
 }
@@ -739,14 +811,14 @@ namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
 {
 	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
 	{
-		public Indicators.KatTradeManager KatTradeManager(bool isPanelVisible, int defaultQuantity, int defaultStopLossTicks, int defaultTakeProfitTicks, string accountName, int defaultBufferTicks, string defaultAtmTemplate)
+		public Indicators.KatTradeManager KatTradeManager(bool isPanelVisible, int defaultQuantity, string accountName, int defaultBufferTicks, string defaultAtmTemplate, int defaultDistanceTicks)
 		{
-			return indicator.KatTradeManager(Input, isPanelVisible, defaultQuantity, defaultStopLossTicks, defaultTakeProfitTicks, accountName, defaultBufferTicks, defaultAtmTemplate);
+			return indicator.KatTradeManager(Input, isPanelVisible, defaultQuantity, accountName, defaultBufferTicks, defaultAtmTemplate, defaultDistanceTicks);
 		}
 
-		public Indicators.KatTradeManager KatTradeManager(ISeries<double> input , bool isPanelVisible, int defaultQuantity, int defaultStopLossTicks, int defaultTakeProfitTicks, string accountName, int defaultBufferTicks, string defaultAtmTemplate)
+		public Indicators.KatTradeManager KatTradeManager(ISeries<double> input , bool isPanelVisible, int defaultQuantity, string accountName, int defaultBufferTicks, string defaultAtmTemplate, int defaultDistanceTicks)
 		{
-			return indicator.KatTradeManager(input, isPanelVisible, defaultQuantity, defaultStopLossTicks, defaultTakeProfitTicks, accountName, defaultBufferTicks, defaultAtmTemplate);
+			return indicator.KatTradeManager(input, isPanelVisible, defaultQuantity, accountName, defaultBufferTicks, defaultAtmTemplate, defaultDistanceTicks);
 		}
 	}
 }
@@ -755,14 +827,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
 	{
-		public Indicators.KatTradeManager KatTradeManager(bool isPanelVisible, int defaultQuantity, int defaultStopLossTicks, int defaultTakeProfitTicks, string accountName, int defaultBufferTicks, string defaultAtmTemplate)
+		public Indicators.KatTradeManager KatTradeManager(bool isPanelVisible, int defaultQuantity, string accountName, int defaultBufferTicks, string defaultAtmTemplate, int defaultDistanceTicks)
 		{
-			return indicator.KatTradeManager(Input, isPanelVisible, defaultQuantity, defaultStopLossTicks, defaultTakeProfitTicks, accountName, defaultBufferTicks, defaultAtmTemplate);
+			return indicator.KatTradeManager(Input, isPanelVisible, defaultQuantity, accountName, defaultBufferTicks, defaultAtmTemplate, defaultDistanceTicks);
 		}
 
-		public Indicators.KatTradeManager KatTradeManager(ISeries<double> input , bool isPanelVisible, int defaultQuantity, int defaultStopLossTicks, int defaultTakeProfitTicks, string accountName, int defaultBufferTicks, string defaultAtmTemplate)
+		public Indicators.KatTradeManager KatTradeManager(ISeries<double> input , bool isPanelVisible, int defaultQuantity, string accountName, int defaultBufferTicks, string defaultAtmTemplate, int defaultDistanceTicks)
 		{
-			return indicator.KatTradeManager(input, isPanelVisible, defaultQuantity, defaultStopLossTicks, defaultTakeProfitTicks, accountName, defaultBufferTicks, defaultAtmTemplate);
+			return indicator.KatTradeManager(input, isPanelVisible, defaultQuantity, accountName, defaultBufferTicks, defaultAtmTemplate, defaultDistanceTicks);
 		}
 	}
 }
