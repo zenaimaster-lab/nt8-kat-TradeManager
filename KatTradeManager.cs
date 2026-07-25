@@ -136,9 +136,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private int pendingAtmSL1Trigger;
 		private int pendingAtmSL2Trigger;
 
-		// Partial Candle toggle state, Pullback %, & Renko chart detection
+		// Partial Candle & Freeze Trail toggle state, Pullback %, & Renko chart detection
 		private volatile bool cachedIsPartialCandle = false;
 		private volatile int cachedPartialPercent = 30;
+		private volatile bool cachedIsFreezeTrail = false;
+		private double frozenStopPrice = 0;
 		private bool isRenkoChart = false;
 
 		// Thread synchronization lock for bar price caching
