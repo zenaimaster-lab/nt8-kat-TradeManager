@@ -69,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "0.47";
+		public const string VERSION = "0.48";
 		public const string RELEASE_DATE = "2026-07-25";
 
 		private volatile Account account;
@@ -80,6 +80,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private ComboBox atmSelector;
 		private System.Windows.Threading.DispatcherTimer panelWatchdog;
 		private bool isTerminated;
+
+		// Daily Risk Control cached states & fields (default ON)
+		private volatile bool cachedIsDailyMaxDD = true;
+		private volatile bool cachedIsDailyMaxProfit = true;
+		private volatile double cachedDailyMaxDD = 500.0;
+		private volatile double cachedDailyMaxProfit = 1000.0;
+		private volatile double cachedDailyPnL = 0.0;
 
 		// EMA indicators for multi-timeframe candle scanning
 		private EMA[] ema34Series;
@@ -206,7 +213,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 				DefaultAtmTemplate                  = "Sim101_ATM";
 				DefaultPartialCandlePercent         = 30;
 
+				// Daily Risk Control Defaults
+				DailyMaxDDEnabled                   = true;
+				DailyMaxDD                          = 500.0;
+				DailyMaxProfitEnabled               = true;
+				DailyMaxProfit                      = 1000.0;
+
 				// EMA Place Filter Defaults
+
 				EmaPlace1Enabled                    = true;
 				EmaPlace1Period                     = 9;
 				EmaPlace1Timeframe                  = KatEmaTimeframe.Min5;
@@ -270,7 +284,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 				cachedBufferTicks = DefaultBufferTicks;
 				cachedDistanceTicks = DefaultDistanceTicks;
 				cachedAtmTemplate = DefaultAtmTemplate;
+				cachedIsDailyMaxDD = DailyMaxDDEnabled;
+				cachedDailyMaxDD = DailyMaxDD;
+				cachedIsDailyMaxProfit = DailyMaxProfitEnabled;
+				cachedDailyMaxProfit = DailyMaxProfit;
 				isRenkoChart = BarsPeriod.BarsPeriodType == BarsPeriodType.Renko
+
 				               || (BarsPeriod.BarsPeriodTypeName != null && BarsPeriod.BarsPeriodTypeName.IndexOf("Renko", StringComparison.OrdinalIgnoreCase) >= 0)
 				               || BarsPeriod.BarsPeriodType.ToString().IndexOf("Renko", StringComparison.OrdinalIgnoreCase) >= 0;
 
@@ -407,7 +426,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 				if (bip != 0 || account == null || Instrument == null) return;
 
+				// Daily Risk Control evaluation
+				EvaluateDailyRiskLimits();
+
 				// Process pending remove request (from CancelAllOrders on UI thread)
+
 				if (pendingRemoveLines)
 				{
 					pendingRemoveLines = false;
@@ -597,7 +620,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			if (account == null || Instrument == null) return;
 
+			if (IsDailyRiskBreached(out string breachReason))
+			{
+				Print(string.Format("[KatTradeManager] Order REJECTED by Daily Risk Protection: {0}", breachReason));
+				return;
+			}
+
 			try
+
 			{
 				KatOrderAction katAction = ToKatAction(action);
 				double checkPrice = (orderType == OrderType.Market) ? (cachedCurrentPrice > 0 ? cachedCurrentPrice : triggerPrice) : triggerPrice;
@@ -724,7 +754,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private void PlaceMarketOrder(OrderAction action)
 		{
 			if (account == null || Instrument == null) return;
+
+			if (IsDailyRiskBreached(out string breachReason))
+			{
+				Print(string.Format("[KatTradeManager] Market Order REJECTED by Daily Risk Protection: {0}", breachReason));
+				return;
+			}
+
 			try
+
 			{
 				int qty = cachedQuantity > 0 ? cachedQuantity : DefaultQuantity;
 				string entryName = action == OrderAction.Buy ? "MarketBuy" : "MarketSell";
@@ -817,6 +855,87 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 		}
 		#endregion
+
+		#region Daily Risk Protection Logic
+		private double CalculateDailyPnL()
+		{
+			if (account == null) return 0;
+			DateTime sessionStartUtc = KatTradeCalculator.GetNySessionStartUtc(DateTime.UtcNow);
+
+			double realized = 0;
+			try
+			{
+				if (account.Trades != null)
+				{
+					lock (account.Trades)
+					{
+						foreach (Trade trade in account.Trades)
+						{
+							if (trade != null && trade.Exit != null && trade.Exit.Time.ToUniversalTime() >= sessionStartUtc)
+							{
+								realized += trade.ProfitCurrency;
+							}
+						}
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				Print(string.Format("[KatTradeManager] Error calculating daily realized PnL: {0}", ex.Message));
+			}
+
+			double unrealized = 0;
+			try
+			{
+				unrealized = account.Get(AccountItem.UnrealizedProfitLoss, Currency.UsDollar);
+			}
+			catch {}
+
+			return realized + unrealized;
+		}
+
+		private bool IsDailyRiskBreached(out string breachReason)
+		{
+			breachReason = string.Empty;
+			if (account == null) return false;
+
+			double dailyPnL = CalculateDailyPnL();
+			cachedDailyPnL = dailyPnL;
+
+			if (cachedIsDailyMaxDD && cachedDailyMaxDD > 0 && dailyPnL <= -Math.Abs(cachedDailyMaxDD))
+			{
+				breachReason = string.Format("Daily Max DD breached (Current Daily PnL: ${0:F2} <= Max DD limit: -${1:F2})", dailyPnL, Math.Abs(cachedDailyMaxDD));
+				return true;
+			}
+
+			if (cachedIsDailyMaxProfit && cachedDailyMaxProfit > 0 && dailyPnL >= cachedDailyMaxProfit)
+			{
+				breachReason = string.Format("Daily Max Profit reached (Current Daily PnL: ${0:F2} >= Max Profit limit: ${1:F2})", dailyPnL, cachedDailyMaxProfit);
+				return true;
+			}
+
+			return false;
+		}
+
+		private void EvaluateDailyRiskLimits()
+		{
+			if (account == null || isTerminated) return;
+
+			if (IsDailyRiskBreached(out string breachReason))
+			{
+				Position pos = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
+				bool hasOpenPos = (pos != null && pos.MarketPosition != MarketPosition.Flat);
+				bool hasWorkingOrders = account.Orders.Any(o => (o.OrderState == OrderState.Working || o.OrderState == OrderState.Accepted) && o.Instrument == Instrument);
+
+				if (hasOpenPos || hasWorkingOrders)
+				{
+					Print(string.Format("[KatTradeManager] EMERGENCY FLATTEN triggered by Daily Risk Protection: {0}", breachReason));
+					ClosePosition();
+				}
+			}
+		}
+		#endregion
+
 
 		#region ATM XML Template Parsing
 		private void LoadAtmTemplateSettings(string templateName)
@@ -953,7 +1072,28 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Display(Name="Partial Candle Pullback (%)", Order=7, GroupName="Parameters")]
 		public int DefaultPartialCandlePercent { get; set; }
 
+		#region Daily Risk Control Properties
+		[NinjaScriptProperty]
+		[Display(Name="Daily Max DD Enabled", Order=1, GroupName="Daily Risk Control", Description="Enable Daily Max Drawdown limit protection.")]
+		public bool DailyMaxDDEnabled { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0, 1000000)]
+		[Display(Name="Daily Max DD ($)", Order=2, GroupName="Daily Risk Control", Description="Max daily drawdown limit in dollars (e.g. 500 for $500 max loss limit).")]
+		public double DailyMaxDD { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Daily Max Profit Enabled", Order=3, GroupName="Daily Risk Control", Description="Enable Daily Max Profit limit protection.")]
+		public bool DailyMaxProfitEnabled { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0, 1000000)]
+		[Display(Name="Daily Max Profit ($)", Order=4, GroupName="Daily Risk Control", Description="Max daily profit limit in dollars (e.g. 1000 for $1000 max profit limit).")]
+		public double DailyMaxProfit { get; set; }
+		#endregion
+
 		#region EMA Place Filter Properties
+
 		[NinjaScriptProperty]
 		[Display(Name="1st EMA Place Enabled", Order=10, GroupName="EMA Place Filter")]
 		public bool EmaPlace1Enabled { get; set; }

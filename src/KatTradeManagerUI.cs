@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.47 (2026-07-25) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.48 (2026-07-25) */
 
 using System;
 using System.Collections.Generic;
@@ -59,11 +59,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			AttachHotkeyHandler();
 
+			// Evaluate real-time daily risk protection limits
+			EvaluateDailyRiskLimits();
+
 			if (!IsPanelVisible)
 			{
 				if (panelBorder != null) RemoveWpfControls();
 				return;
 			}
+
 
 			// Sync UI control values to thread-safe cached fields
 			SyncCachedValues();
@@ -563,6 +567,51 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			sec3Panel.Children.Add(emaFilterGrid);
 
+			// --- Daily Max DD & Daily Max Profit toggle buttons (side-by-side below EMA Filter) ---
+			Grid dailyRiskGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
+			dailyRiskGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			dailyRiskGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
+			dailyRiskGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+			SolidColorBrush dailyOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
+			SolidColorBrush dailyOnBg  = new SolidColorBrush(Color.FromRgb(58, 19, 107)); // Darker purple (#3A136B)
+
+			Button btnDailyMaxDD = CreateButton(cachedIsDailyMaxDD ? "Max DD: ON" : "Max DD: OFF",
+				cachedIsDailyMaxDD ? dailyOnBg : dailyOffBg, null, 24, 10);
+			btnDailyMaxDD.Foreground = cachedIsDailyMaxDD ? Brushes.White : Brushes.LightGray;
+
+			btnDailyMaxDD.Click += (s, ev) =>
+			{
+				cachedIsDailyMaxDD = !cachedIsDailyMaxDD;
+				btnDailyMaxDD.Content = cachedIsDailyMaxDD ? "Max DD: ON" : "Max DD: OFF";
+				btnDailyMaxDD.Background = cachedIsDailyMaxDD ? dailyOnBg : dailyOffBg;
+				btnDailyMaxDD.Foreground = cachedIsDailyMaxDD ? Brushes.White : Brushes.LightGray;
+
+				// Instant effect on HUD click (Requirement 4)
+				EvaluateDailyRiskLimits();
+			};
+			Grid.SetColumn(btnDailyMaxDD, 0);
+			dailyRiskGrid.Children.Add(btnDailyMaxDD);
+
+			Button btnDailyMaxProfit = CreateButton(cachedIsDailyMaxProfit ? "Max Profit: ON" : "Max Profit: OFF",
+				cachedIsDailyMaxProfit ? dailyOnBg : dailyOffBg, null, 24, 10);
+			btnDailyMaxProfit.Foreground = cachedIsDailyMaxProfit ? Brushes.White : Brushes.LightGray;
+
+			btnDailyMaxProfit.Click += (s, ev) =>
+			{
+				cachedIsDailyMaxProfit = !cachedIsDailyMaxProfit;
+				btnDailyMaxProfit.Content = cachedIsDailyMaxProfit ? "Max Profit: ON" : "Max Profit: OFF";
+				btnDailyMaxProfit.Background = cachedIsDailyMaxProfit ? dailyOnBg : dailyOffBg;
+				btnDailyMaxProfit.Foreground = cachedIsDailyMaxProfit ? Brushes.White : Brushes.LightGray;
+
+				// Instant effect on HUD click (Requirement 4)
+				EvaluateDailyRiskLimits();
+			};
+			Grid.SetColumn(btnDailyMaxProfit, 2);
+			dailyRiskGrid.Children.Add(btnDailyMaxProfit);
+
+			sec3Panel.Children.Add(dailyRiskGrid);
+
 
 			Grid orderBtnGrid = new Grid { Margin = new Thickness(0, 0, 0, 0) };
 			orderBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -645,12 +694,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			sec4Panel.Children.Add(beRevertGrid);
 
-			SolidColorBrush closeBg = new SolidColorBrush(Color.FromRgb(60, 14, 18)); // Deep dark crimson/maroon
+			SolidColorBrush closeBg = new SolidColorBrush(Color.FromRgb(20, 20, 20)); // Very dark gray (almost black)
 			Button btnClose = CreateButton("Close/flatten", closeBg, (s, ev) => ClosePosition(), 33, 15);
 			sec4Panel.Children.Add(btnClose);
 
 
 			mainPanel.Children.Add(CreateSectionCard(sec4Panel, 0));
+
 
 			panelBorder.Child = mainPanel;
 		}

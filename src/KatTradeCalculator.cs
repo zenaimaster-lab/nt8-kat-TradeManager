@@ -271,5 +271,36 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			return true;
 		}
+
+		/// <summary>
+		/// Calculates UTC timestamp corresponding to 6:00 PM NY time (Eastern Time) of active trading session.
+		/// </summary>
+		public static DateTime GetNySessionStartUtc(DateTime nowUtc)
+		{
+			// ponytail: converts UTC to NY Time (EST/EDT) to determine 18:00 session start
+			TimeZoneInfo nyZone;
+			try
+			{
+				nyZone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
+			}
+			catch
+			{
+				nyZone = TimeZoneInfo.Local; // ponytail: fallback if EST zone ID unavailable
+			}
+
+			DateTime nowNy = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, nyZone);
+			DateTime sessionStartNy;
+			if (nowNy.TimeOfDay >= new TimeSpan(18, 0, 0))
+			{
+				sessionStartNy = nowNy.Date.AddHours(18);
+			}
+			else
+			{
+				sessionStartNy = nowNy.Date.AddDays(-1).AddHours(18);
+			}
+
+			return TimeZoneInfo.ConvertTimeToUtc(sessionStartNy, nyZone);
+		}
 	}
 }
+

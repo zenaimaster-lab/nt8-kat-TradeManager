@@ -24,7 +24,16 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.48] — 2026-07-25
+- **Daily Max Drawdown & Daily Max Profit Protection**:
+  - Implemented automated daily risk control in `KatTradeManager.cs` to reject order entries and trigger emergency position/order flattening when Daily Max Drawdown or Daily Max Profit limits are breached.
+  - Session PnL baseline calculation (`CalculateDailyPnL`) computes net realized PnL from closed trades (`account.Trades`) exited since **6:00 PM NY time** (Eastern Time) plus real-time unrealized PnL (`account.Get(AccountItem.UnrealizedProfitLoss)`).
+  - Added 2 side-by-side HUD toggle buttons (`Max DD: ON/OFF` and `Max Profit: ON/OFF`) directly under the EMA filter buttons, styled in darker purple brush (`#3A136B`).
+  - Toggling HUD buttons provides instant reactivity (`EvaluateDailyRiskLimits`), immediately checking and enforcing or releasing protection bounds without requiring indicator restart.
+  - Updated Close/flatten button background color (`closeBg`) to very dark gray `Color.FromRgb(20, 20, 20)` (`#141414`).
+
 ### [v0.47] — 2026-07-25
+
 - **Fixed ChartTrader Squeezed Layout Bug**:
   - Replaced deep depth-first visual search with shallowest visual tree depth algorithm (`GetVisualDepth`) and direct `ContentControl`/`ScrollViewer` extraction, preventing HUD from being attached to nested 2-column sub-grids inside Market buttons.
   - Added dynamic Grid row creation (`RowDefinitions.Add(RowDefinition)`) and `Grid.SetColumnSpan` spanning 100% width across all columns so HUD is placed at the very bottom of ChartTrader without column squeezing.
