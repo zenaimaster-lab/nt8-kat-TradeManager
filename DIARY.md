@@ -24,6 +24,19 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.33] — 2026-07-25
+- **Redesigned Bottom HUD Management Controls**:
+  - Removed old `Cancel` button.
+  - Added **BUY Market** (Emerald Green) & **SELL Market** (Ruby Red) buttons above management controls (Height 48, Font 12).
+  - Added **BE** (Breakeven) (Slate Teal) & **Revert** (Amber Gold) position management buttons (Height 33, Font 12).
+  - Updated **Close/Flatten** button: full-width layout, enlarged height (33px, 1.5x) and font size (15pt, 1.5x bold) in Deep Crimson Red.
+  - Added `CalculateBreakevenPrice()` helper to `KatTradeCalculator` and unit test coverage in `KatTradeCalculatorTests`.
+- **Graphify Entity Mapping**:
+  - `KatTradeCalculator.CalculateBreakevenPrice` -> Pure calculation of Breakeven price (+/- buffer ticks).
+  - `KatTradeManager.SetBreakeven` -> Adjusts active Stop Loss orders or submits new Breakeven Stop order.
+  - `KatTradeManager.RevertPosition` -> Closes current position and submits market order in opposite direction.
+  - `KatTradeManager.PlaceMarketOrder` -> Submits immediate Market entry order with configured ATM strategy template.
+
 ### [v0.32] — 2026-07-25
 - **Partial Candle Mode Refactor with Configurable Pullback %**:
   - Renamed `1/2 Candle` toggle button to `Partial Candle`.

@@ -63,6 +63,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return Math.Round(rounded, 8);
 		}
 
+		public static double CalculateBreakevenPrice(KatOrderAction action, double entryPrice, int bufferTicks, double tickSize)
+		{
+			return CalculateTriggerPrice(action, entryPrice, bufferTicks, tickSize);
+		}
+
 		public static double CalculateFixedDistanceTriggerPrice(KatOrderAction action, double currentPrice, int distanceTicks, double tickSize)
 		{
 			if (tickSize <= 0) return currentPrice;

@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.32 (2026-07-25) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.33 (2026-07-25) */
 
 using System;
 using System.Collections.Generic;
@@ -320,8 +320,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 			SolidColorBrush sellPrevBg = new SolidColorBrush(Color.FromRgb(148, 48, 54));
 			SolidColorBrush sellCurrBg = new SolidColorBrush(Color.FromRgb(110, 32, 38));
 			SolidColorBrush sellFixedBg = new SolidColorBrush(Color.FromRgb(75, 20, 24));
-			SolidColorBrush cancelBg   = new SolidColorBrush(Color.FromRgb(160, 90, 25));
-			SolidColorBrush closeBg    = new SolidColorBrush(Color.FromRgb(140, 35, 35));
 
 			StackPanel buyCol = new StackPanel();
 			buyCol.Children.Add(CreateButton("BUY Previous", buyPrevBg, (s, ev) => PlaceOrder(OrderAction.Buy, false), 48, 12));
@@ -339,25 +337,55 @@ namespace NinjaTrader.NinjaScript.Indicators
 			orderBtnGrid.Children.Add(sellCol);
 			mainPanel.Children.Add(orderBtnGrid);
 
-			// Management Buttons
-			Grid mgrGrid = new Grid { Margin = new Thickness(0, 6, 0, 0) };
-			mgrGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			mgrGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(6) });
-			mgrGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			// Buy / Sell Market Buttons (Placed above Close / BE / Revert, height 48, font 12)
+			Grid mktBtnGrid = new Grid { Margin = new Thickness(0, 2, 0, 4) };
+			mktBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			mktBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
+			mktBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-			Button btnCancel = CreateButton("Cancel", cancelBg, (s, ev) => CancelAllOrders(), 22, 10);
-			Grid.SetColumn(btnCancel, 0);
-			mgrGrid.Children.Add(btnCancel);
+			SolidColorBrush buyMktBg  = new SolidColorBrush(Color.FromRgb(16, 140, 75));  // Vibrant Emerald Green
+			SolidColorBrush sellMktBg = new SolidColorBrush(Color.FromRgb(185, 42, 48));  // Vivid Ruby Red
 
-			Button btnClose = CreateButton("Close", closeBg, (s, ev) => ClosePosition(), 22, 10);
-			Grid.SetColumn(btnClose, 2);
-			mgrGrid.Children.Add(btnClose);
+			Button btnBuyMkt = CreateButton("BUY Market", buyMktBg, (s, ev) => PlaceMarketOrder(OrderAction.Buy), 48, 12);
+			Grid.SetColumn(btnBuyMkt, 0);
+			mktBtnGrid.Children.Add(btnBuyMkt);
 
-			mainPanel.Children.Add(mgrGrid);
+			Button btnSellMkt = CreateButton("SELL Market", sellMktBg, (s, ev) => PlaceMarketOrder(OrderAction.Sell), 48, 12);
+			Grid.SetColumn(btnSellMkt, 2);
+			mktBtnGrid.Children.Add(btnSellMkt);
+
+			mainPanel.Children.Add(mktBtnGrid);
+
+			// Position Management Buttons: BE (Breakeven) & Revert (Placed above Close/Flatten, height 33, font 12)
+			Grid beRevertGrid = new Grid { Margin = new Thickness(0, 2, 0, 4) };
+			beRevertGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			beRevertGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
+			beRevertGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+			SolidColorBrush beBg     = new SolidColorBrush(Color.FromRgb(20, 110, 140)); // Slate Teal / Cyan-Blue
+			SolidColorBrush revertBg = new SolidColorBrush(Color.FromRgb(175, 105, 20)); // Warm Gold / Amber-Orange
+
+			Button btnBE = CreateButton("BE", beBg, (s, ev) => SetBreakeven(), 33, 12);
+			Grid.SetColumn(btnBE, 0);
+			beRevertGrid.Children.Add(btnBE);
+
+			Button btnRevert = CreateButton("Revert", revertBg, (s, ev) => RevertPosition(), 33, 12);
+			Grid.SetColumn(btnRevert, 2);
+			beRevertGrid.Children.Add(btnRevert);
+
+			mainPanel.Children.Add(beRevertGrid);
+
+			// Close/Flatten Button (Full width at bottom, height 33 [1.5x of 22], font 15 [1.5x of 10])
+			SolidColorBrush closeBg = new SolidColorBrush(Color.FromRgb(160, 30, 35)); // Deep Crimson Red
+			Button btnClose = CreateButton("Close/Flatten", closeBg, (s, ev) => ClosePosition(), 33, 15);
+			btnClose.Margin = new Thickness(0, 2, 0, 2);
+			mainPanel.Children.Add(btnClose);
+
 			panelBorder.Child = mainPanel;
 
 			Grid.SetColumnSpan(panelBorder, 3);
 			chartGrid.Children.Add(panelBorder);
+
 		}
 
 		private void AddGridRow(Grid grid, string labelText, FrameworkElement inputElement)

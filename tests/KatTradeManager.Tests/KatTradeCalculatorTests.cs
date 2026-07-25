@@ -37,6 +37,36 @@ namespace KatTradeManager.Tests
 		}
 
 		[Fact]
+		public void CalculateBreakevenPrice_LongPosition_AddsBuffer()
+		{
+			// Arrange
+			double entryPrice = 20000.0;
+			int bufferTicks = 2;
+			double tickSize = 0.25;
+
+			// Act
+			double bePrice = KatTradeCalculator.CalculateBreakevenPrice(KatOrderAction.Buy, entryPrice, bufferTicks, tickSize);
+
+			// Assert
+			Assert.Equal(20000.50, bePrice, 4);
+		}
+
+		[Fact]
+		public void CalculateBreakevenPrice_ShortPosition_SubtractsBuffer()
+		{
+			// Arrange
+			double entryPrice = 20000.0;
+			int bufferTicks = 2;
+			double tickSize = 0.25;
+
+			// Act
+			double bePrice = KatTradeCalculator.CalculateBreakevenPrice(KatOrderAction.Sell, entryPrice, bufferTicks, tickSize);
+
+			// Assert
+			Assert.Equal(19999.50, bePrice, 4);
+		}
+
+		[Fact]
 		public void CalculateFixedDistanceTriggerPrice_BuyOrder_AddsDistance()
 		{
 			// Arrange

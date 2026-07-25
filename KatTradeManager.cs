@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 0.32 (2026-07-25)
+ * Version: 0.33 (2026-07-25)
  * NinjaTrader 8 TradeManager Indicator
  */
 
@@ -39,7 +39,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "0.32";
+		public const string VERSION = "0.33";
 		public const string RELEASE_DATE = "2026-07-25";
 
 		private volatile Account account;
@@ -482,6 +482,101 @@ namespace NinjaTrader.NinjaScript.Indicators
 				account.Submit(new[] { closeOrder });
 			}
 			CancelAllOrders();
+		}
+
+		private void PlaceMarketOrder(OrderAction action)
+		{
+			if (account == null || Instrument == null) return;
+			try
+			{
+				int qty = cachedQuantity > 0 ? cachedQuantity : DefaultQuantity;
+				string entryName = action == OrderAction.Buy ? "MarketBuy" : "MarketSell";
+
+				entryOrder = account.CreateOrder(Instrument, action, OrderType.Market, OrderEntry.Manual, TimeInForce.Gtc, qty, 0, 0, "", entryName, NinjaTrader.Core.Globals.MaxDate, null);
+				if (entryOrder != null)
+				{
+					if (!string.IsNullOrEmpty(cachedAtmTemplate))
+					{
+						NinjaTrader.NinjaScript.AtmStrategy.StartAtmStrategy(cachedAtmTemplate, entryOrder);
+					}
+					else
+					{
+						account.Submit(new[] { entryOrder });
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				Print(string.Format("[KatTradeManager] Error placing market order: {0}", ex.ToString()));
+			}
+		}
+
+		private void SetBreakeven()
+		{
+			if (account == null || Instrument == null) return;
+			try
+			{
+				Position pos = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
+				if (pos == null || pos.MarketPosition == MarketPosition.Flat)
+				{
+					Print("[KatTradeManager] BE: No active position to set Breakeven.");
+					return;
+				}
+
+				double tickSize = cachedTickSize > 0 ? cachedTickSize : Instrument.MasterInstrument.TickSize;
+				int bufferTicks = cachedBufferTicks >= 0 ? cachedBufferTicks : DefaultBufferTicks;
+				KatOrderAction katAction = pos.MarketPosition == MarketPosition.Long ? KatOrderAction.Buy : KatOrderAction.Sell;
+
+				double bePrice = KatTradeCalculator.CalculateBreakevenPrice(katAction, pos.AveragePrice, bufferTicks, tickSize);
+
+				var workingStops = account.Orders.Where(o => o.Instrument == Instrument &&
+					(o.OrderState == OrderState.Working || o.OrderState == OrderState.Accepted) &&
+					(o.OrderType == OrderType.StopMarket || o.OrderType == OrderType.StopLimit) &&
+					(pos.MarketPosition == MarketPosition.Long ? (o.OrderAction == OrderAction.Sell || o.OrderAction == OrderAction.SellShort) : (o.OrderAction == OrderAction.Buy || o.OrderAction == OrderAction.BuyToCover))).ToList();
+
+				if (workingStops.Count > 0)
+				{
+					foreach (Order stopOrder in workingStops)
+					{
+						account.Change(new[] { stopOrder }, stopOrder.Quantity, stopOrder.LimitPrice, bePrice);
+					}
+					Print(string.Format("[KatTradeManager] Moved {0} Stop Loss order(s) to Breakeven @ {1} (Buffer: {2} ticks)", workingStops.Count, bePrice, bufferTicks));
+				}
+				else
+				{
+					OrderAction slAction = pos.MarketPosition == MarketPosition.Long ? OrderAction.Sell : OrderAction.BuyToCover;
+					Order slOrder = account.CreateOrder(Instrument, slAction, OrderType.StopMarket, OrderEntry.Manual, TimeInForce.Gtc, pos.Quantity, 0, bePrice, "", "KAT_SL_BE", NinjaTrader.Core.Globals.MaxDate, null);
+					account.Submit(new[] { slOrder });
+					Print(string.Format("[KatTradeManager] Submitted Breakeven Stop Loss @ {0} (Buffer: {1} ticks)", bePrice, bufferTicks));
+				}
+			}
+			catch (Exception ex)
+			{
+				Print(string.Format("[KatTradeManager] Error setting Breakeven: {0}", ex.ToString()));
+			}
+		}
+
+		private void RevertPosition()
+		{
+			if (account == null || Instrument == null) return;
+			try
+			{
+				Position pos = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
+				if (pos == null || pos.MarketPosition == MarketPosition.Flat)
+				{
+					Print("[KatTradeManager] Revert: No active position to revert.");
+					return;
+				}
+
+				OrderAction oppositeAction = pos.MarketPosition == MarketPosition.Long ? OrderAction.Sell : OrderAction.Buy;
+				ClosePosition();
+				PlaceMarketOrder(oppositeAction);
+				Print(string.Format("[KatTradeManager] Reverted position to {0}", oppositeAction));
+			}
+			catch (Exception ex)
+			{
+				Print(string.Format("[KatTradeManager] Error reverting position: {0}", ex.ToString()));
+			}
 		}
 		#endregion
 
