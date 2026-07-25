@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 0.28 (2026-07-25)
+ * Version: 0.29 (2026-07-25)
  * NinjaTrader 8 TradeManager Indicator
  */
 
@@ -27,7 +27,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "0.28";
+		public const string VERSION = "0.29";
 		public const string RELEASE_DATE = "2026-07-25";
 
 		private volatile Account account;
@@ -380,14 +380,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				account.Cancel(new[] { order });
 			}
 			entryOrder = null;
-			pendingRemoveLines = true; // ponytail: let OnBarUpdate handle removal on data thread
-			if (ChartControl != null)
-			{
-				ChartControl.Dispatcher.InvokeAsync(() =>
-				{
-					RemoveExpectedLines();
-				});
-			}
+			pendingRemoveLines = true; // ponytail: single removal path — OnBarUpdate (data thread) executes it
 		}
 
 		private void ClosePosition()
@@ -465,21 +458,21 @@ namespace NinjaTrader.NinjaScript.Indicators
 				sl2 = pendingAtmSL2Trigger;
 			}
 
-			int startBar = CurrentBar >= 0 ? Math.Min(20, Math.Max(1, CurrentBar)) : 1;
+			int startBar = KatTradeCalculator.GetLineStartBar(CurrentBar, 20);
 
 			// Entry price line (always drawn)
-			Draw.Line(this, "KAT_ENTRY_LINE", false, startBar, entryPx, -5, entryPx, Brushes.Gold, DashStyleHelper.Solid, 2);
+			Draw.Line(this, KatTradeCalculator.LineTags[0], false, startBar, entryPx, -5, entryPx, Brushes.Gold, DashStyleHelper.Solid, 2);
 
 			if (sl > 0)
-				Draw.Line(this, "KAT_SL_LINE", false, startBar, levels.SlPrice, -5, levels.SlPrice, Brushes.Red, DashStyleHelper.Dash, 2);
+				Draw.Line(this, KatTradeCalculator.LineTags[1], false, startBar, levels.SlPrice, -5, levels.SlPrice, Brushes.Red, DashStyleHelper.Dash, 2);
 			if (tp > 0)
-				Draw.Line(this, "KAT_TP_LINE", false, startBar, levels.TpPrice, -5, levels.TpPrice, Brushes.Green, DashStyleHelper.Dash, 2);
+				Draw.Line(this, KatTradeCalculator.LineTags[2], false, startBar, levels.TpPrice, -5, levels.TpPrice, Brushes.Green, DashStyleHelper.Dash, 2);
 			if (be > 0)
-				Draw.Line(this, "KAT_BE_LINE", false, startBar, levels.BePrice, -5, levels.BePrice, Brushes.DeepSkyBlue, DashStyleHelper.DashDot, 1);
+				Draw.Line(this, KatTradeCalculator.LineTags[3], false, startBar, levels.BePrice, -5, levels.BePrice, Brushes.DeepSkyBlue, DashStyleHelper.DashDot, 1);
 			if (sl1 > 0)
-				Draw.Line(this, "KAT_SL1_LINE", false, startBar, levels.Sl1Price, -5, levels.Sl1Price, Brushes.Orange, DashStyleHelper.Dot, 1);
+				Draw.Line(this, KatTradeCalculator.LineTags[4], false, startBar, levels.Sl1Price, -5, levels.Sl1Price, Brushes.Orange, DashStyleHelper.Dot, 1);
 			if (sl2 > 0)
-				Draw.Line(this, "KAT_SL2_LINE", false, startBar, levels.Sl2Price, -5, levels.Sl2Price, Brushes.Magenta, DashStyleHelper.Dot, 1);
+				Draw.Line(this, KatTradeCalculator.LineTags[5], false, startBar, levels.Sl2Price, -5, levels.Sl2Price, Brushes.Magenta, DashStyleHelper.Dot, 1);
 
 			isExpectedLinesDrawn = true;
 			ForceRefresh();
@@ -487,12 +480,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private void RemoveExpectedLines()
 		{
-			RemoveDrawObject("KAT_ENTRY_LINE");
-			RemoveDrawObject("KAT_SL_LINE");
-			RemoveDrawObject("KAT_TP_LINE");
-			RemoveDrawObject("KAT_BE_LINE");
-			RemoveDrawObject("KAT_SL1_LINE");
-			RemoveDrawObject("KAT_SL2_LINE");
+			foreach (string tag in KatTradeCalculator.LineTags)
+				RemoveDrawObject(tag);
 			isExpectedLinesDrawn = false;
 			ForceRefresh();
 		}

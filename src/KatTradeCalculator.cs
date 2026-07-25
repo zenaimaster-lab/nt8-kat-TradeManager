@@ -17,6 +17,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 	public static class KatTradeCalculator
 	{
+		/// <summary>All draw-object tags for order lines. Draw and Remove MUST use this single list.</summary>
+		public static readonly string[] LineTags = new[]
+		{
+			"KAT_ENTRY_LINE", "KAT_SL_LINE", "KAT_TP_LINE", "KAT_BE_LINE", "KAT_SL1_LINE", "KAT_SL2_LINE"
+		};
+
+		/// <summary>Start anchor (barsAgo) for short order lines. Never exceeds currentBar, never negative.</summary>
+		public static int GetLineStartBar(int currentBar, int maxBarsAgo)
+		{
+			if (currentBar <= 0) return 0;
+			return currentBar < maxBarsAgo ? currentBar : maxBarsAgo;
+		}
+
 		public static double CalculateTriggerPrice(KatOrderAction action, double basePrice, int bufferTicks, double tickSize)
 		{
 			if (bufferTicks < 0) bufferTicks = 0;

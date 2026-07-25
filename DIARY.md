@@ -24,6 +24,18 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.29] — 2026-07-25
+- **Audit & Line Draw/Remove Fixes**:
+  - Fixed `CancelAllOrders` double-removal race: removed redundant UI-thread `RemoveExpectedLines()` dispatch that contradicted the pending-remove pattern. Single removal path now: `pendingRemoveLines` → `OnBarUpdate` (data thread). Eliminates cross-thread `RemoveDrawObject` race.
+  - Fixed `DrawExpectedLines` startBar anchor: `Math.Max(1, CurrentBar)` produced invalid barsAgo=1 on bar 0. Extracted testable `KatTradeCalculator.GetLineStartBar(currentBar, max)` — never negative, never exceeds currentBar.
+  - Extracted `KatTradeCalculator.LineTags[]` single source for all 6 draw-object tags (entry/SL/TP/BE/SL1/SL2). Draw and Remove now share the same list — removal can never drift from drawing when lines are added.
+- **Verified Correct (no change needed)**:
+  - Renko auto-detect (`BarsPeriodType.Renko` + name fallback) and brick H/L pricing.
+  - Stop→Limit conversion: tick-rounded comparison, equality → Limit, both directions.
+  - 1/2 Candle ON/OFF toggle → tick-rounded midpoint pricing.
+- **Tests**: added `KatLineTagAndStartBarTests.cs` (9 tests): tag uniqueness/completeness, startBar clamp edges. Total: 82 (all passing).
+- **Graphify**: AST-only update.
+
 ### [v0.28] — 2026-07-25
 - **Bug Fixes & Logic Improvements**:
   - Fixed `KatTradeCalculator.CalculateAtmLevels`: early return on invalid trigger price (zero/negative) to prevent meaningless level calculations.
