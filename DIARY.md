@@ -24,6 +24,13 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.53] — 2026-07-25
+- **Safe Native ATM Stop Engine (`Freeze Trail`)**:
+  - Refactored `FreezeCurrentStopLoss()` to invoke `NinjaTrader.NinjaScript.AtmStrategy.StopAtmStrategy(atmId)` when `Freeze Trail` is activated.
+  - Automatically stops NinjaTrader's internal trailing engine at the source without sending high-frequency order modification requests.
+  - Preserves working Stop Loss and Target orders as static manual/OCO orders sitting on the broker server.
+  - Added a 3-second rate-limit guard (`lastFreezeEnforceTime`) in `CheckFreezeTrailEnforcement()` to completely eliminate API order spamming and rate-limit disconnection risks.
+
 ### [v0.52] — 2026-07-25
 - **Freeze Trail Control (`Freeze Trail: OFF` / `⚡ Freeze Trail: ON`)**:
   - Added full-width dark gray HUD button (`#232834` / `Color.FromRgb(35, 40, 52)`) positioned directly above the `Close/flatten` button in Section 4 with height matching `BUY current` / `SELL current` buttons (Height: 24, FontSize: 10).

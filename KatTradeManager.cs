@@ -69,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "0.52";
+		public const string VERSION = "0.53";
 		public const string RELEASE_DATE = "2026-07-25";
 
 		private volatile Account account;
@@ -861,6 +861,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 		}
 
+		private DateTime lastFreezeEnforceTime = DateTime.MinValue;
+
 		private void FreezeCurrentStopLoss()
 		{
 			if (account == null || Instrument == null) return;
@@ -881,7 +883,30 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (workingStops.Count > 0)
 				{
 					frozenStopPrice = workingStops[0].StopPrice;
-					Print(string.Format("[KatTradeManager] Freeze Trail active @ Stop Loss price: {0}", frozenStopPrice));
+					string atmId = workingStops[0].AtmStrategyId;
+
+					if (!string.IsNullOrEmpty(atmId))
+					{
+						NinjaTrader.NinjaScript.AtmStrategy.StopAtmStrategy(atmId);
+						Print(string.Format("[KatTradeManager] Native ATM Strategy {0} stopped — Trailing disabled, SL frozen @ {1}", atmId, frozenStopPrice));
+					}
+					else
+					{
+						Print(string.Format("[KatTradeManager] Freeze Trail active @ Stop Loss price: {0}", frozenStopPrice));
+					}
+
+					// Verify working SL order is still active after stopping ATM strategy; if not, recreate static manual SL/TP OCO
+					var activeStopsAfterStop = account.Orders.Where(o => o.Instrument == Instrument &&
+						(o.OrderState == OrderState.Working || o.OrderState == OrderState.Accepted) &&
+						(o.OrderType == OrderType.StopMarket || o.OrderType == OrderType.StopLimit)).ToList();
+
+					if (activeStopsAfterStop.Count == 0 && frozenStopPrice > 0)
+					{
+						OrderAction slAction = pos.MarketPosition == MarketPosition.Long ? OrderAction.Sell : OrderAction.BuyToCover;
+						Order slOrder = account.CreateOrder(Instrument, slAction, OrderType.StopMarket, OrderEntry.Manual, TimeInForce.Gtc, pos.Quantity, 0, frozenStopPrice, "", "KAT_SL_FROZEN", NinjaTrader.Core.Globals.MaxDate, null);
+						account.Submit(new[] { slOrder });
+						Print(string.Format("[KatTradeManager] Re-submitted static Stop Loss @ {0}", frozenStopPrice));
+					}
 				}
 				else
 				{
@@ -906,6 +931,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 					return;
 				}
 
+				// Rate-limit check: only evaluate enforcement at most once every 3 seconds to avoid API spamming
+				if ((DateTime.Now - lastFreezeEnforceTime).TotalMilliseconds < 3000)
+					return;
+
 				var workingStops = account.Orders.Where(o => o.Instrument == Instrument &&
 					(o.OrderState == OrderState.Working || o.OrderState == OrderState.Accepted) &&
 					(o.OrderType == OrderType.StopMarket || o.OrderType == OrderType.StopLimit) &&
@@ -924,6 +953,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{
 					if (Math.Abs(stopOrder.StopPrice - frozenStopPrice) > 0.000001)
 					{
+						lastFreezeEnforceTime = DateTime.Now;
 						stopOrder.StopPrice = frozenStopPrice;
 						account.Change(new[] { stopOrder });
 						Print(string.Format("[KatTradeManager] Trailing movement overridden — SL restored to frozen price {0}", frozenStopPrice));
