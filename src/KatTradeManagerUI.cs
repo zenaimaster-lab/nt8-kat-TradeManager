@@ -160,32 +160,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			if (ctControl == null) return null;
 
-			// 1. Direct Content of ContentControl (UserControl)
+			// 1. Direct Content of ContentControl (UserControl) if Grid or Panel
+			if (ctControl is Grid directGrid)
+				return directGrid;
+
 			if (ctControl is ContentControl cc && cc.Content is FrameworkElement contentFe)
 			{
-				if (contentFe is ScrollViewer sv && sv.Content is Panel svPanel)
-					return svPanel;
+				if (contentFe is Grid contentGrid)
+					return contentGrid;
 				if (contentFe is Panel contentPanel)
 					return contentPanel;
 			}
 
-			// 2. Search for ScrollViewer inside ctControl
-			ScrollViewer innerSv = FindVisualChild<ScrollViewer>(ctControl);
-			if (innerSv != null && innerSv.Content is Panel innerSvPanel)
-				return innerSvPanel;
-
-			// 3. Fallback: Find vertical StackPanels and pick the top-most (shallowest depth)
-			List<StackPanel> stackPanels = new List<StackPanel>();
-			FindAllVisualChildren<StackPanel>(ctControl, stackPanels);
-			var topStack = stackPanels
-				.Where(sp => sp.Orientation == Orientation.Vertical)
-				.OrderBy(GetVisualDepth)
-				.FirstOrDefault();
-
-			if (topStack != null)
-				return topStack;
-
-			// 4. Fallback: Find Grids and pick the top-most (shallowest depth)
+			// 2. Find Grids and pick the top-most (shallowest depth)
 			List<Grid> grids = new List<Grid>();
 			FindAllVisualChildren<Grid>(ctControl, grids);
 			var topGrid = grids.OrderBy(GetVisualDepth).FirstOrDefault();
@@ -237,7 +224,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 				var ctControl = GetChartTraderControl();
 				if (ctControl != null)
 				{
-					return chartGrid != null && chartGrid.Children.Contains(panelBorder);
+					var ctPanel = FindChartTraderPanel(ctControl);
+					if (ctPanel != null && ctPanel.Children.Contains(panelBorder))
+						return true;
 				}
 			}
 
@@ -268,10 +257,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (PanelLocation == KatHudLocation.ChartTrader)
 			{
 				var ctControl = GetChartTraderControl();
-				if (ctControl != null && ctControl is FrameworkElement fe && fe.Visibility == Visibility.Visible)
-				{
-					int ctColumn = (chartGrid.Children.Contains(fe)) ? Grid.GetColumn(fe) : Math.Max(0, chartGrid.ColumnDefinitions.Count - 1);
+				var ctPanel = ctControl != null ? FindChartTraderPanel(ctControl) : null;
 
+				if (ctPanel != null)
+				{
 					panelBorder.Width = double.NaN;
 					panelBorder.HorizontalAlignment = HorizontalAlignment.Stretch;
 					panelBorder.VerticalAlignment = VerticalAlignment.Bottom;
@@ -279,12 +268,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 					panelBorder.Cursor = Cursors.Arrow;
 					System.Windows.Controls.Panel.SetZIndex(panelBorder, 99999);
 
-					Grid.SetColumn(panelBorder, ctColumn);
-					Grid.SetColumnSpan(panelBorder, 1);
-					Grid.SetRow(panelBorder, 0);
-					Grid.SetRowSpan(panelBorder, Math.Max(1, chartGrid.RowDefinitions.Count > 0 ? chartGrid.RowDefinitions.Count : 99));
+					if (ctControl is FrameworkElement ctFe)
+						ctFe.ClipToBounds = false;
+					if (ctPanel is FrameworkElement ctPanelFe)
+						ctPanelFe.ClipToBounds = false;
 
-					chartGrid.Children.Add(panelBorder);
+					if (ctPanel is Grid g)
+					{
+						Grid.SetColumn(panelBorder, 0);
+						Grid.SetColumnSpan(panelBorder, Math.Max(1, g.ColumnDefinitions.Count > 0 ? g.ColumnDefinitions.Count : 99));
+						Grid.SetRow(panelBorder, 0);
+						Grid.SetRowSpan(panelBorder, Math.Max(1, g.RowDefinitions.Count > 0 ? g.RowDefinitions.Count : 99));
+					}
+
+					ctPanel.Children.Add(panelBorder);
 					isChartTraderAttached = true;
 				}
 			}
