@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.43 (2026-07-25) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.44 (2026-07-25) */
 
 using System;
 using System.Collections.Generic;
@@ -169,8 +169,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 			ComboBox accSelector = new ComboBox { FontSize = 11, Height = 22 };
 			if (Account.All != null)
 			{
-				foreach (var acc in Account.All) accSelector.Items.Add(acc.Name);
-				if (account != null) accSelector.SelectedItem = account.Name;
+				var allowedAccs = Account.All.Where(a => IsAccountAllowed(a.Name)).ToList();
+				foreach (var acc in allowedAccs) accSelector.Items.Add(acc.Name);
+				if (account != null && accSelector.Items.Contains(account.Name)) accSelector.SelectedItem = account.Name;
+				else if (accSelector.Items.Count > 0) accSelector.SelectedIndex = 0;
 			}
 			accSelector.SelectionChanged += (s, ev) =>
 			{

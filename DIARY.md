@@ -24,6 +24,11 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.44] — 2026-07-25
+- **Added Account Filter Setting (`AccountFilter`)**:
+  - Added configurable `AccountFilter` property in Indicator settings (comma-separated keywords, e.g. `79424, Sim101` or `!BX, !LTE`).
+  - Added `IsAccountAllowed` filtering logic supporting inclusion keywords and `!` exclusion patterns to filter out breached/inactive prop accounts from HUD dropdown selector.
+
 ### [v0.43] — 2026-07-25
 - **Swapped SELL / BUY Column Layout**:
   - Moved SELL column buttons (`SELL last 34`, `SELL last 89`, `SELL previous`, `SELL current`, `SELL -distance`, `SELL market`) to the left (Column 0).

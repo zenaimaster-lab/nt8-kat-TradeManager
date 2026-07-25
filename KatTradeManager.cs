@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 0.43 (2026-07-25)
+ * Version: 0.44 (2026-07-25)
  * NinjaTrader 8 TradeManager Indicator
  */
 
@@ -61,7 +61,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "0.43";
+		public const string VERSION = "0.44";
 		public const string RELEASE_DATE = "2026-07-25";
 
 		private volatile Account account;
@@ -154,6 +154,25 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 		}
 
+		private bool IsAccountAllowed(string accName)
+		{
+			if (string.IsNullOrWhiteSpace(accName)) return false;
+			if (string.IsNullOrWhiteSpace(AccountFilter)) return true;
+			string[] tokens = AccountFilter.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries).Select(f => f.Trim()).ToArray();
+			if (tokens.Length == 0) return true;
+
+			var excludes = tokens.Where(t => t.StartsWith("!") && t.Length > 1).Select(t => t.Substring(1).Trim()).ToList();
+			var includes = tokens.Where(t => !t.StartsWith("!") && t.Length > 0).ToList();
+
+			if (excludes.Any(ex => accName.IndexOf(ex, StringComparison.OrdinalIgnoreCase) >= 0))
+				return false;
+
+			if (includes.Count > 0)
+				return includes.Any(inc => accName.IndexOf(inc, StringComparison.OrdinalIgnoreCase) >= 0);
+
+			return true;
+		}
+
 		protected override void OnStateChange()
 		{
 			if (State == State.SetDefaults)
@@ -171,6 +190,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				IsPanelVisible						= true;
 				DefaultQuantity						= 1;
 				AccountName							= "Sim101";
+				AccountFilter						= "";
 				DefaultTimeframe                    = KatTimeframe.ChartTF;
 				DefaultBufferTicks                  = 2;
 				DefaultDistanceTicks                = 320; // Default 80 points = 320 ticks
@@ -312,11 +332,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 						Print(string.Format("  - {0} ({1})", acc.Name, acc.Connection != null ? "Connected" : "Disconnected"));
 					}
 
-					account = Account.All.FirstOrDefault(a => a.Name.Equals(AccountName, StringComparison.OrdinalIgnoreCase))
-					          ?? Account.All.FirstOrDefault(a => a.Name == "Sim101")
-					          ?? Account.All.FirstOrDefault(a => a.Name == "Sim301")
-					          ?? Account.All.FirstOrDefault(a => a.Connection != null)
-					          ?? Account.All.FirstOrDefault();
+					var allowedAccs = Account.All.Where(a => IsAccountAllowed(a.Name)).ToList();
+					if (allowedAccs.Count == 0) allowedAccs = Account.All.ToList();
+
+					account = allowedAccs.FirstOrDefault(a => a.Name.Equals(AccountName, StringComparison.OrdinalIgnoreCase))
+					          ?? allowedAccs.FirstOrDefault(a => a.Name == "Sim101")
+					          ?? allowedAccs.FirstOrDefault(a => a.Name == "Sim301")
+					          ?? allowedAccs.FirstOrDefault(a => a.Connection != null)
+					          ?? allowedAccs.FirstOrDefault();
 
 					if (account != null)
 					{
@@ -889,6 +912,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[NinjaScriptProperty]
 		[Display(Name="Account Name", Order=2, GroupName="Parameters")]
 		public string AccountName { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Account Filter (Keywords)", Order=3, GroupName="Parameters", Description="Filter accounts in HUD by comma-separated keywords (e.g. '79424, Sim101' or '!BX, !LTE'). Empty = show all.")]
+		public string AccountFilter { get; set; }
 
 		[NinjaScriptProperty]
 		[Display(Name="Timeframe", Order=3, GroupName="Parameters")]
