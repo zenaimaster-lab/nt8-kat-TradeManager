@@ -24,6 +24,13 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.61] — 2026-07-26
+- **Audit Round 6: Account-Switch State Reset, XML Fallback & Angle Tests**:
+  - **Bug fix (trading impact)**: Switching accounts via the HUD dropdown did not reset per-account state. The OLD account's gross realized PnL stayed as the daily-PnL session baseline → the new account showed phantom daily PnL (e.g. old account +$200 captured, new account at $0 → phantom −$200) causing false emergency flattens or missed breach detection. The stale `frozenStopPrice` from the old account could also yank the new account's stops to an outdated price. The account-change handler now resets: `isSessionStartCaptured = false`, `dailyRiskFlattened = 0` (Interlocked), `frozenStopPrice = 0`.
+  - **Noted, not changed**: `cachedDailyPnL` is write-only (kept for future HUD display); Freeze Trail captures `workingStops[0]` — multi-bracket stops get unified to the first stop's price (documented limitation).
+  - **Tests**: `KatCalculatorGapTests.cs` round 5 (+5): ATM XML `EntryQuantity=0` bracket-sum fallback, XML without `Brackets` node, `CalculateEmaAngle` exact 2-tick slope (63.43°), `DetermineOrderType` zero-tickSize unrounded path, `IsAccountAllowed` mixed `,;` separators. Suite: 160 → **165 tests, all passing**. Compile gate: **succeeded**.
+  - **Graphify entity mapping**: `KatTradeManagerUI` accSelector handler (state reset), `KatTradeManager.CalculateDailyPnL` (baseline contract), `KatAtmXmlParser.ParseXmlDocument` (fallback coverage).
+
 ### [v0.60] — 2026-07-26
 - **Audit Round 5: Freeze-Trail Stale Price Fix, Vertical Drag Fix, Boundary Tests**:
   - **Bug fix (trading impact)**: Freeze Trail could yank the stop loss to a STALE price — `FreezeCurrentStopLoss` left `frozenStopPrice` untouched when toggled ON with no position / no working stops ("waiting" branch). A value from a previous freeze episode survived, and the next appearance of a working stop got force-changed to the outdated price (e.g. froze at 100, toggled off, toggled on while flat, new stop trails to 120 → enforcement slammed it back to 100). Now `frozenStopPrice` is reset to 0 at the start of every freeze activation, so enforcement always re-captures the CURRENT stop.

@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.60 (2026-07-26) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.61 (2026-07-26) */
 
 using System;
 using System.Collections.Generic;
@@ -398,6 +398,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{
 					string selectedName = accSelector.SelectedItem.ToString();
 					account = Account.All.FirstOrDefault(a => a.Name == selectedName);
+
+					// Reset per-account state — otherwise the OLD account's realized PnL stays as the
+					// session baseline (phantom daily PnL -> false/missed risk breach), and a stale
+					// frozen stop from the old account would yank the new account's stops.
+					isSessionStartCaptured = false;
+					System.Threading.Interlocked.Exchange(ref dailyRiskFlattened, 0);
+					frozenStopPrice = 0;
+
 					Print(string.Format("[KatTradeManager] Account changed via UI to: {0}", selectedName));
 				}
 			};

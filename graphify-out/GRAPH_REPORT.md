@@ -1,16 +1,16 @@
 # Graph Report - nt8-kat-TradeManager  (2026-07-26)
 
 ## Corpus Check
-- 26 files · ~25,145 words
+- 26 files · ~25,512 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 310 nodes · 432 edges · 26 communities (12 shown, 14 thin omitted)
+- 315 nodes · 437 edges · 26 communities (12 shown, 14 thin omitted)
 - Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 53 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `bf4617ab`
+- Built from commit: `0b120d46`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -37,7 +37,7 @@
 
 ## God Nodes (most connected - your core abstractions)
 1. `KatTradeManager` - 46 edges
-2. `KatCalculatorGapTests` - 34 edges
+2. `KatCalculatorGapTests` - 39 edges
 3. `KatTradeManager` - 26 edges
 4. `KatTradeManager` - 23 edges
 5. `KatOrderLifecycleTests` - 20 edges
@@ -90,15 +90,15 @@ Nodes (3): AtmTemplateData, KatAtmXmlParser, NinjaTrader.NinjaScript.Indicators
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `KatTradeManager` connect `Community 0` to `Community 2`, `Community 3`, `Community 5`?**
-  _High betweenness centrality (0.082) - this node is a cross-community bridge._
+  _High betweenness centrality (0.080) - this node is a cross-community bridge._
 - **Why does `string` connect `Community 5` to `Community 0`?**
-  _High betweenness centrality (0.040) - this node is a cross-community bridge._
+  _High betweenness centrality (0.038) - this node is a cross-community bridge._
 - **What connects `NinjaTrader.NinjaScript.Indicators`, `Account`, `Grid` to the rest of the system?**
   _32 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.11 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.06 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
   _Cohesion score 0.11 - nodes in this community are weakly interconnected._
 - **Should `Community 4` be split into smaller, more focused modules?**

@@ -351,5 +351,57 @@ namespace KatTradeManager.Tests
 			Assert.Equal(106.7, price, 6);
 		}
 		#endregion
+
+		#region AtmXmlParser — quantity fallback chain
+		[Fact]
+		public void ParseXml_ZeroEntryQuantity_FallsBackToBracketSum()
+		{
+			// EntryQuantity of 0 is invalid -> bracket quantities take over
+			string xml = "<AtmStrategy><EntryQuantity>0</EntryQuantity><Brackets>"
+				+ "<Bracket><Quantity>2</Quantity><StopLoss>10</StopLoss></Bracket>"
+				+ "<Bracket><Quantity>3</Quantity></Bracket></Brackets></AtmStrategy>";
+			AtmTemplateData data = KatAtmXmlParser.ParseXml(xml);
+			Assert.Equal(5, data.Quantity);
+		}
+
+		[Fact]
+		public void ParseXml_NoBracketsNode_LevelsZeroQuantityDefault()
+		{
+			string xml = "<AtmStrategy><EntryQuantity>4</EntryQuantity></AtmStrategy>";
+			AtmTemplateData data = KatAtmXmlParser.ParseXml(xml);
+			Assert.Equal(0, data.StopLoss);
+			Assert.Equal(0, data.Target);
+			Assert.Equal(4, data.Quantity);
+		}
+		#endregion
+
+		#region CalculateEmaAngle — exact multi-tick slope
+		[Fact]
+		public void CalculateEmaAngle_TwoTicksPerBar_Returns63Point43()
+		{
+			// atan(2) = 63.4349...° -> rounded to 63.43
+			Assert.Equal(63.43, KatTradeCalculator.CalculateEmaAngle(100.5, 100.0, 0.25));
+		}
+		#endregion
+
+		#region DetermineOrderType — zero tickSize skips rounding
+		[Fact]
+		public void DetermineOrderType_ZeroTickSize_UsesUnroundedPrices()
+		{
+			var type = KatTradeCalculator.DetermineOrderType(KatOrderAction.Buy, 100.03, 100.0, 0.0, out double limit, out double stop);
+			Assert.Equal(KatOrderType.StopMarket, type);
+			Assert.Equal(100.03, stop);
+			Assert.Equal(0.0, limit);
+		}
+		#endregion
+
+		#region IsAccountAllowed — mixed separators
+		[Fact]
+		public void IsAccountAllowed_MixedCommaSemicolon_AllParsed()
+		{
+			Assert.True(KatTradeCalculator.IsAccountAllowed("Sim101", "Playback,Sim;Other"));
+			Assert.False(KatTradeCalculator.IsAccountAllowed("BxAcct", "Sim;!bx,Other"));
+		}
+		#endregion
 	}
 }
