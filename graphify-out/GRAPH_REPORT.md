@@ -1,16 +1,16 @@
 # Graph Report - nt8-kat-TradeManager  (2026-07-25)
 
 ## Corpus Check
-- 21 files · ~18,446 words
+- 21 files · ~18,600 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 211 nodes · 263 edges · 21 communities (10 shown, 11 thin omitted)
+- 212 nodes · 264 edges · 21 communities (9 shown, 12 thin omitted)
 - Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 19 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `92ab066e`
+- Built from commit: `0460b0c3`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -33,7 +33,7 @@
 
 ## God Nodes (most connected - your core abstractions)
 1. `KatTradeManager` - 36 edges
-2. `KatTradeManager` - 20 edges
+2. `KatTradeManager` - 21 edges
 3. `KatOrderLifecycleTests` - 20 edges
 4. `KatTradeCalculator` - 16 edges
 5. `KatRenkoAndHalfCandleTests` - 14 edges
@@ -49,15 +49,11 @@
 - `KatTradeManager` --references--> `bool`  [EXTRACTED]
   KatTradeManager.cs → src/KatTradeManagerUI.cs
 
-## Communities (21 total, 11 thin omitted)
+## Communities (21 total, 12 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.11
-Nodes (16): Account, AtmLevels, Border, ComboBox, DispatcherTimer, double, EMA, Grid (+8 more)
-
-### Community 1 - "Community 1"
-Cohesion: 0.15
-Nodes (3): bool, KatTradeManager, NinjaTrader.NinjaScript.Indicators
+Nodes (17): Account, AtmLevels, bool, Border, ComboBox, DispatcherTimer, double, EMA (+9 more)
 
 ### Community 3 - "Community 3"
 Cohesion: 0.15
@@ -70,22 +66,22 @@ Nodes (3): AtmTemplateData, KatAtmXmlParser, NinjaTrader.NinjaScript.Indicators
 ## Knowledge Gaps
 - **28 isolated node(s):** `NinjaTrader.NinjaScript.Indicators`, `Account`, `Grid`, `Border`, `StackPanel` (+23 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **11 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **12 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `KatTradeManager` connect `Community 0` to `Community 1`, `Community 3`?**
-  _High betweenness centrality (0.092) - this node is a cross-community bridge._
+  _High betweenness centrality (0.093) - this node is a cross-community bridge._
 - **Why does `string` connect `Community 3` to `Community 0`?**
   _High betweenness centrality (0.045) - this node is a cross-community bridge._
 - **What connects `NinjaTrader.NinjaScript.Indicators`, `Account`, `Grid` to the rest of the system?**
   _28 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.11 - nodes in this community are weakly interconnected._
+- **Should `Community 1` be split into smaller, more focused modules?**
+  _Cohesion score 0.14 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
   _Cohesion score 0.09 - nodes in this community are weakly interconnected._
 - **Should `Community 4` be split into smaller, more focused modules?**
   _Cohesion score 0.12 - nodes in this community are weakly interconnected._
-- **Should `Community 5` be split into smaller, more focused modules?**
-  _Cohesion score 0.13 - nodes in this community are weakly interconnected._

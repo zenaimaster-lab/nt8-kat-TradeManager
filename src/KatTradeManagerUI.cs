@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.45 (2026-07-25) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.46 (2026-07-25) */
 
 using System;
 using System.Collections.Generic;
@@ -124,15 +124,39 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return null;
 		}
 
+		private void FindAllVisualChildren<T>(DependencyObject parent, List<T> results) where T : DependencyObject
+		{
+			if (parent == null) return;
+			int count = VisualTreeHelper.GetChildrenCount(parent);
+			for (int i = 0; i < count; i++)
+			{
+				DependencyObject child = VisualTreeHelper.GetChild(parent, i);
+				if (child is T typedChild)
+					results.Add(typedChild);
+				FindAllVisualChildren<T>(child, results);
+			}
+		}
+
 		private Panel FindChartTraderPanel(DependencyObject ctControl)
 		{
 			if (ctControl == null) return null;
 
-			StackPanel sp = FindVisualChild<StackPanel>(ctControl);
-			if (sp != null) return sp;
+			List<StackPanel> verticalPanels = new List<StackPanel>();
+			FindAllVisualChildren<StackPanel>(ctControl, verticalPanels);
 
-			Grid g = FindVisualChild<Grid>(ctControl);
-			if (g != null) return g;
+			var mainStack = verticalPanels
+				.Where(sp => sp.Orientation == Orientation.Vertical)
+				.OrderByDescending(sp => sp.Children.Count)
+				.FirstOrDefault();
+
+			if (mainStack != null)
+				return mainStack;
+
+			List<Grid> grids = new List<Grid>();
+			FindAllVisualChildren<Grid>(ctControl, grids);
+			var mainGrid = grids.OrderByDescending(g => g.Children.Count).FirstOrDefault();
+			if (mainGrid != null)
+				return mainGrid;
 
 			return null;
 		}
@@ -230,10 +254,23 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				// InChart mode or Fallback when ChartTrader is closed/hidden
 				panelBorder.Width = 240;
-				panelBorder.HorizontalAlignment = HorizontalAlignment.Right;
-				panelBorder.VerticalAlignment = PanelLocation == KatHudLocation.ChartTrader ? VerticalAlignment.Bottom : VerticalAlignment.Top;
-				panelBorder.Margin = PanelLocation == KatHudLocation.ChartTrader ? new Thickness(0, 0, 10, 10) : new Thickness(0, 30, 20, 0);
-				panelBorder.Cursor = PanelLocation == KatHudLocation.ChartTrader ? Cursors.Arrow : Cursors.SizeAll;
+
+				if (PanelLocation == KatHudLocation.ChartTrader)
+				{
+					// Fallback when ChartTrader setting is selected but ChartTrader menu is OFF -> Bottom-Left with drag support
+					panelBorder.HorizontalAlignment = HorizontalAlignment.Left;
+					panelBorder.VerticalAlignment = VerticalAlignment.Bottom;
+					panelBorder.Margin = new Thickness(10, 0, 0, 10);
+				}
+				else
+				{
+					// InChart mode -> Top-Right
+					panelBorder.HorizontalAlignment = HorizontalAlignment.Right;
+					panelBorder.VerticalAlignment = VerticalAlignment.Top;
+					panelBorder.Margin = new Thickness(0, 30, 20, 0);
+				}
+
+				panelBorder.Cursor = Cursors.SizeAll;
 				System.Windows.Controls.Panel.SetZIndex(panelBorder, 9999);
 				Grid.SetColumnSpan(panelBorder, 3);
 
@@ -242,7 +279,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 				panelBorder.MouseLeftButtonDown += (s, ev) =>
 				{
-					if (PanelLocation == KatHudLocation.ChartTrader) return;
 					dragStart = ev.GetPosition(chartGrid);
 					panelBorder.CaptureMouse();
 					isDragging = true;
@@ -251,7 +287,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 				panelBorder.MouseMove += (s, ev) =>
 				{
-					if (isDragging && PanelLocation != KatHudLocation.ChartTrader)
+					if (isDragging)
 					{
 						Point current = ev.GetPosition(chartGrid);
 						Thickness m = panelBorder.Margin;

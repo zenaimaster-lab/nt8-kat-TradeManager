@@ -24,6 +24,11 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.46] — 2026-07-25
+- **Enhanced ChartTrader Docking Placement & Bottom-Left Fallback**:
+  - Refined `FindChartTraderPanel` visual tree search to target the main vertical `StackPanel` containing all order controls, properly embedding HUD at the very bottom of the right-side ChartTrader panel.
+  - Updated fallback behavior when ChartTrader menu is disabled: HUD automatically moves to bottom-left corner (`HorizontalAlignment.Left`, `VerticalAlignment.Bottom`) so it does not block right-side candles/price scale, with full mouse drag support enabled.
+
 ### [v0.45] — 2026-07-25
 - **Added HUD Panel Location Setting (`PanelLocation`)**:
   - Added `HUD Location` (`PanelLocation`) enum property to Indicator Settings with options: `ChartTrader` (right-side panel, default) and `InChart` (floating overlay inside chart area).
