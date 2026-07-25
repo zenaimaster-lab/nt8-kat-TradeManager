@@ -1,13 +1,28 @@
 using System;
-using NinjaTrader.Cbi;
 
 namespace NinjaTrader.NinjaScript.Indicators
 {
+	public enum KatOrderAction
+	{
+		Buy,
+		Sell
+	}
+
+	public enum KatOrderType
+	{
+		Market,
+		Limit,
+		StopMarket
+	}
+
 	public static class KatTradeCalculator
 	{
-		public static double CalculateTriggerPrice(OrderAction action, double basePrice, int bufferTicks, double tickSize)
+		public static double CalculateTriggerPrice(KatOrderAction action, double basePrice, int bufferTicks, double tickSize)
 		{
-			if (action == OrderAction.Buy)
+			if (bufferTicks < 0) bufferTicks = 0;
+			if (tickSize <= 0) return basePrice;
+
+			if (action == KatOrderAction.Buy)
 			{
 				return basePrice + (bufferTicks * tickSize);
 			}
@@ -17,9 +32,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 		}
 
-		public static double CalculateFixedDistanceTriggerPrice(OrderAction action, double currentPrice, int distanceTicks, double tickSize)
+		public static double CalculateFixedDistanceTriggerPrice(KatOrderAction action, double currentPrice, int distanceTicks, double tickSize)
 		{
-			if (action == OrderAction.Buy)
+			if (tickSize <= 0) return currentPrice;
+
+			if (action == KatOrderAction.Buy)
 			{
 				return currentPrice + (distanceTicks * tickSize);
 			}
@@ -29,21 +46,21 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 		}
 
-		public static OrderType DetermineOrderType(OrderAction action, double triggerPrice, double currentPrice, out double limitPrice, out double stopPrice)
+		public static KatOrderType DetermineOrderType(KatOrderAction action, double triggerPrice, double currentPrice, out double limitPrice, out double stopPrice)
 		{
-			if (action == OrderAction.Buy)
+			if (action == KatOrderAction.Buy)
 			{
 				if (triggerPrice > currentPrice)
 				{
 					stopPrice = triggerPrice;
 					limitPrice = 0;
-					return OrderType.StopMarket;
+					return KatOrderType.StopMarket;
 				}
 				else
 				{
 					limitPrice = triggerPrice;
 					stopPrice = 0;
-					return OrderType.Limit;
+					return KatOrderType.Limit;
 				}
 			}
 			else // Sell
@@ -52,13 +69,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{
 					stopPrice = triggerPrice;
 					limitPrice = 0;
-					return OrderType.StopMarket;
+					return KatOrderType.StopMarket;
 				}
 				else
 				{
 					limitPrice = triggerPrice;
 					stopPrice = 0;
-					return OrderType.Limit;
+					return KatOrderType.Limit;
 				}
 			}
 		}
@@ -72,10 +89,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 			public double Sl2Price;
 		}
 
-		public static AtmLevels CalculateAtmLevels(OrderAction action, double triggerPrice, int stopLossTicks, int targetTicks, int beTriggerTicks, int sl1TriggerTicks, int sl2TriggerTicks, double tickSize)
+		public static AtmLevels CalculateAtmLevels(KatOrderAction action, double triggerPrice, int stopLossTicks, int targetTicks, int beTriggerTicks, int sl1TriggerTicks, int sl2TriggerTicks, double tickSize)
 		{
 			AtmLevels levels = new AtmLevels();
-			if (action == OrderAction.Buy)
+			if (tickSize <= 0) tickSize = 0.25;
+
+			if (action == KatOrderAction.Buy)
 			{
 				levels.SlPrice  = triggerPrice - (stopLossTicks * tickSize);
 				levels.TpPrice  = triggerPrice + (targetTicks * tickSize);

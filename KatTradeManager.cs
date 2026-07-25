@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 0.23 (2026-07-25)
+ * Version: 0.24 (2026-07-25)
  * NinjaTrader 8 TradeManager Indicator
  */
 
@@ -27,7 +27,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "0.23";
+		public const string VERSION = "0.24";
 		public const string RELEASE_DATE = "2026-07-25";
 
 		private volatile Account account;
@@ -232,6 +232,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 		#endregion
 
 		#region Order Execution & Trading Operations
+		private static KatOrderAction ToKatAction(OrderAction action) => action == OrderAction.Buy ? KatOrderAction.Buy : KatOrderAction.Sell;
+		private static OrderType ToNtOrderType(KatOrderType type) => type == KatOrderType.StopMarket ? OrderType.StopMarket : OrderType.Limit;
+
 		private int GetBarsInProgressIndex()
 		{
 			switch (cachedTfIndex)
@@ -270,8 +273,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 				if (basePrice <= 0) return;
 
-				double triggerPrice = KatTradeCalculator.CalculateTriggerPrice(action, basePrice, cachedBufferTicks, cachedTickSize);
-				OrderType orderType = KatTradeCalculator.DetermineOrderType(action, triggerPrice, currentPx, out double limitPrice, out double stopPrice);
+				KatOrderAction katAction = ToKatAction(action);
+				double triggerPrice = KatTradeCalculator.CalculateTriggerPrice(katAction, basePrice, cachedBufferTicks, cachedTickSize);
+				KatOrderType katOrderType = KatTradeCalculator.DetermineOrderType(katAction, triggerPrice, currentPx, out double limitPrice, out double stopPrice);
+				OrderType orderType = ToNtOrderType(katOrderType);
 
 				PlaceOrderInternal(action, triggerPrice, orderType, limitPrice, stopPrice, "placing order");
 			}
@@ -302,9 +307,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (currentPx <= 0) return;
 
 				int distTicks = cachedDistanceTicks > 0 ? cachedDistanceTicks : DefaultDistanceTicks;
-				double triggerPrice = KatTradeCalculator.CalculateFixedDistanceTriggerPrice(action, currentPx, distTicks, cachedTickSize);
+				KatOrderAction katAction = ToKatAction(action);
+				double triggerPrice = KatTradeCalculator.CalculateFixedDistanceTriggerPrice(katAction, currentPx, distTicks, cachedTickSize);
 
-				OrderType orderType = KatTradeCalculator.DetermineOrderType(action, triggerPrice, currentPx, out double limitPrice, out double stopPrice);
+				KatOrderType katOrderType = KatTradeCalculator.DetermineOrderType(katAction, triggerPrice, currentPx, out double limitPrice, out double stopPrice);
+				OrderType orderType = ToNtOrderType(katOrderType);
 
 				PlaceOrderInternal(action, triggerPrice, orderType, limitPrice, stopPrice, "placing fixed distance order");
 			}
@@ -338,8 +345,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 					// Store pending draw request — OnBarUpdate (data thread) will execute the actual Draw calls
 					lock (priceLock)
 					{
+						KatOrderAction katAction = ToKatAction(action);
 						pendingLevels = KatTradeCalculator.CalculateAtmLevels(
-							action, triggerPrice, atmStopLoss, atmTarget, atmBETrigger, atmSL1Trigger, atmSL2Trigger, cachedTickSize);
+							katAction, triggerPrice, atmStopLoss, atmTarget, atmBETrigger, atmSL1Trigger, atmSL2Trigger, cachedTickSize);
 						pendingEntryPrice = triggerPrice;
 						pendingAtmStopLoss = atmStopLoss;
 						pendingAtmTarget = atmTarget;
@@ -365,6 +373,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			entryOrder = null;
 			pendingRemoveLines = true; // ponytail: let OnBarUpdate handle removal on data thread
+			if (ChartControl != null)
+			{
+				ChartControl.Dispatcher.InvokeAsync(() =>
+				{
+					RemoveExpectedLines();
+				});
+			}
 		}
 
 		private void ClosePosition()
@@ -425,6 +440,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		/// </summary>
 		private void DrawExpectedLines()
 		{
+			RemoveExpectedLines(); // ponytail: clear previous line objects first to prevent lingering tags
+
 			KatTradeCalculator.AtmLevels levels;
 			double entryPx;
 			int sl, tp, be, sl1, sl2;
@@ -440,19 +457,21 @@ namespace NinjaTrader.NinjaScript.Indicators
 				sl2 = pendingAtmSL2Trigger;
 			}
 
+			int startBar = CurrentBar >= 0 ? Math.Min(20, Math.Max(1, CurrentBar)) : 1;
+
 			// Entry price line (always drawn)
-			Draw.Line(this, "KAT_ENTRY_LINE", false, 20, entryPx, -5, entryPx, Brushes.Gold, DashStyleHelper.Solid, 2);
+			Draw.Line(this, "KAT_ENTRY_LINE", false, startBar, entryPx, -5, entryPx, Brushes.Gold, DashStyleHelper.Solid, 2);
 
 			if (sl > 0)
-				Draw.Line(this, "KAT_SL_LINE", false, 20, levels.SlPrice, -5, levels.SlPrice, Brushes.Red, DashStyleHelper.Dash, 2);
+				Draw.Line(this, "KAT_SL_LINE", false, startBar, levels.SlPrice, -5, levels.SlPrice, Brushes.Red, DashStyleHelper.Dash, 2);
 			if (tp > 0)
-				Draw.Line(this, "KAT_TP_LINE", false, 20, levels.TpPrice, -5, levels.TpPrice, Brushes.Green, DashStyleHelper.Dash, 2);
+				Draw.Line(this, "KAT_TP_LINE", false, startBar, levels.TpPrice, -5, levels.TpPrice, Brushes.Green, DashStyleHelper.Dash, 2);
 			if (be > 0)
-				Draw.Line(this, "KAT_BE_LINE", false, 20, levels.BePrice, -5, levels.BePrice, Brushes.DeepSkyBlue, DashStyleHelper.DashDot, 1);
+				Draw.Line(this, "KAT_BE_LINE", false, startBar, levels.BePrice, -5, levels.BePrice, Brushes.DeepSkyBlue, DashStyleHelper.DashDot, 1);
 			if (sl1 > 0)
-				Draw.Line(this, "KAT_SL1_LINE", false, 20, levels.Sl1Price, -5, levels.Sl1Price, Brushes.Orange, DashStyleHelper.Dot, 1);
+				Draw.Line(this, "KAT_SL1_LINE", false, startBar, levels.Sl1Price, -5, levels.Sl1Price, Brushes.Orange, DashStyleHelper.Dot, 1);
 			if (sl2 > 0)
-				Draw.Line(this, "KAT_SL2_LINE", false, 20, levels.Sl2Price, -5, levels.Sl2Price, Brushes.Magenta, DashStyleHelper.Dot, 1);
+				Draw.Line(this, "KAT_SL2_LINE", false, startBar, levels.Sl2Price, -5, levels.Sl2Price, Brushes.Magenta, DashStyleHelper.Dot, 1);
 
 			isExpectedLinesDrawn = true;
 			ForceRefresh();

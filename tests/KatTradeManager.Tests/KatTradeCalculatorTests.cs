@@ -1,6 +1,5 @@
 using System;
 using Xunit;
-using NinjaTrader.Cbi;
 using NinjaTrader.NinjaScript.Indicators;
 
 namespace KatTradeManager.Tests
@@ -16,7 +15,7 @@ namespace KatTradeManager.Tests
 			double tickSize = 0.25;
 
 			// Act
-			double triggerPrice = KatTradeCalculator.CalculateTriggerPrice(OrderAction.Buy, basePrice, bufferTicks, tickSize);
+			double triggerPrice = KatTradeCalculator.CalculateTriggerPrice(KatOrderAction.Buy, basePrice, bufferTicks, tickSize);
 
 			// Assert
 			Assert.Equal(1000.50, triggerPrice, 4);
@@ -31,7 +30,7 @@ namespace KatTradeManager.Tests
 			double tickSize = 0.25;
 
 			// Act
-			double triggerPrice = KatTradeCalculator.CalculateTriggerPrice(OrderAction.Sell, basePrice, bufferTicks, tickSize);
+			double triggerPrice = KatTradeCalculator.CalculateTriggerPrice(KatOrderAction.Sell, basePrice, bufferTicks, tickSize);
 
 			// Assert
 			Assert.Equal(999.50, triggerPrice, 4);
@@ -46,7 +45,7 @@ namespace KatTradeManager.Tests
 			double tickSize = 0.25;
 
 			// Act
-			double triggerPrice = KatTradeCalculator.CalculateFixedDistanceTriggerPrice(OrderAction.Buy, currentPrice, distanceTicks, tickSize);
+			double triggerPrice = KatTradeCalculator.CalculateFixedDistanceTriggerPrice(KatOrderAction.Buy, currentPrice, distanceTicks, tickSize);
 
 			// Assert
 			Assert.Equal(20080.0, triggerPrice, 4);
@@ -61,7 +60,7 @@ namespace KatTradeManager.Tests
 			double tickSize = 0.25;
 
 			// Act
-			double triggerPrice = KatTradeCalculator.CalculateFixedDistanceTriggerPrice(OrderAction.Sell, currentPrice, distanceTicks, tickSize);
+			double triggerPrice = KatTradeCalculator.CalculateFixedDistanceTriggerPrice(KatOrderAction.Sell, currentPrice, distanceTicks, tickSize);
 
 			// Assert
 			Assert.Equal(19920.0, triggerPrice, 4);
@@ -75,10 +74,10 @@ namespace KatTradeManager.Tests
 			double currentPrice = 1000.0;
 
 			// Act
-			OrderType orderType = KatTradeCalculator.DetermineOrderType(OrderAction.Buy, triggerPrice, currentPrice, out double limitPrice, out double stopPrice);
+			KatOrderType orderType = KatTradeCalculator.DetermineOrderType(KatOrderAction.Buy, triggerPrice, currentPrice, out double limitPrice, out double stopPrice);
 
 			// Assert
-			Assert.Equal(OrderType.StopMarket, orderType);
+			Assert.Equal(KatOrderType.StopMarket, orderType);
 			Assert.Equal(1005.0, stopPrice, 4);
 			Assert.Equal(0.0, limitPrice, 4);
 		}
@@ -91,10 +90,10 @@ namespace KatTradeManager.Tests
 			double currentPrice = 1000.0;
 
 			// Act
-			OrderType orderType = KatTradeCalculator.DetermineOrderType(OrderAction.Buy, triggerPrice, currentPrice, out double limitPrice, out double stopPrice);
+			KatOrderType orderType = KatTradeCalculator.DetermineOrderType(KatOrderAction.Buy, triggerPrice, currentPrice, out double limitPrice, out double stopPrice);
 
 			// Assert
-			Assert.Equal(OrderType.Limit, orderType);
+			Assert.Equal(KatOrderType.Limit, orderType);
 			Assert.Equal(995.0, limitPrice, 4);
 			Assert.Equal(0.0, stopPrice, 4);
 		}
@@ -107,10 +106,10 @@ namespace KatTradeManager.Tests
 			double currentPrice = 1000.0;
 
 			// Act
-			OrderType orderType = KatTradeCalculator.DetermineOrderType(OrderAction.Sell, triggerPrice, currentPrice, out double limitPrice, out double stopPrice);
+			KatOrderType orderType = KatTradeCalculator.DetermineOrderType(KatOrderAction.Sell, triggerPrice, currentPrice, out double limitPrice, out double stopPrice);
 
 			// Assert
-			Assert.Equal(OrderType.StopMarket, orderType);
+			Assert.Equal(KatOrderType.StopMarket, orderType);
 			Assert.Equal(995.0, stopPrice, 4);
 			Assert.Equal(0.0, limitPrice, 4);
 		}
@@ -123,10 +122,10 @@ namespace KatTradeManager.Tests
 			double currentPrice = 1000.0;
 
 			// Act
-			OrderType orderType = KatTradeCalculator.DetermineOrderType(OrderAction.Sell, triggerPrice, currentPrice, out double limitPrice, out double stopPrice);
+			KatOrderType orderType = KatTradeCalculator.DetermineOrderType(KatOrderAction.Sell, triggerPrice, currentPrice, out double limitPrice, out double stopPrice);
 
 			// Assert
-			Assert.Equal(OrderType.Limit, orderType);
+			Assert.Equal(KatOrderType.Limit, orderType);
 			Assert.Equal(1005.0, limitPrice, 4);
 			Assert.Equal(0.0, stopPrice, 4);
 		}
@@ -144,7 +143,7 @@ namespace KatTradeManager.Tests
 			double tickSize = 0.25;
 
 			// Act
-			var levels = KatTradeCalculator.CalculateAtmLevels(OrderAction.Buy, triggerPrice, slTicks, tpTicks, beTicks, sl1Ticks, sl2Ticks, tickSize);
+			var levels = KatTradeCalculator.CalculateAtmLevels(KatOrderAction.Buy, triggerPrice, slTicks, tpTicks, beTicks, sl1Ticks, sl2Ticks, tickSize);
 
 			// Assert
 			Assert.Equal(995.0, levels.SlPrice, 4);
@@ -167,7 +166,7 @@ namespace KatTradeManager.Tests
 			double tickSize = 0.25;
 
 			// Act
-			var levels = KatTradeCalculator.CalculateAtmLevels(OrderAction.Sell, triggerPrice, slTicks, tpTicks, beTicks, sl1Ticks, sl2Ticks, tickSize);
+			var levels = KatTradeCalculator.CalculateAtmLevels(KatOrderAction.Sell, triggerPrice, slTicks, tpTicks, beTicks, sl1Ticks, sl2Ticks, tickSize);
 
 			// Assert
 			Assert.Equal(1005.0, levels.SlPrice, 4);

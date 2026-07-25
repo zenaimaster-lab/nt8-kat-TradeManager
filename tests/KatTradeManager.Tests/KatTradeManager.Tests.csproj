@@ -1,7 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <UseWPF>true</UseWPF>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <IsPackable>false</IsPackable>
@@ -29,6 +31,10 @@
     </Reference>
     <Reference Include="NinjaTrader.Gui">
       <HintPath>C:\Program Files\NinjaTrader 8\bin\NinjaTrader.Gui.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="NinjaTrader.Client">
+      <HintPath>C:\Program Files\NinjaTrader 8\bin\NinjaTrader.Client.dll</HintPath>
       <Private>True</Private>
     </Reference>
   </ItemGroup>

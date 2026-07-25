@@ -21,6 +21,22 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.24] - 2026-07-25
+- **Short Line Drawing & Removal Fixes**:
+  - `DrawExpectedLines()` now calls `RemoveExpectedLines()` FIRST before drawing new line objects. This guarantees old tags (e.g. `KAT_BE_LINE`, `KAT_SL1_LINE`, `KAT_SL2_LINE`) from previous orders are completely wiped when switching ATM templates or placing consecutive orders.
+  - Added bar index protection for chart rendering: `startBarsAgo` is now dynamically bounded by `Math.Min(20, Math.Max(1, CurrentBar))`, preventing out-of-bounds errors on charts with fewer than 20 total bars.
+  - Added immediate UI thread line clearing dispatch in `CancelAllOrders()` so chart lines erase instantly off-market or when idle without waiting for incoming ticks.
+- **Pure Domain Decoupling for .NET SDK Unit Testing**:
+  - Decoupled `KatTradeCalculator` from `NinjaTrader.Cbi` types (`OrderAction`, `OrderType`) by introducing domain enums `KatOrderAction` and `KatOrderType`.
+  - Resolved AgileDotNet obfuscator `WindowsImpersonationContext` / `mscorlib` type load failure during .NET 8 unit testing.
+  - Configured `KatTradeManager.Tests.csproj` with `<PlatformTarget>x64</PlatformTarget>`, `<TargetFramework>net8.0-windows</TargetFramework>`, and `<UseWPF>true</UseWPF>`.
+  - Added `TestAssemblyInitializer.cs` to hook `AssemblyLoadContext.Default.Resolving` and `AppDomain.CurrentDomain.AssemblyResolve`.
+- **Test Suite Expansion**:
+  - Created `KatAtmXmlParserEdgeCaseTests.cs` to test multi-bracket ATM XML files, quantity summation, and zero-trigger handling.
+  - Updated all 34 test cases to run natively under .NET SDK with 100% pass rate in 66 ms.
+- **NinjaTrader 8 Deployment & Sync**:
+  - Deployed updated codebase to `C:\Users\kieuanhtuan\Documents\NinjaTrader 8\bin\Custom\Indicators\`.
+
 ### [v0.23] - 2026-07-25
 - **P0 Fix: Lines Not Drawing (Root Cause)**:
   - `Draw.Line()` was called from the WPF UI thread (button click handler), but NinjaTrader's Draw API only works on the NinjaScript data thread (`OnBarUpdate()`). All draw calls silently failed.
