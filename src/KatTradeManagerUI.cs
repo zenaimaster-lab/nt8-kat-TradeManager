@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.37 (2026-07-25) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.39 (2026-07-25) */
 
 using System;
 using System.Collections.Generic;
@@ -143,9 +143,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 			};
 
 			mainPanel = new StackPanel();
-
-			// --- SECTION 1: Parameters & ATM Selection ---
-			StackPanel sec1Panel = new StackPanel();
 
 			// --- SECTION 1: Parameters & ATM Selection ---
 			StackPanel sec1Panel = new StackPanel();

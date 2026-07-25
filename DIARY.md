@@ -24,6 +24,10 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.39] — 2026-07-25
+- **Fixed Compilation Error CS0128**:
+  - Removed duplicate `sec1Panel` StackPanel variable declaration in `KatTradeManagerUI.CreateWpfControls()`.
+
 ### [v0.38] — 2026-07-25
 - **Refined Typography & HUD Header Alignment**:
   - Changed button text font weight from `Bold` to `Normal` for a cleaner, modern look.
