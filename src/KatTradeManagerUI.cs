@@ -239,11 +239,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			mainPanel.Children.Add(atmSelector);
 
-			// EMA 34 & EMA 89 Button Rows (Height 48px, Font 12pt — placed above 1/2 Candle button)
-			SolidColorBrush buy34Bg  = new SolidColorBrush(Color.FromRgb(34, 112, 62));
-			SolidColorBrush sell34Bg = new SolidColorBrush(Color.FromRgb(148, 48, 54));
-			SolidColorBrush buy89Bg  = new SolidColorBrush(Color.FromRgb(24, 82, 45));
-			SolidColorBrush sell89Bg = new SolidColorBrush(Color.FromRgb(110, 32, 38));
+			// EMA 34 (Orange/Amber theme) & EMA 89 (Purple/Violet theme) Button Rows
+			SolidColorBrush buy34Bg  = new SolidColorBrush(Color.FromRgb(100, 115, 30)); // Amber/Golden Green (Buy + 34 Orange/Yellow)
+			SolidColorBrush sell34Bg = new SolidColorBrush(Color.FromRgb(175, 75, 25));  // Burnt Orange-Red (Sell + 34 Orange)
+			SolidColorBrush buy89Bg  = new SolidColorBrush(Color.FromRgb(35, 95, 110));  // Teal-Purple Green (Buy + 89 Purple)
+			SolidColorBrush sell89Bg = new SolidColorBrush(Color.FromRgb(130, 35, 95));  // Plum-Purple Red (Sell + 89 Purple)
+
 
 			Grid ema34Grid = new Grid { Margin = new Thickness(0, 2, 0, 2) };
 			ema34Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
