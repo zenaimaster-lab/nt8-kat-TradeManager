@@ -21,6 +21,23 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.23] - 2026-07-25
+- **P0 Fix: Lines Not Drawing (Root Cause)**:
+  - `Draw.Line()` was called from the WPF UI thread (button click handler), but NinjaTrader's Draw API only works on the NinjaScript data thread (`OnBarUpdate()`). All draw calls silently failed.
+  - Implemented pending-draw pattern: `PlaceOrderInternal()` stores draw request in thread-safe fields (`pendingDrawRequest`, `pendingLevels`, `pendingEntryPrice`), `OnBarUpdate()` picks up the request and executes `DrawExpectedLines()` on the correct thread.
+  - Same pattern for removal: `CancelAllOrders()` sets `pendingRemoveLines` flag, `OnBarUpdate()` calls `RemoveExpectedLines()` on data thread.
+- **P0 Fix: Thread-Safe entryOrder Access**:
+  - Made `entryOrder` volatile. Added terminal state detection (Filled/Cancelled/Rejected) in `OnBarUpdate()` to clear stale order references.
+- **P1 Fix: PlaceFixedDistanceOrder Order Type**:
+  - Replaced hardcoded `OrderType.StopMarket` with `KatTradeCalculator.DetermineOrderType()` call, consistent with `PlaceOrder()`. Fixed incorrect order type when trigger price is on wrong side of market.
+- **New: Entry Price Line**:
+  - Added gold `KAT_ENTRY_LINE` drawn at the trigger/entry price when placing orders.
+- **Modular Split: WPF UI Extraction**:
+  - Extracted ~300 lines of WPF UI code to `src/KatTradeManagerUI.cs` as `partial class`. Main file reduced to ~520 lines focused on trading logic.
+- **New Tests**:
+  - Added `KatLineDrawingTests.cs` (ATM levels with zero ticks, mixed params, draw count logic).
+  - Added `FixedDistanceOrder_ShouldUseDetermineOrderType` test to `StressAndEdgeCaseTests.cs`.
+
 ### [v0.22] - 2026-07-24
 - **R1 Bug Fixes & Dead Code Removal**:
   - Synchronized and bumped version string to 0.22 across `KatTradeManager.cs` (header comment & VERSION constant), `README.md`, and `DIARY.md`.

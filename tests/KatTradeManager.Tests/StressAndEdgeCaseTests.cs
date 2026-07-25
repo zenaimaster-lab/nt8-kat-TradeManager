@@ -75,6 +75,20 @@ namespace KatTradeManager.Tests
 			Assert.Equal(2002.50, sellTrigger, 4);
 		}
 
+		[Fact]
+		public void FixedDistanceOrder_ShouldUseDetermineOrderType_NotHardcodedStopMarket()
+		{
+			// When price is at 2000 and we do BUY +Distance with -10 ticks (below market),
+			// the order should be Limit, not StopMarket
+			double currentPrice = 2000.0;
+			double triggerPrice = KatTradeCalculator.CalculateFixedDistanceTriggerPrice(OrderAction.Buy, currentPrice, -10, 0.25);
+			// triggerPrice = 1997.50, below currentPrice = 2000.0
+			OrderType orderType = KatTradeCalculator.DetermineOrderType(OrderAction.Buy, triggerPrice, currentPrice, out double limitPrice, out double stopPrice);
+			Assert.Equal(OrderType.Limit, orderType);
+			Assert.Equal(1997.50, limitPrice, 4);
+			Assert.Equal(0.0, stopPrice, 4);
+		}
+
 		#endregion
 
 		#region KatAtmXmlParser Edge Cases
