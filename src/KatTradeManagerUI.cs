@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.30 (2026-07-25) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.31 (2026-07-25) */
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -239,7 +239,44 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			mainPanel.Children.Add(atmSelector);
 
+			// EMA 34 & EMA 89 Button Rows (Height 48px, Font 12pt — placed above 1/2 Candle button)
+			SolidColorBrush buy34Bg  = new SolidColorBrush(Color.FromRgb(34, 112, 62));
+			SolidColorBrush sell34Bg = new SolidColorBrush(Color.FromRgb(148, 48, 54));
+			SolidColorBrush buy89Bg  = new SolidColorBrush(Color.FromRgb(24, 82, 45));
+			SolidColorBrush sell89Bg = new SolidColorBrush(Color.FromRgb(110, 32, 38));
+
+			Grid ema34Grid = new Grid { Margin = new Thickness(0, 2, 0, 2) };
+			ema34Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			ema34Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
+			ema34Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+			Button btnBuy34 = CreateButton("BUY Last 34", buy34Bg, (s, ev) => PlaceEmaOrder(OrderAction.Buy, 34), 48, 12);
+			Grid.SetColumn(btnBuy34, 0);
+			ema34Grid.Children.Add(btnBuy34);
+
+			Button btnSell34 = CreateButton("SELL Last 34", sell34Bg, (s, ev) => PlaceEmaOrder(OrderAction.Sell, 34), 48, 12);
+			Grid.SetColumn(btnSell34, 2);
+			ema34Grid.Children.Add(btnSell34);
+
+			mainPanel.Children.Add(ema34Grid);
+
+			Grid ema89Grid = new Grid { Margin = new Thickness(0, 2, 0, 4) };
+			ema89Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			ema89Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
+			ema89Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+			Button btnBuy89 = CreateButton("BUY Last 89", buy89Bg, (s, ev) => PlaceEmaOrder(OrderAction.Buy, 89), 48, 12);
+			Grid.SetColumn(btnBuy89, 0);
+			ema89Grid.Children.Add(btnBuy89);
+
+			Button btnSell89 = CreateButton("SELL Last 89", sell89Bg, (s, ev) => PlaceEmaOrder(OrderAction.Sell, 89), 48, 12);
+			Grid.SetColumn(btnSell89, 2);
+			ema89Grid.Children.Add(btnSell89);
+
+			mainPanel.Children.Add(ema89Grid);
+
 			// 1/2 Candle Mode Toggle Button
+
 			SolidColorBrush halfOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
 			SolidColorBrush halfOnBg  = new SolidColorBrush(Color.FromRgb(0, 122, 204));
 			Button btnHalfCandle = CreateButton(cachedIsHalfCandle ? "⚡ 1/2 Candle: ON" : "1/2 Candle: OFF",

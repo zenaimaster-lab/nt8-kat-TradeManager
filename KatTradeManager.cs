@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 0.30 (2026-07-25)
+ * Version: 0.31 (2026-07-25)
  * NinjaTrader 8 TradeManager Indicator
  */
 
@@ -39,7 +39,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "0.30";
+		public const string VERSION = "0.31";
 		public const string RELEASE_DATE = "2026-07-25";
 
 		private volatile Account account;
@@ -51,7 +51,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private System.Windows.Threading.DispatcherTimer panelWatchdog;
 		private bool isTerminated;
 
+		// EMA indicators for multi-timeframe candle scanning
+		private EMA[] ema34Series;
+		private EMA[] ema89Series;
+
 		// Thread-safe cached values from UI controls (synced by watchdog on UI thread)
+
 		private volatile int cachedQuantity;
 		private volatile int cachedTfIndex;
 		private volatile int cachedBufferTicks;
@@ -141,7 +146,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 				isRenkoChart = BarsPeriod.BarsPeriodType == BarsPeriodType.Renko
 				               || (BarsPeriod.BarsPeriodTypeName != null && BarsPeriod.BarsPeriodTypeName.IndexOf("Renko", StringComparison.OrdinalIgnoreCase) >= 0)
 				               || BarsPeriod.BarsPeriodType.ToString().IndexOf("Renko", StringComparison.OrdinalIgnoreCase) >= 0;
+
+				ema34Series = new EMA[NUM_SERIES];
+				ema89Series = new EMA[NUM_SERIES];
+				for (int i = 0; i < NUM_SERIES; i++)
+				{
+					ema34Series[i] = EMA(BarsArray[i], 34);
+					ema89Series[i] = EMA(BarsArray[i], 89);
+				}
+
 				Print(string.Format("[KatTradeManager] v{0} loaded — cached mode active (Renko: {1})", VERSION, isRenkoChart));
+
 
 				if (Account.All != null && Account.All.Count > 0)
 				{
@@ -338,6 +353,66 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Print(string.Format("[KatTradeManager] Error placing fixed distance order: {0}", ex.ToString()));
 			}
 		}
+
+		private void PlaceEmaOrder(OrderAction action, int emaPeriod)
+		{
+			if (account == null || Instrument == null) return;
+
+			try
+			{
+				int barIdx = GetBarsInProgressIndex();
+				if (barIdx < 0 || barIdx >= NUM_SERIES) return;
+
+				double basePrice = 0;
+				double currentPx = 0;
+				KatOrderAction katAction = ToKatAction(action);
+				int foundBarsAgo = -1;
+
+				lock (priceLock)
+				{
+					EMA targetEma = (emaPeriod == 34) ? (ema34Series != null && barIdx < ema34Series.Length ? ema34Series[barIdx] : null)
+					                                  : (ema89Series != null && barIdx < ema89Series.Length ? ema89Series[barIdx] : null);
+
+					int maxBars = CurrentBars[barIdx];
+					if (targetEma != null)
+					{
+						for (int barsAgo = 0; barsAgo <= maxBars && barsAgo < 500; barsAgo++)
+						{
+							double h = Highs[barIdx][barsAgo];
+							double l = Lows[barIdx][barsAgo];
+							double emaVal = targetEma[barsAgo];
+
+							if (KatTradeCalculator.IsEmaTouchBar(h, l, emaVal))
+							{
+								foundBarsAgo = barsAgo;
+								double open  = Opens[barIdx][barsAgo];
+								double close = Closes[barIdx][barsAgo];
+								basePrice = KatTradeCalculator.CalculateCandlePrice(katAction, cachedIsHalfCandle, h, l, open, close, barIdx == 0 && isRenkoChart, cachedTickSize);
+								break;
+							}
+						}
+					}
+					currentPx = cachedCurrentPrice > 0 ? cachedCurrentPrice : basePrice;
+				}
+
+				if (foundBarsAgo < 0 || basePrice <= 0)
+				{
+					Print(string.Format("[KatTradeManager] No candle found touching/crossing EMA {0} on TF index {1}", emaPeriod, barIdx));
+					return;
+				}
+
+				double triggerPrice = KatTradeCalculator.CalculateTriggerPrice(katAction, basePrice, cachedBufferTicks, cachedTickSize);
+				KatOrderType katOrderType = KatTradeCalculator.DetermineOrderType(katAction, triggerPrice, currentPx, cachedTickSize, out double limitPrice, out double stopPrice);
+				OrderType orderType = ToNtOrderType(katOrderType);
+
+				PlaceOrderInternal(action, triggerPrice, orderType, limitPrice, stopPrice, string.Format("placing EMA {0} order", emaPeriod));
+			}
+			catch (Exception ex)
+			{
+				Print(string.Format("[KatTradeManager] Error placing EMA {0} order: {1}", emaPeriod, ex.ToString()));
+			}
+		}
+
 
 		private void PlaceOrderInternal(OrderAction action, double triggerPrice, OrderType orderType, double limitPrice, double stopPrice, string errorContext)
 		{

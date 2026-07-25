@@ -24,7 +24,18 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.31] — 2026-07-25
+- **EMA 34 & EMA 89 Buy/Sell Last Candle Feature**:
+  - Added 2 button rows (`BUY Last 34` / `SELL Last 34` and `BUY Last 89` / `SELL Last 89`) in WPF control panel placed above `1/2 Candle ON/OFF` button.
+  - Button height (48px) and font size (12pt) match `BUY Previous` / `SELL Previous` button sizes.
+  - Scanning logic scans historical bars backward to find the most recent candle touching or crossing EMA 34 / 89 line (`High >= EMA && Low <= EMA`).
+  - Supports 1/2 Candle mode toggle: calculates midpoint trigger price when 1/2 Candle mode is active, automatically determining StopMarket vs Limit order types.
+  - Multi-timeframe aware: scans EMA 34/89 on the active selected timeframe (`Chart TF`, `30s`, `1m`, `2m`).
+- **Tests**: Added `KatEmaTouchTests.cs` (91 tests passing cleanly in 106ms).
+- **Graphify**: AST-only update.
+
 ### [v0.30] — 2026-07-25
+
 - **HUD UI Refactor & Parameter Streamlining**:
   - Removed Buffer, Distance, and TF input controls from HUD panel to reduce clutter and vertical size.
   - Added `KatTimeframe` enum property (`DefaultTimeframe`) to NinjaScript Indicator properties (default: Chart TF). Buffer (2 ticks) and Distance (320 ticks) remain configurable in Indicator settings.
