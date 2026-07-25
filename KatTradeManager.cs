@@ -22,20 +22,20 @@ using NinjaTrader.NinjaScript;
 using NinjaTrader.NinjaScript.DrawingTools;
 #endregion
 
+public enum KatTimeframe
+{
+	[Display(Name = "Chart TF")]
+	ChartTF = 0,
+	[Display(Name = "30s")]
+	Sec30 = 1,
+	[Display(Name = "1m")]
+	Min1 = 2,
+	[Display(Name = "2m")]
+	Min2 = 3
+}
+
 namespace NinjaTrader.NinjaScript.Indicators
 {
-	public enum KatTimeframe
-	{
-		[Display(Name = "Chart TF")]
-		ChartTF = 0,
-		[Display(Name = "30s")]
-		Sec30 = 1,
-		[Display(Name = "1m")]
-		Min1 = 2,
-		[Display(Name = "2m")]
-		Min2 = 3
-	}
-
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
