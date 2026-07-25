@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.29 (2026-07-25) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.30 (2026-07-25) */
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -74,14 +74,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			if (txtQuantity != null)
 				cachedQuantity = int.TryParse(txtQuantity.Text, out int q) ? q : DefaultQuantity;
-			if (tfSelector != null)
-				cachedTfIndex = tfSelector.SelectedIndex;
-			if (txtBuffer != null)
-				cachedBufferTicks = int.TryParse(txtBuffer.Text, out int b) ? b : DefaultBufferTicks;
-			if (txtDistance != null)
-				cachedDistanceTicks = int.TryParse(txtDistance.Text, out int d) ? d : DefaultDistanceTicks;
 			if (atmSelector != null && atmSelector.SelectedItem != null)
 				cachedAtmTemplate = atmSelector.SelectedItem.ToString();
+
+			cachedTfIndex = (int)DefaultTimeframe;
+			cachedBufferTicks = DefaultBufferTicks;
+			cachedDistanceTicks = DefaultDistanceTicks;
 		}
 
 		private void CreateWpfControls()
@@ -143,19 +141,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			mainPanel = new StackPanel();
 
-			// Header Title
+			// Header Title (Subdued dark cyan color to avoid glare)
 			mainPanel.Children.Add(new TextBlock
 			{
 				Text = string.Format("⚡ KAT TradeManager v{0}", VERSION),
-				Foreground = Brushes.Cyan,
+				Foreground = new SolidColorBrush(Color.FromRgb(70, 130, 160)),
 				FontWeight = FontWeights.Bold,
 				FontSize = 12,
 				Margin = new Thickness(0, 0, 0, 8),
 				HorizontalAlignment = HorizontalAlignment.Center
 			});
 
-			// Layout Grid for Parameters
-			Grid paramGrid = new Grid { Margin = new Thickness(0, 0, 0, 8) };
+			// Layout Grid for Parameters (Acc & Contracts)
+			Grid paramGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
 			paramGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(85) });
 			paramGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
@@ -177,16 +175,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			};
 			AddGridRow(paramGrid, "Acc:", accSelector);
 
-			// Timeframe Selection
-			tfSelector = new ComboBox { FontSize = 11, Height = 22 };
-			tfSelector.Items.Add("Chart TF");
-			tfSelector.Items.Add("30s");
-			tfSelector.Items.Add("1m");
-			tfSelector.Items.Add("2m");
-			tfSelector.SelectedIndex = 0;
-			AddGridRow(paramGrid, "TF:", tfSelector);
-
-			// Quantity, Buffer & Fixed Distance Inputs
+			// Quantity Input
 			txtQuantity = new TextBox { Text = DefaultQuantity.ToString(), FontSize = 11, Height = 22, Background = Brushes.Black, Foreground = Brushes.White, BorderBrush = Brushes.Gray, Padding = new Thickness(4, 0, 4, 0), VerticalContentAlignment = VerticalAlignment.Center };
 			txtQuantity.PreviewKeyDown += (s, ev) =>
 			{
@@ -199,32 +188,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 			};
 			AddGridRow(paramGrid, "Contracts:", txtQuantity);
 
-			txtBuffer = new TextBox { Text = DefaultBufferTicks.ToString(), FontSize = 11, Height = 22, Background = Brushes.Black, Foreground = Brushes.White, BorderBrush = Brushes.Gray, Padding = new Thickness(4, 0, 4, 0), VerticalContentAlignment = VerticalAlignment.Center };
-			txtBuffer.PreviewKeyDown += (s, ev) =>
-			{
-				if (ev.Key == Key.Enter)
-				{
-					SyncCachedValues();
-					if (ChartControl != null) ChartControl.Focus();
-					ev.Handled = true;
-				}
-			};
-			AddGridRow(paramGrid, "Buffer (Ticks):", txtBuffer);
+			mainPanel.Children.Add(paramGrid);
 
-			txtDistance = new TextBox { Text = DefaultDistanceTicks.ToString(), FontSize = 11, Height = 22, Background = Brushes.Black, Foreground = Brushes.White, BorderBrush = Brushes.Gray, Padding = new Thickness(4, 0, 4, 0), VerticalContentAlignment = VerticalAlignment.Center };
-			txtDistance.PreviewKeyDown += (s, ev) =>
+			// ATM Selection Dropdown (Full width without label)
+			atmSelector = new ComboBox
 			{
-				if (ev.Key == Key.Enter)
-				{
-					SyncCachedValues();
-					if (ChartControl != null) ChartControl.Focus();
-					ev.Handled = true;
-				}
+				FontSize = 11,
+				Height = 22,
+				Margin = new Thickness(0, 2, 0, 6),
+				HorizontalAlignment = HorizontalAlignment.Stretch
 			};
-			AddGridRow(paramGrid, "Dist (Ticks):", txtDistance);
-
-			// ATM Selection Dropdown
-			atmSelector = new ComboBox { FontSize = 11, Height = 22 };
 			string atmDir = System.IO.Path.Combine(NinjaTrader.Core.Globals.UserDataDir, "templates", "AtmStrategy");
 			if (System.IO.Directory.Exists(atmDir))
 			{
@@ -263,9 +236,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 					LoadAtmTemplateSettings(cachedAtmTemplate);
 				}
 			};
-			AddGridRow(paramGrid, "ATM:", atmSelector);
 
-			mainPanel.Children.Add(paramGrid);
+			mainPanel.Children.Add(atmSelector);
 
 			// 1/2 Candle Mode Toggle Button
 			SolidColorBrush halfOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));

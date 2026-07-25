@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 0.29 (2026-07-25)
+ * Version: 0.30 (2026-07-25)
  * NinjaTrader 8 TradeManager Indicator
  */
 
@@ -24,20 +24,29 @@ using NinjaTrader.NinjaScript.DrawingTools;
 
 namespace NinjaTrader.NinjaScript.Indicators
 {
+	public enum KatTimeframe
+	{
+		[Display(Name = "Chart TF")]
+		ChartTF = 0,
+		[Display(Name = "30s")]
+		Sec30 = 1,
+		[Display(Name = "1m")]
+		Min1 = 2,
+		[Display(Name = "2m")]
+		Min2 = 3
+	}
+
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "0.29";
+		public const string VERSION = "0.30";
 		public const string RELEASE_DATE = "2026-07-25";
 
 		private volatile Account account;
 		private Grid chartGrid;
 		private Border panelBorder;
 		private StackPanel mainPanel;
-		private ComboBox tfSelector;
 		private TextBox txtQuantity;
-		private TextBox txtBuffer;
-		private TextBox txtDistance;
 		private ComboBox atmSelector;
 		private System.Windows.Threading.DispatcherTimer panelWatchdog;
 		private bool isTerminated;
@@ -109,6 +118,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				IsPanelVisible						= true;
 				DefaultQuantity						= 1;
 				AccountName							= "Sim101";
+				DefaultTimeframe                    = KatTimeframe.ChartTF;
 				DefaultBufferTicks                  = 2;
 				DefaultDistanceTicks                = 320; // Default 80 points = 320 ticks
 				DefaultAtmTemplate                  = "Sim101_ATM";
@@ -123,7 +133,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				isTerminated = false;
 				cachedQuantity = DefaultQuantity;
-				cachedTfIndex = 0;
+				cachedTfIndex = (int)DefaultTimeframe;
 				cachedTickSize = TickSize;
 				cachedBufferTicks = DefaultBufferTicks;
 				cachedDistanceTicks = DefaultDistanceTicks;
@@ -502,17 +512,21 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public string AccountName { get; set; }
 
 		[NinjaScriptProperty]
+		[Display(Name="Timeframe", Order=3, GroupName="Parameters")]
+		public KatTimeframe DefaultTimeframe { get; set; }
+
+		[NinjaScriptProperty]
 		[Range(0, 100)]
-		[Display(Name="Default Buffer (Ticks)", Order=3, GroupName="Parameters")]
+		[Display(Name="Default Buffer (Ticks)", Order=4, GroupName="Parameters")]
 		public int DefaultBufferTicks { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name="Default ATM Template", Order=4, GroupName="Parameters")]
+		[Display(Name="Default ATM Template", Order=5, GroupName="Parameters")]
 		public string DefaultAtmTemplate { get; set; }
 
 		[NinjaScriptProperty]
 		[Range(1, 10000)]
-		[Display(Name="Default Distance (Ticks)", Order=5, GroupName="Parameters")]
+		[Display(Name="Default Distance (Ticks)", Order=6, GroupName="Parameters")]
 		public int DefaultDistanceTicks { get; set; }
 		#endregion
 	}

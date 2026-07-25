@@ -24,6 +24,15 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.30] — 2026-07-25
+- **HUD UI Refactor & Parameter Streamlining**:
+  - Removed Buffer, Distance, and TF input controls from HUD panel to reduce clutter and vertical size.
+  - Added `KatTimeframe` enum property (`DefaultTimeframe`) to NinjaScript Indicator properties (default: Chart TF). Buffer (2 ticks) and Distance (320 ticks) remain configurable in Indicator settings.
+  - Subdued KAT TradeManager header title color (`Color.FromRgb(70, 130, 160)`) to eliminate glaring contrast and distraction.
+  - Expanded ATM dropdown selector to fullwidth across panel, removing "ATM:" label to maximize template name visibility.
+- **Tests**: 82 tests passing cleanly.
+- **Graphify**: AST-only update.
+
 ### [v0.29] — 2026-07-25
 - **Audit & Line Draw/Remove Fixes**:
   - Fixed `CancelAllOrders` double-removal race: removed redundant UI-thread `RemoveExpectedLines()` dispatch that contradicted the pending-remove pattern. Single removal path now: `pendingRemoveLines` → `OnBarUpdate` (data thread). Eliminates cross-thread `RemoveDrawObject` race.
