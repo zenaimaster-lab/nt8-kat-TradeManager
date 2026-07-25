@@ -1,12 +1,13 @@
 # NT8 Kat TradeManager
 
-**Current Version**: `v0.48` (Released: `2026-07-25`)
+**Current Version**: `v0.49` (Released: `2026-07-25`)
 
 An advanced TradeManager Indicator for **NinjaTrader 8 (NT8)** designed for fast execution, candle-based pending stop orders, and dynamic risk management.
 
 ## 🚀 Features
 
 - **On-Chart WPF Control Panel**: Interactive buttons with SELL on left / BUY on right and dropdown selectors directly on your NinjaTrader 8 charts.
+- **Swing Stop Loss Shift Controls (`<-- SL` & `SL -->`)**: Dynamic gray HUD buttons below Section 2 to shift active Stop Loss orders back to historical Swing Lows (Long) or Swing Highs (Short) step-by-step with full Redo functionality.
 - **Daily Max Drawdown & Daily Max Profit Controls**: Side-by-side HUD toggle buttons (default ON, darker purple background `#3A136B`) with 6:00 PM NY session reset. Replaces entry blocking and auto-flattens positions/orders on breach with instant HUD toggle reactivity.
 - **Configurable Hotkeys**: Assign WPF Hotkeys for all 15 order types directly in Indicator Settings, overriding default NT hotkeys (`e.Handled = true`) with input textbox detection & repeat protection.
 - **EMA Place & EMA Angle Filters**: Side-by-side HUD toggle buttons (default ON, very dark blue background) enforcing 5m multi-EMA position rules and slope angle degree thresholds before order placement.

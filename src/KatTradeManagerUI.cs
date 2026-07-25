@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.48 (2026-07-25) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.49 (2026-07-25) */
 
 using System;
 using System.Collections.Generic;
@@ -480,7 +480,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			sec2Panel.Children.Add(ema34Grid);
 
-			Grid ema89Grid = new Grid { Margin = new Thickness(0, 0, 0, 0) };
+			Grid ema89Grid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
 			ema89Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 			ema89Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
 			ema89Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -494,6 +494,24 @@ namespace NinjaTrader.NinjaScript.Indicators
 			ema89Grid.Children.Add(btnBuy89);
 
 			sec2Panel.Children.Add(ema89Grid);
+
+			// --- SECTION 2b: Swing Stop Loss Shift Controls ---
+			Grid swingSlGrid = new Grid { Margin = new Thickness(0, 0, 0, 0) };
+			swingSlGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			swingSlGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
+			swingSlGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+			SolidColorBrush swingSlBg = new SolidColorBrush(Color.FromRgb(45, 50, 65)); // Gray like Close/flatten
+
+			Button btnSlBack = CreateButton("<-- SL", swingSlBg, (s, ev) => ShiftSlToSwing(false), 33, 12);
+			Grid.SetColumn(btnSlBack, 0);
+			swingSlGrid.Children.Add(btnSlBack);
+
+			Button btnSlRedo = CreateButton("SL -->", swingSlBg, (s, ev) => ShiftSlToSwing(true), 33, 12);
+			Grid.SetColumn(btnSlRedo, 2);
+			swingSlGrid.Children.Add(btnSlRedo);
+
+			sec2Panel.Children.Add(swingSlGrid);
 			mainPanel.Children.Add(CreateSectionCard(sec2Panel, 6));
 
 

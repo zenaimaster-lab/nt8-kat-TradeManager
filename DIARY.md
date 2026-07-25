@@ -24,6 +24,15 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.49] — 2026-07-25
+- **Swing Stop Loss Shift Controls (`<-- SL` & `SL -->`)**:
+  - Added new HUD control grid directly under `SELL last 89` in Section 2 with gray background buttons (`#2D3241`) matching Close/Flatten styling.
+  - Implemented `GetSwingPoints` method to calculate Swing Lows (for Long positions) and Swing Highs (for Short positions) on the primary chart timeframe.
+  - Implemented `ShiftSlToSwing(bool isRedo)` with step history tracking:
+    - `<-- SL`: Moves active Stop Loss order to the nearest past Swing Low/High, stepping back to older swing points on repeated clicks.
+    - `SL -->`: Redos / steps SL forward back towards the original SL level step-by-step.
+    - Resets tracking history automatically on position flat/flip or new position entry.
+
 ### [v0.48] — 2026-07-25
 - **Daily Max Drawdown & Daily Max Profit Protection**:
   - Implemented automated daily risk control in `KatTradeManager.cs` to reject order entries and trigger emergency position/order flattening when Daily Max Drawdown or Daily Max Profit limits are breached.

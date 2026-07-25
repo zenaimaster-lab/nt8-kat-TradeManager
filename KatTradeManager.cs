@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 0.47 (2026-07-25)
+ * Version: 0.49 (2026-07-25)
  * NinjaTrader 8 TradeManager Indicator
  */
 
@@ -69,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "0.48";
+		public const string VERSION = "0.49";
 		public const string RELEASE_DATE = "2026-07-25";
 
 		private volatile Account account;
@@ -856,6 +856,190 @@ namespace NinjaTrader.NinjaScript.Indicators
 			catch (Exception ex)
 			{
 				Print(string.Format("[KatTradeManager] Error reverting position: {0}", ex.ToString()));
+			}
+		}
+
+		// ponytail: Swing SL shift tracking state
+		private List<double> slMoveHistory = new List<double>();
+		private int currentSlHistoryIndex = -1;
+		private MarketPosition slTrackedPosition = MarketPosition.Flat;
+		private double slTrackedEntryPrice = 0;
+
+		private List<double> GetSwingPoints(MarketPosition position, int maxSwings = 20, int strength = 3)
+		{
+			List<double> swings = new List<double>();
+			if (CurrentBars[0] < strength * 2 + 1) return swings;
+
+			int maxBarAgo = Math.Min(CurrentBars[0] - strength - 1, 500);
+			double tickSize = cachedTickSize > 0 ? cachedTickSize : (Instrument != null ? Instrument.MasterInstrument.TickSize : 0.25);
+
+			for (int barsAgo = strength; barsAgo <= maxBarAgo; barsAgo++)
+			{
+				bool isSwing = true;
+				if (position == MarketPosition.Long)
+				{
+					double candidateLow = Lows[0][barsAgo];
+					for (int k = 1; k <= strength; k++)
+					{
+						if (Lows[0][barsAgo - k] < candidateLow || Lows[0][barsAgo + k] < candidateLow)
+						{
+							isSwing = false;
+							break;
+						}
+					}
+					if (isSwing)
+					{
+						if (!swings.Any(s => Math.Abs(s - candidateLow) < tickSize))
+							swings.Add(candidateLow);
+					}
+				}
+				else if (position == MarketPosition.Short)
+				{
+					double candidateHigh = Highs[0][barsAgo];
+					for (int k = 1; k <= strength; k++)
+					{
+						if (Highs[0][barsAgo - k] > candidateHigh || Highs[0][barsAgo + k] > candidateHigh)
+						{
+							isSwing = false;
+							break;
+						}
+					}
+					if (isSwing)
+					{
+						if (!swings.Any(s => Math.Abs(s - candidateHigh) < tickSize))
+							swings.Add(candidateHigh);
+					}
+				}
+
+				if (swings.Count >= maxSwings) break;
+			}
+
+			return swings;
+		}
+
+		private void ShiftSlToSwing(bool isRedo)
+		{
+			if (account == null || Instrument == null) return;
+			try
+			{
+				Position pos = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
+				if (pos == null || pos.MarketPosition == MarketPosition.Flat)
+				{
+					Print("[KatTradeManager] Swing SL: No active position to shift SL.");
+					return;
+				}
+
+				if (pos.MarketPosition != slTrackedPosition || Math.Abs(pos.AveragePrice - slTrackedEntryPrice) > 1e-5)
+				{
+					slMoveHistory.Clear();
+					currentSlHistoryIndex = -1;
+					slTrackedPosition = pos.MarketPosition;
+					slTrackedEntryPrice = pos.AveragePrice;
+				}
+
+				var workingStops = account.Orders.Where(o => o.Instrument == Instrument &&
+					(o.OrderState == OrderState.Working || o.OrderState == OrderState.Accepted) &&
+					(o.OrderType == OrderType.StopMarket || o.OrderType == OrderType.StopLimit) &&
+					(pos.MarketPosition == MarketPosition.Long ? (o.OrderAction == OrderAction.Sell || o.OrderAction == OrderAction.SellShort) : (o.OrderAction == OrderAction.Buy || o.OrderAction == OrderAction.BuyToCover))).ToList();
+
+				if (slMoveHistory.Count == 0)
+				{
+					double currentStop = 0;
+					if (workingStops.Count > 0)
+					{
+						currentStop = workingStops[0].StopPrice;
+					}
+					else
+					{
+						double tickSize = cachedTickSize > 0 ? cachedTickSize : Instrument.MasterInstrument.TickSize;
+						currentStop = pos.MarketPosition == MarketPosition.Long ? pos.AveragePrice - 20 * tickSize : pos.AveragePrice + 20 * tickSize;
+					}
+					slMoveHistory.Add(currentStop);
+					currentSlHistoryIndex = 0;
+				}
+
+				double targetPrice = 0;
+
+				if (isRedo)
+				{
+					if (currentSlHistoryIndex > 0)
+					{
+						currentSlHistoryIndex--;
+						targetPrice = slMoveHistory[currentSlHistoryIndex];
+					}
+					else
+					{
+						Print("[KatTradeManager] Swing SL: Already at initial SL position.");
+						return;
+					}
+				}
+				else
+				{
+					if (currentSlHistoryIndex < slMoveHistory.Count - 1)
+					{
+						currentSlHistoryIndex++;
+						targetPrice = slMoveHistory[currentSlHistoryIndex];
+					}
+					else
+					{
+						List<double> swings = GetSwingPoints(pos.MarketPosition, 20, 3);
+						double refPrice = slMoveHistory[currentSlHistoryIndex];
+						double tickSize = cachedTickSize > 0 ? cachedTickSize : Instrument.MasterInstrument.TickSize;
+
+						double nextSwing = 0;
+						foreach (double s in swings)
+						{
+							if (pos.MarketPosition == MarketPosition.Long && s < refPrice - tickSize * 0.5)
+							{
+								nextSwing = s;
+								break;
+							}
+							else if (pos.MarketPosition == MarketPosition.Short && s > refPrice + tickSize * 0.5)
+							{
+								nextSwing = s;
+								break;
+							}
+						}
+
+						if (nextSwing == 0 && swings.Count > 0)
+						{
+							nextSwing = swings.FirstOrDefault(s => Math.Abs(s - refPrice) > 1e-5);
+						}
+
+						if (nextSwing > 0)
+						{
+							slMoveHistory.Add(nextSwing);
+							currentSlHistoryIndex = slMoveHistory.Count - 1;
+							targetPrice = nextSwing;
+						}
+						else
+						{
+							Print("[KatTradeManager] Swing SL: No further swing points found on chart.");
+							return;
+						}
+					}
+				}
+
+				if (workingStops.Count > 0)
+				{
+					foreach (Order stopOrder in workingStops)
+					{
+						stopOrder.StopPrice = targetPrice;
+						account.Change(new[] { stopOrder });
+					}
+					Print(string.Format("[KatTradeManager] Shifted Stop Loss to Swing @ {0} (Step {1}/{2})", targetPrice, currentSlHistoryIndex, slMoveHistory.Count - 1));
+				}
+				else
+				{
+					OrderAction slAction = pos.MarketPosition == MarketPosition.Long ? OrderAction.Sell : OrderAction.BuyToCover;
+					Order slOrder = account.CreateOrder(Instrument, slAction, OrderType.StopMarket, OrderEntry.Manual, TimeInForce.Gtc, pos.Quantity, 0, targetPrice, "", "KAT_SL_SWING", NinjaTrader.Core.Globals.MaxDate, null);
+					account.Submit(new[] { slOrder });
+					Print(string.Format("[KatTradeManager] Submitted Swing Stop Loss @ {0}", targetPrice));
+				}
+			}
+			catch (Exception ex)
+			{
+				Print(string.Format("[KatTradeManager] Error shifting Swing SL: {0}", ex.ToString()));
 			}
 		}
 		#endregion
