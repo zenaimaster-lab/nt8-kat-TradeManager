@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.24 (2026-07-25) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.27 (2026-07-25) */
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -17,7 +17,7 @@ using NinjaTrader.NinjaScript.DrawingTools;
 
 namespace NinjaTrader.NinjaScript.Indicators
 {
-	public partial class KatTradeManager : Indicator
+	public partial class KatTradeManager
 	{
 		#region WPF UI Construction & Handlers
 		private void StartPanelWatchdog()
@@ -94,8 +94,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				Tag = "KatTradeManagerPanel",
 				Background = new SolidColorBrush(Color.FromArgb(240, 20, 24, 33)),
-				BorderBrush = Brushes.DodgerBlue,
-				BorderThickness = new Thickness(1.5),
+				BorderBrush = Brushes.Transparent,
+				BorderThickness = new Thickness(0),
 				CornerRadius = new CornerRadius(6),
 				Width = 240,
 				HorizontalAlignment = HorizontalAlignment.Right,
@@ -267,6 +267,31 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			mainPanel.Children.Add(paramGrid);
 
+			// 1/2 Candle Mode Toggle Button
+			SolidColorBrush halfOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
+			SolidColorBrush halfOnBg  = new SolidColorBrush(Color.FromRgb(0, 122, 204));
+			Button btnHalfCandle = CreateButton(cachedIsHalfCandle ? "⚡ 1/2 Candle: ON" : "1/2 Candle: OFF",
+				cachedIsHalfCandle ? halfOnBg : halfOffBg, null, 24, 11);
+			btnHalfCandle.Foreground = cachedIsHalfCandle ? Brushes.White : Brushes.LightGray;
+
+			btnHalfCandle.Click += (s, ev) =>
+			{
+				cachedIsHalfCandle = !cachedIsHalfCandle;
+				if (cachedIsHalfCandle)
+				{
+					btnHalfCandle.Content = "⚡ 1/2 Candle: ON";
+					btnHalfCandle.Background = halfOnBg;
+					btnHalfCandle.Foreground = Brushes.White;
+				}
+				else
+				{
+					btnHalfCandle.Content = "1/2 Candle: OFF";
+					btnHalfCandle.Background = halfOffBg;
+					btnHalfCandle.Foreground = Brushes.LightGray;
+				}
+			};
+			mainPanel.Children.Add(btnHalfCandle);
+
 			// Buttons Section
 			Grid orderBtnGrid = new Grid { Margin = new Thickness(0, 4, 0, 4) };
 			orderBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -358,7 +383,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Height = height,
 				BorderThickness = new Thickness(0)
 			};
-			btn.Click += handler;
+			if (handler != null)
+				btn.Click += handler;
 			return btn;
 		}
 

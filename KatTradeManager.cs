@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 0.24 (2026-07-25)
+ * Version: 0.27 (2026-07-25)
  * NinjaTrader 8 TradeManager Indicator
  */
 
@@ -27,7 +27,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "0.24";
+		public const string VERSION = "0.27";
 		public const string RELEASE_DATE = "2026-07-25";
 
 		private volatile Account account;
@@ -72,13 +72,21 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private int pendingAtmSL1Trigger;
 		private int pendingAtmSL2Trigger;
 
+		// 1/2 Candle toggle state & Renko chart detection
+		private volatile bool cachedIsHalfCandle = false;
+		private bool isRenkoChart = false;
+
 		// Thread synchronization lock for bar price caching
 		private readonly object priceLock = new object();
 		private const int NUM_SERIES = 4; // chart + 30s + 1m + 2m
-		private double[] cachedCurrentHigh = new double[NUM_SERIES];
-		private double[] cachedCurrentLow  = new double[NUM_SERIES];
-		private double[] cachedPrevHigh    = new double[NUM_SERIES];
-		private double[] cachedPrevLow     = new double[NUM_SERIES];
+		private double[] cachedCurrentHigh  = new double[NUM_SERIES];
+		private double[] cachedCurrentLow   = new double[NUM_SERIES];
+		private double[] cachedCurrentOpen  = new double[NUM_SERIES];
+		private double[] cachedCurrentClose = new double[NUM_SERIES];
+		private double[] cachedPrevHigh     = new double[NUM_SERIES];
+		private double[] cachedPrevLow      = new double[NUM_SERIES];
+		private double[] cachedPrevOpen     = new double[NUM_SERIES];
+		private double[] cachedPrevClose    = new double[NUM_SERIES];
 		private double cachedTickSize;
 		private double cachedCurrentPrice;
 		#endregion
@@ -120,7 +128,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 				cachedBufferTicks = DefaultBufferTicks;
 				cachedDistanceTicks = DefaultDistanceTicks;
 				cachedAtmTemplate = DefaultAtmTemplate;
-				Print(string.Format("[KatTradeManager] v{0} loaded — cached mode active", VERSION));
+				isRenkoChart = BarsPeriod.BarsPeriodType == BarsPeriodType.Renko
+				               || (BarsPeriod.BarsPeriodTypeName != null && BarsPeriod.BarsPeriodTypeName.IndexOf("Renko", StringComparison.OrdinalIgnoreCase) >= 0)
+				               || BarsPeriod.BarsPeriodType.ToString().IndexOf("Renko", StringComparison.OrdinalIgnoreCase) >= 0;
+				Print(string.Format("[KatTradeManager] v{0} loaded — cached mode active (Renko: {1})", VERSION, isRenkoChart));
 
 				if (Account.All != null && Account.All.Count > 0)
 				{
@@ -173,16 +184,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{
 					lock (priceLock)
 					{
-						cachedCurrentHigh[bip] = Highs[bip][0];
-						cachedCurrentLow[bip]  = Lows[bip][0];
+						cachedCurrentHigh[bip]  = Highs[bip][0];
+						cachedCurrentLow[bip]   = Lows[bip][0];
+						cachedCurrentOpen[bip]  = Opens[bip][0];
+						cachedCurrentClose[bip] = Closes[bip][0];
 						if (bip == 0)
 						{
 							cachedCurrentPrice = Closes[0][0];
 						}
 						if (CurrentBars[bip] >= 1)
 						{
-							cachedPrevHigh[bip] = Highs[bip][1];
-							cachedPrevLow[bip]  = Lows[bip][1];
+							cachedPrevHigh[bip]  = Highs[bip][1];
+							cachedPrevLow[bip]   = Lows[bip][1];
+							cachedPrevOpen[bip]  = Opens[bip][1];
+							cachedPrevClose[bip] = Closes[bip][1];
 						}
 					}
 				}
@@ -257,25 +272,23 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 				double basePrice = 0;
 				double currentPx = 0;
+				KatOrderAction katAction = ToKatAction(action);
 
 				lock (priceLock)
 				{
-					if (action == OrderAction.Buy)
-					{
-						basePrice = isCurrentCandle ? cachedCurrentHigh[barIdx] : cachedPrevHigh[barIdx];
-					}
-					else
-					{
-						basePrice = isCurrentCandle ? cachedCurrentLow[barIdx] : cachedPrevLow[barIdx];
-					}
+					double high  = isCurrentCandle ? cachedCurrentHigh[barIdx]  : cachedPrevHigh[barIdx];
+					double low   = isCurrentCandle ? cachedCurrentLow[barIdx]   : cachedPrevLow[barIdx];
+					double open  = isCurrentCandle ? cachedCurrentOpen[barIdx]  : cachedPrevOpen[barIdx];
+					double close = isCurrentCandle ? cachedCurrentClose[barIdx] : cachedPrevClose[barIdx];
+
+					basePrice = KatTradeCalculator.CalculateCandlePrice(katAction, cachedIsHalfCandle, high, low, open, close, barIdx == 0 && isRenkoChart, cachedTickSize);
 					currentPx = cachedCurrentPrice > 0 ? cachedCurrentPrice : basePrice;
 				}
 
 				if (basePrice <= 0) return;
 
-				KatOrderAction katAction = ToKatAction(action);
 				double triggerPrice = KatTradeCalculator.CalculateTriggerPrice(katAction, basePrice, cachedBufferTicks, cachedTickSize);
-				KatOrderType katOrderType = KatTradeCalculator.DetermineOrderType(katAction, triggerPrice, currentPx, out double limitPrice, out double stopPrice);
+				KatOrderType katOrderType = KatTradeCalculator.DetermineOrderType(katAction, triggerPrice, currentPx, cachedTickSize, out double limitPrice, out double stopPrice);
 				OrderType orderType = ToNtOrderType(katOrderType);
 
 				PlaceOrderInternal(action, triggerPrice, orderType, limitPrice, stopPrice, "placing order");
@@ -310,7 +323,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				KatOrderAction katAction = ToKatAction(action);
 				double triggerPrice = KatTradeCalculator.CalculateFixedDistanceTriggerPrice(katAction, currentPx, distTicks, cachedTickSize);
 
-				KatOrderType katOrderType = KatTradeCalculator.DetermineOrderType(katAction, triggerPrice, currentPx, out double limitPrice, out double stopPrice);
+				KatOrderType katOrderType = KatTradeCalculator.DetermineOrderType(katAction, triggerPrice, currentPx, cachedTickSize, out double limitPrice, out double stopPrice);
 				OrderType orderType = ToNtOrderType(katOrderType);
 
 				PlaceOrderInternal(action, triggerPrice, orderType, limitPrice, stopPrice, "placing fixed distance order");
@@ -520,60 +533,3 @@ namespace NinjaTrader.NinjaScript.Indicators
 		#endregion
 	}
 }
-
-#region NinjaScript generated code. Neither change nor remove.
-
-namespace NinjaTrader.NinjaScript.Indicators
-{
-	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
-	{
-		private KatTradeManager[] cacheKatTradeManager;
-		public KatTradeManager KatTradeManager(bool isPanelVisible, int defaultQuantity, string accountName, int defaultBufferTicks, string defaultAtmTemplate, int defaultDistanceTicks)
-		{
-			return KatTradeManager(Input, isPanelVisible, defaultQuantity, accountName, defaultBufferTicks, defaultAtmTemplate, defaultDistanceTicks);
-		}
-
-		public KatTradeManager KatTradeManager(ISeries<double> input, bool isPanelVisible, int defaultQuantity, string accountName, int defaultBufferTicks, string defaultAtmTemplate, int defaultDistanceTicks)
-		{
-			if (cacheKatTradeManager != null)
-				for (int idx = 0; idx < cacheKatTradeManager.Length; idx++)
-					if (cacheKatTradeManager[idx] != null && cacheKatTradeManager[idx].IsPanelVisible == isPanelVisible && cacheKatTradeManager[idx].DefaultQuantity == defaultQuantity && cacheKatTradeManager[idx].AccountName == accountName && cacheKatTradeManager[idx].DefaultBufferTicks == defaultBufferTicks && cacheKatTradeManager[idx].DefaultAtmTemplate == defaultAtmTemplate && cacheKatTradeManager[idx].DefaultDistanceTicks == defaultDistanceTicks && cacheKatTradeManager[idx].EqualsInput(input))
-						return cacheKatTradeManager[idx];
-			return CacheIndicator<KatTradeManager>(new KatTradeManager(){ IsPanelVisible = isPanelVisible, DefaultQuantity = defaultQuantity, AccountName = accountName, DefaultBufferTicks = defaultBufferTicks, DefaultAtmTemplate = defaultAtmTemplate, DefaultDistanceTicks = defaultDistanceTicks }, input, ref cacheKatTradeManager);
-		}
-	}
-}
-
-namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
-{
-	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
-	{
-		public Indicators.KatTradeManager KatTradeManager(bool isPanelVisible, int defaultQuantity, string accountName, int defaultBufferTicks, string defaultAtmTemplate, int defaultDistanceTicks)
-		{
-			return indicator.KatTradeManager(Input, isPanelVisible, defaultQuantity, accountName, defaultBufferTicks, defaultAtmTemplate, defaultDistanceTicks);
-		}
-
-		public Indicators.KatTradeManager KatTradeManager(ISeries<double> input , bool isPanelVisible, int defaultQuantity, string accountName, int defaultBufferTicks, string defaultAtmTemplate, int defaultDistanceTicks)
-		{
-			return indicator.KatTradeManager(input, isPanelVisible, defaultQuantity, accountName, defaultBufferTicks, defaultAtmTemplate, defaultDistanceTicks);
-		}
-	}
-}
-
-namespace NinjaTrader.NinjaScript.Strategies
-{
-	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
-	{
-		public Indicators.KatTradeManager KatTradeManager(bool isPanelVisible, int defaultQuantity, string accountName, int defaultBufferTicks, string defaultAtmTemplate, int defaultDistanceTicks)
-		{
-			return indicator.KatTradeManager(Input, isPanelVisible, defaultQuantity, accountName, defaultBufferTicks, defaultAtmTemplate, defaultDistanceTicks);
-		}
-
-		public Indicators.KatTradeManager KatTradeManager(ISeries<double> input , bool isPanelVisible, int defaultQuantity, string accountName, int defaultBufferTicks, string defaultAtmTemplate, int defaultDistanceTicks)
-		{
-			return indicator.KatTradeManager(input, isPanelVisible, defaultQuantity, accountName, defaultBufferTicks, defaultAtmTemplate, defaultDistanceTicks);
-		}
-	}
-}
-
-#endregion

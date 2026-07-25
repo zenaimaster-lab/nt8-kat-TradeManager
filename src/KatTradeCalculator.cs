@@ -46,34 +46,76 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 		}
 
+		public static double CalculateHalfCandlePrice(double high, double low, double tickSize)
+		{
+			double mid = (high + low) / 2.0;
+			if (tickSize <= 0) return mid;
+			return Math.Round(mid / tickSize) * tickSize;
+		}
+
+		public static double CalculateCandlePrice(KatOrderAction action, bool isHalfCandle, double high, double low, double open, double close, bool isRenko, double tickSize)
+		{
+			if (isHalfCandle)
+			{
+				return CalculateHalfCandlePrice(high, low, tickSize);
+			}
+
+			if (isRenko)
+			{
+				if (action == KatOrderAction.Buy)
+				{
+					return Math.Max(high, Math.Max(open, close));
+				}
+				else
+				{
+					return Math.Min(low, Math.Min(open, close));
+				}
+			}
+
+			return action == KatOrderAction.Buy ? high : low;
+		}
+
 		public static KatOrderType DetermineOrderType(KatOrderAction action, double triggerPrice, double currentPrice, out double limitPrice, out double stopPrice)
 		{
+			return DetermineOrderType(action, triggerPrice, currentPrice, 0.0, out limitPrice, out stopPrice);
+		}
+
+		public static KatOrderType DetermineOrderType(KatOrderAction action, double triggerPrice, double currentPrice, double tickSize, out double limitPrice, out double stopPrice)
+		{
+			double trig = triggerPrice;
+			double curr = currentPrice;
+			if (tickSize > 0)
+			{
+				trig = Math.Round(triggerPrice / tickSize) * tickSize;
+				curr = Math.Round(currentPrice / tickSize) * tickSize;
+			}
+
 			if (action == KatOrderAction.Buy)
 			{
-				if (triggerPrice > currentPrice)
+				if (trig > curr)
 				{
-					stopPrice = triggerPrice;
+					stopPrice = trig;
 					limitPrice = 0;
 					return KatOrderType.StopMarket;
 				}
 				else
 				{
-					limitPrice = triggerPrice;
+					limitPrice = trig;
 					stopPrice = 0;
 					return KatOrderType.Limit;
 				}
 			}
 			else // Sell
 			{
-				if (triggerPrice < currentPrice)
+				if (trig < curr)
 				{
-					stopPrice = triggerPrice;
+					stopPrice = trig;
 					limitPrice = 0;
 					return KatOrderType.StopMarket;
 				}
 				else
 				{
-					limitPrice = triggerPrice;
+					limitPrice = trig;
 					stopPrice = 0;
 					return KatOrderType.Limit;
 				}

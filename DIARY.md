@@ -12,14 +12,43 @@ graph TD
 ```
 
 ### Key Entities & Dependencies
-- **Component**: `KatTradeManager` (NinjaTrader Indicator)
-- **UI Framework**: WPF (`System.Windows.Controls`) on `ChartControl.Parent`
+- **Component**: `KatTradeManager` (NinjaTrader Indicator partial class)
+- **Domain Logic**: `KatTradeCalculator` (price calc, trigger, order type, ATM levels, Renko, 1/2 candle)
+- **ATM Parsing**: `KatAtmXmlParser` (XML template parser)
+- **UI Framework**: `KatTradeManagerUI` (WPF panel partial class)
 - **Execution Target**: `NinjaTrader.Cbi.Account` (`Sim301` or Active Account)
 - **Supported Timeframes**: `Chart TF` (Bars 0), `30s` (Bars 1), `1m` (Bars 2), `2m` (Bars 3)
+- **Special Modes**: 1/2 Candle toggle, Renko chart detection
 
 ---
 
 ## 📜 Version History & Change Log
+
+### [v0.27] — 2026-07-25
+- **Agent Configuration Infrastructure**:
+  - Created `AGENTS.md` with Caveman Ultra mode, Pony Tail (full) rules, Karpathy guidelines, Graphify best practices, auto GitHub connection, and mandatory version bump workflow.
+  - Updated `RULES.md` to reference AGENTS.md and standardize version locations (VERSION constant + RELEASE_DATE constant).
+  - Created `graphify-out/GRAPH_REPORT.md` with god nodes, community structure, and key dependency edges.
+  - Added `.gitignore` entries for agent metadata and graphify-out.
+- **Renko Chart & 1/2 Candle Trading Support**:
+  - Added `cachedIsHalfCandle` toggle and `isRenkoChart` detection in `KatTradeManager.cs`.
+  - Added `CalculateHalfCandlePrice()` and `CalculateCandlePrice()` methods to `KatTradeCalculator.cs` with Renko-aware high/low/close logic.
+  - Added `btnHalfCandle` WPF toggle button in UI panel (lightblue = ON, darkgray = OFF).
+  - Extended price caching to include `Open[]` and `Close[]` for full candle data.
+- **Tick-Size Rounding for Order Type Determination**:
+  - Added overload `DetermineOrderType(..., double tickSize, ...)` that rounds trigger/current price to nearest tick before comparison.
+  - Prevents floating-point precision issues causing wrong order type (Stop vs Limit).
+- **WPF Panel Visual Refinements**:
+  - Made panel border `Transparent` with `BorderThickness = 0` (removed DodgerBlue border).
+  - Fixed null-check in `CreateButton` event handler attachment.
+  - Removed redundant `: Indicator` base class specifier in partial class.
+- **Graphify Knowledge Graph**:
+  - Initialized graph structure: god nodes (KatTradeManager, KatTradeCalculator, KatAtmXmlParser, KatTradeManagerUI) and community groupings.
+- **Test Suite Expansion**:
+  - Added `KatRenkoAndHalfCandleTests.cs` (15 tests covering half-candle midpoint, Renko box price, standard high/low, tick-rounded order type determination).
+- **Graphify & Diary**:
+  - Created `graphify-out/GRAPH_REPORT.md` with entity mapping.
+  - Updated DIARY.md with this version history entry.
 
 ### [v0.24] - 2026-07-25
 - **Short Line Drawing & Removal Fixes**:
