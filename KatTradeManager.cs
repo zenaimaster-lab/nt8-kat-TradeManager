@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 0.33 (2026-07-25)
+ * Version: 0.34 (2026-07-25)
  * NinjaTrader 8 TradeManager Indicator
  */
 
@@ -39,7 +39,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "0.33";
+		public const string VERSION = "0.34";
 		public const string RELEASE_DATE = "2026-07-25";
 
 		private volatile Account account;
@@ -538,7 +538,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{
 					foreach (Order stopOrder in workingStops)
 					{
-						account.Change(new[] { stopOrder }, stopOrder.Quantity, stopOrder.LimitPrice, bePrice);
+						stopOrder.StopPrice = bePrice;
+						account.Change(new[] { stopOrder });
 					}
 					Print(string.Format("[KatTradeManager] Moved {0} Stop Loss order(s) to Breakeven @ {1} (Buffer: {2} ticks)", workingStops.Count, bePrice, bufferTicks));
 				}

@@ -24,6 +24,11 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.34] — 2026-07-25
+- **Fixed NinjaTrader 8 Order Modification Compilation Error**:
+  - Fixed `CS1501: No overload for method 'Change' takes 4 arguments` error in `KatTradeManager.SetBreakeven()`.
+  - Updated `stopOrder.StopPrice = bePrice;` before submitting `account.Change(new[] { stopOrder })`, adhering strictly to NinjaTrader 8's `Account.Change(IEnumerable<Order>)` API signature.
+
 ### [v0.33] — 2026-07-25
 - **Redesigned Bottom HUD Management Controls**:
   - Removed old `Cancel` button.
