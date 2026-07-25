@@ -24,7 +24,15 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.42] — 2026-07-25
+- **Enhanced EMA Filter Settings Organization & Configurable Timeframes**:
+  - Renamed EMA 1, 2, 3 parameters to `1st`, `2nd`, `3rd` EMA (e.g. `1st EMA Place`, `2nd EMA Place`, `3rd EMA Place`, `1st EMA Angle`, `2nd EMA Angle`, `3rd EMA Angle`).
+  - Added per-EMA Timeframe selection property (`KatEmaTimeframe`) for each EMA slot in both Place and Angle filters, defaulting to `5m` while allowing independent per-EMA TF selection (Chart TF, 30s, 1m, 2m, 3m, 5m, 15m, 30m, 60m).
+  - Split EMA Place Filter and EMA Angle Filter into two distinct parameter sections in NinjaTrader settings window (`GroupName="EMA Place Filter"` and `GroupName="EMA Angle Filter"`).
+  - Updated multi-timeframe series loading to support 9 series (`NUM_SERIES = 9`).
+
 ### [v0.41] — 2026-07-25
+
 - **Fixed CS0136 Variable Scope Shadowing Error**:
   - Resolved compiler error in `KatTradeManager.cs` where `katAction` variable was re-declared inside `PlaceOrderInternal`'s inner `lock (priceLock)` scope.
   - Re-deployed clean `.cs` files to NinjaTrader 8.
