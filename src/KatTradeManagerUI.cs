@@ -86,26 +86,30 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (atmSelector != null && atmSelector.SelectedItem != null)
 				cachedAtmTemplate = atmSelector.SelectedItem.ToString();
 
+			cachedTfIndex = (int)DefaultTimeframe;
+			cachedBufferTicks = DefaultBufferTicks;
+			cachedDistanceTicks = DefaultDistanceTicks;
+			cachedPartialPercent = DefaultPartialCandlePercent > 0 ? DefaultPartialCandlePercent : 30;
+		}
+
+		// ponytail: uses visual tree type name matching for ChartTraderControl; fallback to chart grid if hidden
 		private DependencyObject GetChartTraderControl()
 		{
-			try
-			{
-				if (ChartControl.OwnerChart != null && ChartControl.OwnerChart.ChartTrader != null)
-				{
-					var ct = ChartControl.OwnerChart.ChartTrader;
-					if (ct != null && ct.Visibility == Visibility.Visible)
-						return ct;
-				}
+			if (ChartControl == null) return null;
 
-				var window = Window.GetWindow(ChartControl);
-				if (window != null)
-				{
-					var ct = FindVisualChildByTypeName(window, "ChartTraderControl") ?? FindVisualChildByTypeName(window, "ChartTrader");
-					if (ct != null && ct is FrameworkElement fe && fe.Visibility == Visibility.Visible)
-						return ct;
-				}
+			if (ChartControl.OwnerChart != null && ChartControl.OwnerChart.ChartTrader != null)
+			{
+				var ct = ChartControl.OwnerChart.ChartTrader;
+				if (ct.Visibility == Visibility.Visible) return ct;
 			}
-			catch {}
+
+			Window window = Window.GetWindow(ChartControl);
+			if (window != null)
+			{
+				var ct = FindVisualChildByTypeName(window, "ChartTraderControl") ?? FindVisualChildByTypeName(window, "ChartTrader");
+				if (ct is FrameworkElement fe && fe.Visibility == Visibility.Visible) return ct;
+			}
+
 			return null;
 		}
 
@@ -116,7 +120,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			for (int i = 0; i < count; i++)
 			{
 				DependencyObject child = VisualTreeHelper.GetChild(parent, i);
-				if (child.GetType().Name.Equals(typeName, StringComparison.OrdinalIgnoreCase))
+				if (child != null && child.GetType().Name.Equals(typeName, StringComparison.OrdinalIgnoreCase))
 					return child;
 				DependencyObject result = FindVisualChildByTypeName(child, typeName);
 				if (result != null) return result;
@@ -153,22 +157,37 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			if (ctControl == null) return null;
 
-			// Target top-most outer Grid of ChartTraderControl (above ScrollViewer)
-			// so HUD floats over native buttons with high ZIndex without getting clipped inside ScrollViewer
-			if (ctControl is Grid directGrid)
-				return directGrid;
+			// 1. Direct Content of ContentControl (UserControl)
+			if (ctControl is ContentControl cc && cc.Content is FrameworkElement contentFe)
+			{
+				if (contentFe is ScrollViewer sv && sv.Content is Panel svPanel)
+					return svPanel;
+				if (contentFe is Panel contentPanel)
+					return contentPanel;
+			}
 
-			if (ctControl is ContentControl cc && cc.Content is Grid contentGrid)
-				return contentGrid;
+			// 2. Search for ScrollViewer inside ctControl
+			ScrollViewer innerSv = FindVisualChild<ScrollViewer>(ctControl);
+			if (innerSv != null && innerSv.Content is Panel innerSvPanel)
+				return innerSvPanel;
 
+			// 3. Fallback: Find vertical StackPanels and pick the top-most (shallowest depth)
+			List<StackPanel> stackPanels = new List<StackPanel>();
+			FindAllVisualChildren<StackPanel>(ctControl, stackPanels);
+			var topStack = stackPanels
+				.Where(sp => sp.Orientation == Orientation.Vertical)
+				.OrderBy(GetVisualDepth)
+				.FirstOrDefault();
+
+			if (topStack != null)
+				return topStack;
+
+			// 4. Fallback: Find Grids and pick the top-most (shallowest depth)
 			List<Grid> grids = new List<Grid>();
 			FindAllVisualChildren<Grid>(ctControl, grids);
 			var topGrid = grids.OrderBy(GetVisualDepth).FirstOrDefault();
 			if (topGrid != null)
 				return topGrid;
-
-			if (ctControl is ContentControl cc2 && cc2.Content is Panel contentPanel)
-				return contentPanel;
 
 			return null;
 		}
@@ -280,16 +299,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			if (!isChartTraderAttached)
 			{
+				// InChart mode or Fallback when ChartTrader is closed/hidden
 				panelBorder.Width = 240;
 
 				if (PanelLocation == KatHudLocation.ChartTrader)
 				{
+					// Fallback when ChartTrader setting is selected but ChartTrader menu is OFF -> Bottom-Left with drag support
 					panelBorder.HorizontalAlignment = HorizontalAlignment.Left;
 					panelBorder.VerticalAlignment = VerticalAlignment.Bottom;
 					panelBorder.Margin = new Thickness(10, 0, 0, 10);
 				}
 				else
 				{
+					// InChart mode -> Top-Right
 					panelBorder.HorizontalAlignment = HorizontalAlignment.Right;
 					panelBorder.VerticalAlignment = VerticalAlignment.Top;
 					panelBorder.Margin = new Thickness(0, 30, 20, 0);
@@ -299,91 +321,144 @@ namespace NinjaTrader.NinjaScript.Indicators
 				System.Windows.Controls.Panel.SetZIndex(panelBorder, 9999);
 				Grid.SetColumnSpan(panelBorder, 3);
 
-				// Enable dragging for InChart mode / Fallback mode
-				panelBorder.MouseLeftButtonDown += (s, e) =>
+				Point dragStart = new Point();
+				bool isDragging = false;
+
+				panelBorder.MouseLeftButtonDown += (s, ev) =>
 				{
-					if (e.ClickCount == 1)
-					{
-						panelBorder.Tag = new Point(e.GetPosition(chartGrid).X - panelBorder.Margin.Left, e.GetPosition(chartGrid).Y - panelBorder.Margin.Top);
-						panelBorder.CaptureMouse();
-					}
+					dragStart = ev.GetPosition(chartGrid);
+					panelBorder.CaptureMouse();
+					isDragging = true;
+					ev.Handled = true;
 				};
 
-				panelBorder.MouseMove += (s, e) =>
+				panelBorder.MouseMove += (s, ev) =>
 				{
-					if (panelBorder.IsMouseCaptured && panelBorder.Tag is Point startPt)
+					if (isDragging)
 					{
-						Point currentPt = e.GetPosition(chartGrid);
-						double left = Math.Max(0, Math.Min(chartGrid.ActualWidth - panelBorder.ActualWidth, currentPt.X - startPt.X));
-						double top = Math.Max(0, Math.Min(chartGrid.ActualHeight - panelBorder.ActualHeight, currentPt.Y - startPt.Y));
-
+						Point current = ev.GetPosition(chartGrid);
+						Thickness m = panelBorder.Margin;
+						panelBorder.Margin = new Thickness(
+							m.Left + (current.X - dragStart.X),
+							m.Top + (current.Y - dragStart.Y), 0, 0);
 						panelBorder.HorizontalAlignment = HorizontalAlignment.Left;
-						panelBorder.VerticalAlignment = VerticalAlignment.Top;
-						panelBorder.Margin = new Thickness(left, top, 0, 0);
+						dragStart = current;
 					}
 				};
 
-				panelBorder.MouseLeftButtonUp += (s, e) =>
+				panelBorder.MouseLeftButtonUp += (s, ev) =>
 				{
-					if (panelBorder.IsMouseCaptured)
+					if (isDragging)
 					{
 						panelBorder.ReleaseMouseCapture();
+						isDragging = false;
 					}
 				};
 
 				chartGrid.Children.Add(panelBorder);
 			}
 
-			mainPanel = new StackPanel { Orientation = Orientation.Vertical };
-			panelBorder.Child = mainPanel;
+			mainPanel = new StackPanel();
 
-			// --- SECTION 1: Quantity & ATM Selector ---
+			// --- SECTION 1: Parameters & ATM Selection ---
 			StackPanel sec1Panel = new StackPanel();
 
-			txtQuantity = new TextBox
+			sec1Panel.Children.Add(new TextBlock
 			{
-				Text = cachedQuantity > 0 ? cachedQuantity.ToString() : "1",
-				Height = 24,
-				FontSize = 12,
+				Text = string.Format("⚡ KAT TradeManager v{0}", VERSION),
+				Foreground = new SolidColorBrush(Color.FromRgb(70, 130, 160)),
 				FontWeight = FontWeights.Bold,
-				HorizontalContentAlignment = HorizontalAlignment.Center,
-				VerticalContentAlignment = VerticalAlignment.Center,
-				Background = new SolidColorBrush(Color.FromRgb(30, 36, 48)),
-				Foreground = Brushes.White,
-				BorderBrush = new SolidColorBrush(Color.FromRgb(55, 65, 85)),
-				Margin = new Thickness(0, 0, 0, 4)
-			};
-			txtQuantity.TextChanged += (s, ev) =>
-			{
-				int val;
-				if (int.TryParse(txtQuantity.Text, out val) && val > 0)
-					cachedQuantity = val;
-			};
+				FontSize = 12,
+				Margin = new Thickness(0, 0, 0, 6),
+				HorizontalAlignment = HorizontalAlignment.Left
+			});
 
-			sec1Panel.Children.Add(txtQuantity);
+			Grid paramGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
+			paramGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(85) });
+			paramGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+			ComboBox accSelector = new ComboBox { FontSize = 11, Height = 22 };
+			if (Account.All != null)
+			{
+				var allowedAccs = Account.All.Where(a => IsAccountAllowed(a.Name)).ToList();
+				foreach (var acc in allowedAccs) accSelector.Items.Add(acc.Name);
+				if (account != null && accSelector.Items.Contains(account.Name)) accSelector.SelectedItem = account.Name;
+				else if (accSelector.Items.Count > 0) accSelector.SelectedIndex = 0;
+			}
+			accSelector.SelectionChanged += (s, ev) =>
+			{
+				if (accSelector.SelectedItem != null)
+				{
+					string selectedName = accSelector.SelectedItem.ToString();
+					account = Account.All.FirstOrDefault(a => a.Name == selectedName);
+					Print(string.Format("[KatTradeManager] Account changed via UI to: {0}", selectedName));
+				}
+			};
+			AddGridRow(paramGrid, "Acc:", accSelector);
+
+			txtQuantity = new TextBox { Text = DefaultQuantity.ToString(), FontSize = 11, Height = 22, Background = Brushes.Black, Foreground = Brushes.White, BorderBrush = Brushes.Gray, Padding = new Thickness(4, 0, 4, 0), VerticalContentAlignment = VerticalAlignment.Center };
+			txtQuantity.PreviewKeyDown += (s, ev) =>
+			{
+				if (ev.Key == Key.Enter)
+				{
+					SyncCachedValues();
+					if (ChartControl != null) ChartControl.Focus();
+					ev.Handled = true;
+				}
+			};
+			AddGridRow(paramGrid, "Contracts:", txtQuantity);
+
+			sec1Panel.Children.Add(paramGrid);
 
 			atmSelector = new ComboBox
 			{
-				Height = 24,
 				FontSize = 11,
-				Background = new SolidColorBrush(Color.FromRgb(30, 36, 48)),
-				Foreground = new SolidColorBrush(Color.FromRgb(70, 130, 160)),
-				BorderBrush = new SolidColorBrush(Color.FromRgb(55, 65, 85)),
-				Margin = new Thickness(0, 0, 0, 0)
+				Height = 22,
+				Margin = new Thickness(0, 0, 0, 0),
+				HorizontalAlignment = HorizontalAlignment.Stretch
 			};
-
-			PopulateAtmSelector();
-
+			string atmDir = System.IO.Path.Combine(NinjaTrader.Core.Globals.UserDataDir, "templates", "AtmStrategy");
+			if (System.IO.Directory.Exists(atmDir))
+			{
+				var files = System.IO.Directory.GetFiles(atmDir, "*.xml");
+				foreach (var file in files)
+				{
+					string name = System.IO.Path.GetFileNameWithoutExtension(file);
+					atmSelector.Items.Add(name);
+				}
+			}
+			if (atmSelector.Items.Count > 0)
+			{
+				bool selected = false;
+				for (int i = 0; i < atmSelector.Items.Count; i++)
+				{
+					if (atmSelector.Items[i].ToString().Equals(DefaultAtmTemplate, StringComparison.OrdinalIgnoreCase))
+					{
+						atmSelector.SelectedIndex = i;
+						selected = true;
+						break;
+					}
+				}
+				if (!selected)
+					atmSelector.SelectedIndex = 0;
+			}
+			if (atmSelector.SelectedItem != null)
+			{
+				cachedAtmTemplate = atmSelector.SelectedItem.ToString();
+				LoadAtmTemplateSettings(cachedAtmTemplate);
+			}
 			atmSelector.SelectionChanged += (s, ev) =>
 			{
 				if (atmSelector.SelectedItem != null)
 				{
 					cachedAtmTemplate = atmSelector.SelectedItem.ToString();
+					LoadAtmTemplateSettings(cachedAtmTemplate);
 				}
 			};
 
 			sec1Panel.Children.Add(atmSelector);
 			mainPanel.Children.Add(CreateSectionCard(sec1Panel, 6));
+
 
 			// --- SECTION 2: EMA 34 & EMA 89 Touch/Cross Orders ---
 			StackPanel sec2Panel = new StackPanel();
@@ -429,7 +504,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			swingSlGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
 			swingSlGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-			SolidColorBrush swingSlBg = new SolidColorBrush(Color.FromRgb(45, 50, 65)); // Gray like Close/flatten
+			SolidColorBrush swingSlBg = new SolidColorBrush(Color.FromRgb(20, 20, 20)); // Same dark color as Close/flatten
 
 			Button btnSlBack = CreateButton("◀ SL", swingSlBg, (s, ev) => ShiftSlToSwing(false), 33, 12);
 			Grid.SetColumn(btnSlBack, 0);
@@ -442,8 +517,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 			sec2Panel.Children.Add(swingSlGrid);
 			mainPanel.Children.Add(CreateSectionCard(sec2Panel, 6));
 
+
 			// --- SECTION 3: Partial Candle & Candle Pending Orders ---
 			StackPanel sec3Panel = new StackPanel();
+
 			SolidColorBrush partialOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
 			SolidColorBrush partialOnBg  = new SolidColorBrush(Color.FromRgb(0, 122, 204));
 			string partialOnText  = string.Format("⚡ Partial {0}%: ON", cachedPartialPercent);
