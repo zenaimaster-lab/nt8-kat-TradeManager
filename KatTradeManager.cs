@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 0.42 (2026-07-25)
+ * Version: 0.43 (2026-07-25)
  * NinjaTrader 8 TradeManager Indicator
  */
 
@@ -61,7 +61,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "0.42";
+		public const string VERSION = "0.43";
 		public const string RELEASE_DATE = "2026-07-25";
 
 		private volatile Account account;
@@ -201,6 +201,24 @@ namespace NinjaTrader.NinjaScript.Indicators
 				EmaAngle3Period                     = 89;
 				EmaAngle3Timeframe                  = KatEmaTimeframe.Min5;
 				EmaAngle3MinAngle                   = 15.0;
+
+				// Hotkey Defaults
+				HotkeyEnabled                       = true;
+				HotkeyBuyEma34                      = Key.None;
+				HotkeySellEma34                     = Key.None;
+				HotkeyBuyEma89                      = Key.None;
+				HotkeySellEma89                     = Key.None;
+				HotkeyBuyPrev                       = Key.None;
+				HotkeySellPrev                      = Key.None;
+				HotkeyBuyCurr                       = Key.None;
+				HotkeySellCurr                      = Key.None;
+				HotkeyBuyDist                       = Key.None;
+				HotkeySellDist                      = Key.None;
+				HotkeyBuyMarket                     = Key.None;
+				HotkeySellMarket                    = Key.None;
+				HotkeyBE                            = Key.None;
+				HotkeyRevert                        = Key.None;
+				HotkeyClose                         = Key.None;
 			}
 
 			else if (State == State.Configure)
@@ -990,6 +1008,72 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Range(0.0, 90.0)]
 		[Display(Name="3rd EMA Angle Min Angle (°)", Order=31, GroupName="EMA Angle Filter")]
 		public double EmaAngle3MinAngle { get; set; }
+		#endregion
+
+		#region Hotkey Properties
+		[NinjaScriptProperty]
+		[Display(Name="Enable Hotkeys", Order=40, GroupName="Hotkeys")]
+		public bool HotkeyEnabled { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Buy EMA 34", Order=41, GroupName="Hotkeys")]
+		public Key HotkeyBuyEma34 { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Sell EMA 34", Order=42, GroupName="Hotkeys")]
+		public Key HotkeySellEma34 { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Buy EMA 89", Order=43, GroupName="Hotkeys")]
+		public Key HotkeyBuyEma89 { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Sell EMA 89", Order=44, GroupName="Hotkeys")]
+		public Key HotkeySellEma89 { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Buy Previous Candle", Order=45, GroupName="Hotkeys")]
+		public Key HotkeyBuyPrev { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Sell Previous Candle", Order=46, GroupName="Hotkeys")]
+		public Key HotkeySellPrev { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Buy Current Candle", Order=47, GroupName="Hotkeys")]
+		public Key HotkeyBuyCurr { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Sell Current Candle", Order=48, GroupName="Hotkeys")]
+		public Key HotkeySellCurr { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Buy +Distance", Order=49, GroupName="Hotkeys")]
+		public Key HotkeyBuyDist { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Sell -Distance", Order=50, GroupName="Hotkeys")]
+		public Key HotkeySellDist { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Buy Market", Order=51, GroupName="Hotkeys")]
+		public Key HotkeyBuyMarket { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Sell Market", Order=52, GroupName="Hotkeys")]
+		public Key HotkeySellMarket { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Set Breakeven (BE)", Order=53, GroupName="Hotkeys")]
+		public Key HotkeyBE { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Revert Position", Order=54, GroupName="Hotkeys")]
+		public Key HotkeyRevert { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Close / Flatten", Order=55, GroupName="Hotkeys")]
+		public Key HotkeyClose { get; set; }
 		#endregion
 		#endregion
 	}

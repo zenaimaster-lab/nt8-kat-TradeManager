@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.42 (2026-07-25) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.43 (2026-07-25) */
 
 using System;
 using System.Collections.Generic;
@@ -21,6 +21,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class KatTradeManager
 	{
 		#region WPF UI Construction & Handlers
+		private bool isHotkeyAttached = false;
+
 		private void StartPanelWatchdog()
 		{
 			if (panelWatchdog != null) return;
@@ -48,11 +50,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (isTerminated || ChartControl == null)
 			{
 				StopPanelWatchdog();
+				DetachHotkeyHandler();
 				return;
 			}
 
 			chartGrid = ChartControl.Parent as Grid;
 			if (chartGrid == null) return;
+
+			AttachHotkeyHandler();
 
 			if (!IsPanelVisible)
 			{
@@ -255,13 +260,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 			ema34Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
 			ema34Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-			Button btnBuy34 = CreateButton("BUY last 34", buy34Bg, (s, ev) => PlaceEmaOrder(OrderAction.Buy, 34), 48, 12);
-			Grid.SetColumn(btnBuy34, 0);
-			ema34Grid.Children.Add(btnBuy34);
-
 			Button btnSell34 = CreateButton("SELL last 34", sell34Bg, (s, ev) => PlaceEmaOrder(OrderAction.Sell, 34), 48, 12);
-			Grid.SetColumn(btnSell34, 2);
+			Grid.SetColumn(btnSell34, 0);
 			ema34Grid.Children.Add(btnSell34);
+
+			Button btnBuy34 = CreateButton("BUY last 34", buy34Bg, (s, ev) => PlaceEmaOrder(OrderAction.Buy, 34), 48, 12);
+			Grid.SetColumn(btnBuy34, 2);
+			ema34Grid.Children.Add(btnBuy34);
 
 			sec2Panel.Children.Add(ema34Grid);
 
@@ -270,13 +275,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 			ema89Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
 			ema89Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-			Button btnBuy89 = CreateButton("BUY last 89", buy89Bg, (s, ev) => PlaceEmaOrder(OrderAction.Buy, 89), 48, 12);
-			Grid.SetColumn(btnBuy89, 0);
-			ema89Grid.Children.Add(btnBuy89);
-
 			Button btnSell89 = CreateButton("SELL last 89", sell89Bg, (s, ev) => PlaceEmaOrder(OrderAction.Sell, 89), 48, 12);
-			Grid.SetColumn(btnSell89, 2);
+			Grid.SetColumn(btnSell89, 0);
 			ema89Grid.Children.Add(btnSell89);
+
+			Button btnBuy89 = CreateButton("BUY last 89", buy89Bg, (s, ev) => PlaceEmaOrder(OrderAction.Buy, 89), 48, 12);
+			Grid.SetColumn(btnBuy89, 2);
+			ema89Grid.Children.Add(btnBuy89);
 
 			sec2Panel.Children.Add(ema89Grid);
 			mainPanel.Children.Add(CreateSectionCard(sec2Panel, 6));
@@ -375,7 +380,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			buyCol.Children.Add(btnBuyPrev);
 			buyCol.Children.Add(btnBuyCurr);
 			buyCol.Children.Add(btnBuyDist);
-			Grid.SetColumn(buyCol, 0);
+			Grid.SetColumn(buyCol, 2);
 
 			StackPanel sellCol = new StackPanel();
 			Button btnSellPrev = CreateButton("SELL previous", sellPrevBg, (s, ev) => PlaceOrder(OrderAction.Sell, false), 48, 12);
@@ -387,10 +392,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 			sellCol.Children.Add(btnSellPrev);
 			sellCol.Children.Add(btnSellCurr);
 			sellCol.Children.Add(btnSellDist);
-			Grid.SetColumn(sellCol, 2);
+			Grid.SetColumn(sellCol, 0);
 
-			orderBtnGrid.Children.Add(buyCol);
 			orderBtnGrid.Children.Add(sellCol);
+			orderBtnGrid.Children.Add(buyCol);
 			sec3Panel.Children.Add(orderBtnGrid);
 			mainPanel.Children.Add(CreateSectionCard(sec3Panel, 6));
 
@@ -406,13 +411,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 			SolidColorBrush buyMktBg  = new SolidColorBrush(Color.FromRgb(12, 48, 25)); // Deep dark green (darker than BUY Distance 16,56,30)
 			SolidColorBrush sellMktBg = new SolidColorBrush(Color.FromRgb(55, 15, 18)); // Deep dark red (darker than SELL Distance 75,20,24)
 
-			Button btnBuyMkt = CreateButton("BUY market", buyMktBg, (s, ev) => PlaceMarketOrder(OrderAction.Buy), 48, 12);
-			Grid.SetColumn(btnBuyMkt, 0);
-			mktBtnGrid.Children.Add(btnBuyMkt);
-
 			Button btnSellMkt = CreateButton("SELL market", sellMktBg, (s, ev) => PlaceMarketOrder(OrderAction.Sell), 48, 12);
-			Grid.SetColumn(btnSellMkt, 2);
+			Grid.SetColumn(btnSellMkt, 0);
 			mktBtnGrid.Children.Add(btnSellMkt);
+
+			Button btnBuyMkt = CreateButton("BUY market", buyMktBg, (s, ev) => PlaceMarketOrder(OrderAction.Buy), 48, 12);
+			Grid.SetColumn(btnBuyMkt, 2);
+			mktBtnGrid.Children.Add(btnBuyMkt);
 
 			sec4Panel.Children.Add(mktBtnGrid);
 
@@ -510,11 +515,135 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private void RemoveWpfControls()
 		{
+			DetachHotkeyHandler();
 			if (panelBorder != null && chartGrid != null && chartGrid.Children.Contains(panelBorder))
 			{
 				chartGrid.Children.Remove(panelBorder);
 			}
 			panelBorder = null;
+		}
+
+		private void AttachHotkeyHandler()
+		{
+			if (isHotkeyAttached || ChartControl == null) return;
+			ChartControl.PreviewKeyDown += OnChartPreviewKeyDown;
+
+			Window window = Window.GetWindow(ChartControl);
+			if (window != null)
+			{
+				window.PreviewKeyDown -= OnChartPreviewKeyDown;
+				window.PreviewKeyDown += OnChartPreviewKeyDown;
+			}
+
+			isHotkeyAttached = true;
+		}
+
+		private void DetachHotkeyHandler()
+		{
+			if (!isHotkeyAttached) return;
+			if (ChartControl != null)
+			{
+				ChartControl.PreviewKeyDown -= OnChartPreviewKeyDown;
+				Window window = Window.GetWindow(ChartControl);
+				if (window != null)
+				{
+					window.PreviewKeyDown -= OnChartPreviewKeyDown;
+				}
+			}
+			isHotkeyAttached = false;
+		}
+
+		private void OnChartPreviewKeyDown(object sender, KeyEventArgs e)
+		{
+			if (isTerminated || !HotkeyEnabled) return;
+			if (e.IsRepeat) return;
+			if (Keyboard.FocusedElement is TextBox) return;
+
+			Key key = (e.Key == Key.System) ? e.SystemKey : e.Key;
+			if (key == Key.None) return;
+
+			bool handled = false;
+
+			if (key == HotkeyBuyEma34 && HotkeyBuyEma34 != Key.None)
+			{
+				PlaceEmaOrder(OrderAction.Buy, 34);
+				handled = true;
+			}
+			else if (key == HotkeySellEma34 && HotkeySellEma34 != Key.None)
+			{
+				PlaceEmaOrder(OrderAction.Sell, 34);
+				handled = true;
+			}
+			else if (key == HotkeyBuyEma89 && HotkeyBuyEma89 != Key.None)
+			{
+				PlaceEmaOrder(OrderAction.Buy, 89);
+				handled = true;
+			}
+			else if (key == HotkeySellEma89 && HotkeySellEma89 != Key.None)
+			{
+				PlaceEmaOrder(OrderAction.Sell, 89);
+				handled = true;
+			}
+			else if (key == HotkeyBuyPrev && HotkeyBuyPrev != Key.None)
+			{
+				PlaceOrder(OrderAction.Buy, false);
+				handled = true;
+			}
+			else if (key == HotkeySellPrev && HotkeySellPrev != Key.None)
+			{
+				PlaceOrder(OrderAction.Sell, false);
+				handled = true;
+			}
+			else if (key == HotkeyBuyCurr && HotkeyBuyCurr != Key.None)
+			{
+				PlaceOrder(OrderAction.Buy, true);
+				handled = true;
+			}
+			else if (key == HotkeySellCurr && HotkeySellCurr != Key.None)
+			{
+				PlaceOrder(OrderAction.Sell, true);
+				handled = true;
+			}
+			else if (key == HotkeyBuyDist && HotkeyBuyDist != Key.None)
+			{
+				PlaceFixedDistanceOrder(OrderAction.Buy);
+				handled = true;
+			}
+			else if (key == HotkeySellDist && HotkeySellDist != Key.None)
+			{
+				PlaceFixedDistanceOrder(OrderAction.Sell);
+				handled = true;
+			}
+			else if (key == HotkeyBuyMarket && HotkeyBuyMarket != Key.None)
+			{
+				PlaceMarketOrder(OrderAction.Buy);
+				handled = true;
+			}
+			else if (key == HotkeySellMarket && HotkeySellMarket != Key.None)
+			{
+				PlaceMarketOrder(OrderAction.Sell);
+				handled = true;
+			}
+			else if (key == HotkeyBE && HotkeyBE != Key.None)
+			{
+				SetBreakeven();
+				handled = true;
+			}
+			else if (key == HotkeyRevert && HotkeyRevert != Key.None)
+			{
+				RevertPosition();
+				handled = true;
+			}
+			else if (key == HotkeyClose && HotkeyClose != Key.None)
+			{
+				ClosePosition();
+				handled = true;
+			}
+
+			if (handled)
+			{
+				e.Handled = true;
+			}
 		}
 		#endregion
 	}

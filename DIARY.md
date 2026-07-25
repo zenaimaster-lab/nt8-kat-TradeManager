@@ -24,6 +24,16 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.43] — 2026-07-25
+- **Swapped SELL / BUY Column Layout**:
+  - Moved SELL column buttons (`SELL last 34`, `SELL last 89`, `SELL previous`, `SELL current`, `SELL -distance`, `SELL market`) to the left (Column 0).
+  - Moved BUY column buttons (`BUY last 34`, `BUY last 89`, `BUY previous`, `BUY current`, `BUY +distance`, `BUY market`) to the right (Column 2).
+- **Added Indicator Settings Hotkeys with WPF PreviewKeyDown Overrides**:
+  - Exposed 15 configurable `System.Windows.Input.Key` properties in NinjaTrader Indicator Settings under `GroupName="Hotkeys"`.
+  - Added master `Enable Hotkeys` toggle (`HotkeyEnabled`).
+  - Implemented WPF `PreviewKeyDown` tunneling event listener on `ChartControl` & `ChartWindow` setting `e.Handled = true` to override default NinjaTrader hotkeys.
+  - Added safety checks: ignores key repeats (`e.IsRepeat`) to prevent order spam, and skips execution when user is typing in HUD input textboxes (`Keyboard.FocusedElement is TextBox`).
+
 ### [v0.42] — 2026-07-25
 - **Enhanced EMA Filter Settings Organization & Configurable Timeframes**:
   - Renamed EMA 1, 2, 3 parameters to `1st`, `2nd`, `3rd` EMA (e.g. `1st EMA Place`, `2nd EMA Place`, `3rd EMA Place`, `1st EMA Angle`, `2nd EMA Angle`, `3rd EMA Angle`).
