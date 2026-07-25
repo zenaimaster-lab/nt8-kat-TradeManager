@@ -24,6 +24,12 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.52] — 2026-07-25
+- **Freeze Trail Control (`Freeze Trail: OFF` / `⚡ Freeze Trail: ON`)**:
+  - Added full-width dark gray HUD button (`#232834` / `Color.FromRgb(35, 40, 52)`) positioned directly above the `Close/flatten` button in Section 4 with height matching `BUY current` / `SELL current` buttons (Height: 24, FontSize: 10).
+  - Toggling ON activates `cachedIsFreezeTrail` and captures current working Stop Loss price (`frozenStopPrice`).
+  - Added `CheckFreezeTrailEnforcement()` running on every 500ms watchdog tick to override NinjaTrader ATM trailing engine movements and restore SL back to frozen price until toggled OFF or position is flat.
+
 ### [v0.51] — 2026-07-25
 - **Bottom Alignment Fix for Floating ChartTrader HUD**:
   - Assigned `panelBorder` to the last row (`Grid.SetRow(panelBorder, lastRow)`) of ChartTrader's Grid.

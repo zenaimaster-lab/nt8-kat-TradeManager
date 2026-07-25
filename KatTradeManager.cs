@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 0.51 (2026-07-25)
+ * Version: 0.52 (2026-07-25)
  * NinjaTrader 8 TradeManager Indicator
  */
 
@@ -69,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "0.51";
+		public const string VERSION = "0.52";
 		public const string RELEASE_DATE = "2026-07-25";
 
 		private volatile Account account;
@@ -856,6 +856,81 @@ namespace NinjaTrader.NinjaScript.Indicators
 			catch (Exception ex)
 			{
 				Print(string.Format("[KatTradeManager] Error reverting position: {0}", ex.ToString()));
+			}
+		}
+
+		private void FreezeCurrentStopLoss()
+		{
+			if (account == null || Instrument == null) return;
+			try
+			{
+				Position pos = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
+				if (pos == null || pos.MarketPosition == MarketPosition.Flat)
+				{
+					Print("[KatTradeManager] Freeze Trail: No active position to freeze.");
+					return;
+				}
+
+				var workingStops = account.Orders.Where(o => o.Instrument == Instrument &&
+					(o.OrderState == OrderState.Working || o.OrderState == OrderState.Accepted) &&
+					(o.OrderType == OrderType.StopMarket || o.OrderType == OrderType.StopLimit) &&
+					(pos.MarketPosition == MarketPosition.Long ? (o.OrderAction == OrderAction.Sell || o.OrderAction == OrderAction.SellShort) : (o.OrderAction == OrderAction.Buy || o.OrderAction == OrderAction.BuyToCover))).ToList();
+
+				if (workingStops.Count > 0)
+				{
+					frozenStopPrice = workingStops[0].StopPrice;
+					Print(string.Format("[KatTradeManager] Freeze Trail active @ Stop Loss price: {0}", frozenStopPrice));
+				}
+				else
+				{
+					Print("[KatTradeManager] Freeze Trail active: Waiting for working Stop Loss order.");
+				}
+			}
+			catch (Exception ex)
+			{
+				Print(string.Format("[KatTradeManager] Error freezing Stop Loss: {0}", ex.ToString()));
+			}
+		}
+
+		private void CheckFreezeTrailEnforcement()
+		{
+			if (!cachedIsFreezeTrail || account == null || Instrument == null) return;
+			try
+			{
+				Position pos = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
+				if (pos == null || pos.MarketPosition == MarketPosition.Flat)
+				{
+					frozenStopPrice = 0;
+					return;
+				}
+
+				var workingStops = account.Orders.Where(o => o.Instrument == Instrument &&
+					(o.OrderState == OrderState.Working || o.OrderState == OrderState.Accepted) &&
+					(o.OrderType == OrderType.StopMarket || o.OrderType == OrderType.StopLimit) &&
+					(pos.MarketPosition == MarketPosition.Long ? (o.OrderAction == OrderAction.Sell || o.OrderAction == OrderAction.SellShort) : (o.OrderAction == OrderAction.Buy || o.OrderAction == OrderAction.BuyToCover))).ToList();
+
+				if (workingStops.Count == 0) return;
+
+				if (frozenStopPrice <= 0)
+				{
+					frozenStopPrice = workingStops[0].StopPrice;
+					Print(string.Format("[KatTradeManager] Freeze Trail captured SL price @ {0}", frozenStopPrice));
+					return;
+				}
+
+				foreach (Order stopOrder in workingStops)
+				{
+					if (Math.Abs(stopOrder.StopPrice - frozenStopPrice) > 0.000001)
+					{
+						stopOrder.StopPrice = frozenStopPrice;
+						account.Change(new[] { stopOrder });
+						Print(string.Format("[KatTradeManager] Trailing movement overridden — SL restored to frozen price {0}", frozenStopPrice));
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				Print(string.Format("[KatTradeManager] Error enforcing Freeze Trail: {0}", ex.ToString()));
 			}
 		}
 

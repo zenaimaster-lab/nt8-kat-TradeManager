@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.51 (2026-07-25) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.52 (2026-07-25) */
 
 using System;
 using System.Collections.Generic;
@@ -61,6 +61,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			// Evaluate real-time daily risk protection limits
 			EvaluateDailyRiskLimits();
+
+			// Enforce Freeze Trail if active
+			CheckFreezeTrailEnforcement();
 
 			if (!IsPanelVisible)
 			{
@@ -715,6 +718,26 @@ namespace NinjaTrader.NinjaScript.Indicators
 			beRevertGrid.Children.Add(btnRevert);
 
 			sec4Panel.Children.Add(beRevertGrid);
+
+			SolidColorBrush freezeOffBg = new SolidColorBrush(Color.FromRgb(35, 40, 52)); // Darker gray than Partial Candle (45,50,65)
+			SolidColorBrush freezeOnBg  = new SolidColorBrush(Color.FromRgb(180, 90, 20));  // Dark amber accent when active
+
+			Button btnFreezeTrail = CreateButton(cachedIsFreezeTrail ? "⚡ Freeze Trail: ON" : "Freeze Trail: OFF",
+				cachedIsFreezeTrail ? freezeOnBg : freezeOffBg, null, 24, 10);
+			btnFreezeTrail.Foreground = cachedIsFreezeTrail ? Brushes.White : Brushes.LightGray;
+			btnFreezeTrail.Margin = new Thickness(0, 0, 0, 4);
+
+			btnFreezeTrail.Click += (s, ev) =>
+			{
+				cachedIsFreezeTrail = !cachedIsFreezeTrail;
+				btnFreezeTrail.Content = cachedIsFreezeTrail ? "⚡ Freeze Trail: ON" : "Freeze Trail: OFF";
+				btnFreezeTrail.Background = cachedIsFreezeTrail ? freezeOnBg : freezeOffBg;
+				btnFreezeTrail.Foreground = cachedIsFreezeTrail ? Brushes.White : Brushes.LightGray;
+
+				if (cachedIsFreezeTrail)
+					FreezeCurrentStopLoss();
+			};
+			sec4Panel.Children.Add(btnFreezeTrail);
 
 			SolidColorBrush closeBg = new SolidColorBrush(Color.FromRgb(20, 20, 20)); // Very dark gray (almost black)
 			Button btnClose = CreateButton("Close/flatten", closeBg, (s, ev) => ClosePosition(), 33, 15);
