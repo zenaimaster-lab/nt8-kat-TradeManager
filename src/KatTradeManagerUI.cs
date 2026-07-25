@@ -147,6 +147,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 			// --- SECTION 1: Parameters & ATM Selection ---
 			StackPanel sec1Panel = new StackPanel();
 
+			// --- SECTION 1: Parameters & ATM Selection ---
+			StackPanel sec1Panel = new StackPanel();
+
 			sec1Panel.Children.Add(new TextBlock
 			{
 				Text = string.Format("⚡ KAT TradeManager v{0}", VERSION),
@@ -154,7 +157,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				FontWeight = FontWeights.Bold,
 				FontSize = 12,
 				Margin = new Thickness(0, 0, 0, 6),
-				HorizontalAlignment = HorizontalAlignment.Center
+				HorizontalAlignment = HorizontalAlignment.Left
 			});
 
 			Grid paramGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
@@ -255,11 +258,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 			ema34Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
 			ema34Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-			Button btnBuy34 = CreateButton("BUY Last 34", buy34Bg, (s, ev) => PlaceEmaOrder(OrderAction.Buy, 34), 48, 12);
+			Button btnBuy34 = CreateButton("BUY last 34", buy34Bg, (s, ev) => PlaceEmaOrder(OrderAction.Buy, 34), 48, 12);
 			Grid.SetColumn(btnBuy34, 0);
 			ema34Grid.Children.Add(btnBuy34);
 
-			Button btnSell34 = CreateButton("SELL Last 34", sell34Bg, (s, ev) => PlaceEmaOrder(OrderAction.Sell, 34), 48, 12);
+			Button btnSell34 = CreateButton("SELL last 34", sell34Bg, (s, ev) => PlaceEmaOrder(OrderAction.Sell, 34), 48, 12);
 			Grid.SetColumn(btnSell34, 2);
 			ema34Grid.Children.Add(btnSell34);
 
@@ -270,11 +273,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 			ema89Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
 			ema89Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-			Button btnBuy89 = CreateButton("BUY Last 89", buy89Bg, (s, ev) => PlaceEmaOrder(OrderAction.Buy, 89), 48, 12);
+			Button btnBuy89 = CreateButton("BUY last 89", buy89Bg, (s, ev) => PlaceEmaOrder(OrderAction.Buy, 89), 48, 12);
 			Grid.SetColumn(btnBuy89, 0);
 			ema89Grid.Children.Add(btnBuy89);
 
-			Button btnSell89 = CreateButton("SELL Last 89", sell89Bg, (s, ev) => PlaceEmaOrder(OrderAction.Sell, 89), 48, 12);
+			Button btnSell89 = CreateButton("SELL last 89", sell89Bg, (s, ev) => PlaceEmaOrder(OrderAction.Sell, 89), 48, 12);
 			Grid.SetColumn(btnSell89, 2);
 			ema89Grid.Children.Add(btnSell89);
 
@@ -326,11 +329,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 			SolidColorBrush sellFixedBg = new SolidColorBrush(Color.FromRgb(75, 20, 24));
 
 			StackPanel buyCol = new StackPanel();
-			Button btnBuyPrev = CreateButton("BUY Previous", buyPrevBg, (s, ev) => PlaceOrder(OrderAction.Buy, false), 48, 12);
+			Button btnBuyPrev = CreateButton("BUY previous", buyPrevBg, (s, ev) => PlaceOrder(OrderAction.Buy, false), 48, 12);
 			btnBuyPrev.Margin = new Thickness(0, 0, 0, 4);
-			Button btnBuyCurr = CreateButton("BUY Current", buyCurrBg, (s, ev) => PlaceOrder(OrderAction.Buy, true), 24, 10);
+			Button btnBuyCurr = CreateButton("BUY current", buyCurrBg, (s, ev) => PlaceOrder(OrderAction.Buy, true), 24, 10);
 			btnBuyCurr.Margin = new Thickness(0, 0, 0, 4);
-			Button btnBuyDist = CreateButton("BUY +Distance", buyFixedBg, (s, ev) => PlaceFixedDistanceOrder(OrderAction.Buy), 24, 10);
+			Button btnBuyDist = CreateButton("BUY +distance", buyFixedBg, (s, ev) => PlaceFixedDistanceOrder(OrderAction.Buy), 24, 10);
 
 			buyCol.Children.Add(btnBuyPrev);
 			buyCol.Children.Add(btnBuyCurr);
@@ -338,11 +341,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 			Grid.SetColumn(buyCol, 0);
 
 			StackPanel sellCol = new StackPanel();
-			Button btnSellPrev = CreateButton("SELL Previous", sellPrevBg, (s, ev) => PlaceOrder(OrderAction.Sell, false), 48, 12);
+			Button btnSellPrev = CreateButton("SELL previous", sellPrevBg, (s, ev) => PlaceOrder(OrderAction.Sell, false), 48, 12);
 			btnSellPrev.Margin = new Thickness(0, 0, 0, 4);
-			Button btnSellCurr = CreateButton("SELL Current", sellCurrBg, (s, ev) => PlaceOrder(OrderAction.Sell, true), 24, 10);
+			Button btnSellCurr = CreateButton("SELL current", sellCurrBg, (s, ev) => PlaceOrder(OrderAction.Sell, true), 24, 10);
 			btnSellCurr.Margin = new Thickness(0, 0, 0, 4);
-			Button btnSellDist = CreateButton("SELL -Distance", sellFixedBg, (s, ev) => PlaceFixedDistanceOrder(OrderAction.Sell), 24, 10);
+			Button btnSellDist = CreateButton("SELL -distance", sellFixedBg, (s, ev) => PlaceFixedDistanceOrder(OrderAction.Sell), 24, 10);
 
 			sellCol.Children.Add(btnSellPrev);
 			sellCol.Children.Add(btnSellCurr);
@@ -366,11 +369,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 			SolidColorBrush buyMktBg  = new SolidColorBrush(Color.FromRgb(12, 48, 25)); // Deep dark green (darker than BUY Distance 16,56,30)
 			SolidColorBrush sellMktBg = new SolidColorBrush(Color.FromRgb(55, 15, 18)); // Deep dark red (darker than SELL Distance 75,20,24)
 
-			Button btnBuyMkt = CreateButton("BUY Market", buyMktBg, (s, ev) => PlaceMarketOrder(OrderAction.Buy), 48, 12);
+			Button btnBuyMkt = CreateButton("BUY market", buyMktBg, (s, ev) => PlaceMarketOrder(OrderAction.Buy), 48, 12);
 			Grid.SetColumn(btnBuyMkt, 0);
 			mktBtnGrid.Children.Add(btnBuyMkt);
 
-			Button btnSellMkt = CreateButton("SELL Market", sellMktBg, (s, ev) => PlaceMarketOrder(OrderAction.Sell), 48, 12);
+			Button btnSellMkt = CreateButton("SELL market", sellMktBg, (s, ev) => PlaceMarketOrder(OrderAction.Sell), 48, 12);
 			Grid.SetColumn(btnSellMkt, 2);
 			mktBtnGrid.Children.Add(btnSellMkt);
 
@@ -395,7 +398,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			sec4Panel.Children.Add(beRevertGrid);
 
 			SolidColorBrush closeBg = new SolidColorBrush(Color.FromRgb(60, 14, 18)); // Deep dark crimson/maroon
-			Button btnClose = CreateButton("Close/Flatten", closeBg, (s, ev) => ClosePosition(), 33, 15);
+			Button btnClose = CreateButton("Close/flatten", closeBg, (s, ev) => ClosePosition(), 33, 15);
 			sec4Panel.Children.Add(btnClose);
 
 
@@ -441,7 +444,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Content = text,
 				Background = bg,
 				Foreground = Brushes.White,
-				FontWeight = FontWeights.Bold,
+				FontWeight = FontWeights.Normal,
 				FontSize = fontSize,
 				Margin = new Thickness(0),
 				Padding = new Thickness(2),
@@ -452,6 +455,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				btn.Click += handler;
 			return btn;
 		}
+
 
 		private Border CreateSectionCard(FrameworkElement child, double bottomMargin = 6)
 		{

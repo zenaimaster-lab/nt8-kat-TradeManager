@@ -24,6 +24,12 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.38] — 2026-07-25
+- **Refined Typography & HUD Header Alignment**:
+  - Changed button text font weight from `Bold` to `Normal` for a cleaner, modern look.
+  - Aligned HUD Title (`⚡ KAT TradeManager v0.38`) to `Left`.
+  - Formatted button labels following `BUY`/`SELL` uppercase prefix with lower-case descriptors (e.g. `BUY last 34`, `SELL last 34`, `BUY previous`, `BUY current`, `BUY +distance`, `BUY market`, `Close/flatten`).
+
 ### [v0.37] — 2026-07-25
 - **Darkened Section 4 Button Palette Below Distance Order Colors**:
   - `BUY Market`: adjusted to deep stealth green `#0C3019` (darker than BUY Distance `#10381E`).
