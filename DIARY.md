@@ -24,6 +24,14 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.59] — 2026-07-25
+- **Audit Round 4: Orphaned-Order Fix, Volatile Termination Flag, Boundary Tests**:
+  - **Runtime verification**: `NinjaTrader.Custom.dll` recompiled at 21:58 (after v0.58 deploy at 21:04) — NT8's file watcher auto-compiled v0.58 cleanly. Compile gate + live NT8 compile both green.
+  - **Bug fix**: Orphaned entry order when the selected ATM template is missing on disk (stale `DefaultAtmTemplate`, emptied templates dir) — `AtmStrategy.StartAtmStrategy` fails silently, leaving a created-but-never-submitted order whose non-terminal state pins the expected-lines on the chart forever. New `SubmitOrder(order)` helper checks `File.Exists` on the template first and falls back to plain `account.Submit` with a printed warning. Applied at both submit sites (`PlaceOrderInternal`, `PlaceMarketOrder`).
+  - **Hardening**: `isTerminated` is read on the data thread (`OnBarUpdate`), the UI watchdog and the hotkey handler but was a plain bool — now `volatile` for cross-thread visibility.
+  - **Tests**: `KatCalculatorGapTests.cs` round 3 (+7): `IsEmaTouchBar` exact boundary touch, `ValidateEmaPlace` strict-equality rejection, `CalculateTriggerPrice` misaligned-base tick rounding, `CalculateFixedDistanceTriggerPrice` zero distance, `CalculateEmaAngle` negative-tickSize fallback, ATM XML whitespace-padded numbers, `IsAccountAllowed` spaced `"! BX"` exclude token. Suite: 148 → **155 tests, all passing**.
+  - **Graphify entity mapping**: `KatTradeManager.SubmitOrder` (new helper), `KatTradeManager.isTerminated` (volatile), `KatTradeManager.PlaceOrderInternal`/`PlaceMarketOrder` (SubmitOrder call sites).
+
 ### [v0.58] — 2026-07-25
 - **Audit Round 3: Local Compile Gate, ChartTrader Migration Fix, Test Gap Round 2**:
   - **New tooling**: `tools/CompileCheck/CompileCheck.csproj` — full local compile of ALL 6 indicator source files against .NET Framework 4.8 reference assemblies (NuGet `Microsoft.NETFramework.ReferenceAssemblies.net48`, no admin needed) + NinjaTrader.Core/Gui + compiled `NinjaTrader.Custom.dll` (provides built-in `EMA`). Mirrors NT8's internal Roslyn compile: `dotnet build tools/CompileCheck` = green gate before deploy. Build: **succeeded, zero errors, zero warnings**.

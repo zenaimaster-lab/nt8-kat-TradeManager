@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 0.58 (2026-07-25)
+ * Version: 0.59 (2026-07-25)
  * NinjaTrader 8 TradeManager Indicator
  */
 
@@ -69,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "0.58";
+		public const string VERSION = "0.59";
 		public const string RELEASE_DATE = "2026-07-25";
 
 		private volatile Account account;
@@ -79,7 +79,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private TextBox txtQuantity;
 		private ComboBox atmSelector;
 		private System.Windows.Threading.DispatcherTimer panelWatchdog;
-		private bool isTerminated;
+		private volatile bool isTerminated;
 
 		// Daily Risk Control cached states & fields (default ON)
 		private volatile bool cachedIsDailyMaxDD = true;

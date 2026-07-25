@@ -1,4 +1,4 @@
-/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.58 (2026-07-25) */
+/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.59 (2026-07-25) */
 
 using System;
 using System.Collections.Generic;
@@ -12,6 +12,24 @@ namespace NinjaTrader.NinjaScript.Indicators
 		#region Order Execution & Trading Operations
 		private static KatOrderAction ToKatAction(OrderAction action) => action == OrderAction.Buy ? KatOrderAction.Buy : KatOrderAction.Sell;
 		private static OrderType ToNtOrderType(KatOrderType type) => type == KatOrderType.StopMarket ? OrderType.StopMarket : OrderType.Limit;
+
+		// Submits via ATM template when it exists on disk; falls back to plain submit otherwise.
+		// StartAtmStrategy with a missing template fails silently -> created order never submitted (orphaned).
+		private void SubmitOrder(Order order)
+		{
+			string tpl = cachedAtmTemplate;
+			if (!string.IsNullOrEmpty(tpl))
+			{
+				string path = System.IO.Path.Combine(NinjaTrader.Core.Globals.UserDataDir, "templates", "AtmStrategy", tpl + ".xml");
+				if (System.IO.File.Exists(path))
+				{
+					NinjaTrader.NinjaScript.AtmStrategy.StartAtmStrategy(tpl, order);
+					return;
+				}
+				Print(string.Format("[KatTradeManager] ATM template '{0}' not found — submitting order WITHOUT ATM strategy", tpl));
+			}
+			account.Submit(new[] { order });
+		}
 
 		private int GetBarsInProgressIndex()
 		{
@@ -237,14 +255,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				entryOrder = account.CreateOrder(Instrument, action, orderType, OrderEntry.Manual, TimeInForce.Gtc, qty, limitPrice, stopPrice, "", entryName, NinjaTrader.Core.Globals.MaxDate, null);
 				if (entryOrder != null)
 				{
-					if (!string.IsNullOrEmpty(cachedAtmTemplate))
-					{
-						NinjaTrader.NinjaScript.AtmStrategy.StartAtmStrategy(cachedAtmTemplate, entryOrder);
-					}
-					else
-					{
-						account.Submit(new[] { entryOrder });
-					}
+					SubmitOrder(entryOrder);
 
 
 					// Store pending draw request — OnBarUpdate (data thread) will execute the actual Draw calls
@@ -326,14 +337,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				entryOrder = account.CreateOrder(Instrument, action, OrderType.Market, OrderEntry.Manual, TimeInForce.Gtc, qty, 0, 0, "", entryName, NinjaTrader.Core.Globals.MaxDate, null);
 				if (entryOrder != null)
 				{
-					if (!string.IsNullOrEmpty(cachedAtmTemplate))
-					{
-						NinjaTrader.NinjaScript.AtmStrategy.StartAtmStrategy(cachedAtmTemplate, entryOrder);
-					}
-					else
-					{
-						account.Submit(new[] { entryOrder });
-					}
+					SubmitOrder(entryOrder);
 				}
 			}
 			catch (Exception ex)

@@ -225,5 +225,78 @@ namespace KatTradeManager.Tests
 			Assert.Equal(95.0, levels.TpPrice);
 		}
 		#endregion
+
+		#region IsEmaTouchBar — exact boundary touch
+		[Fact]
+		public void IsEmaTouchBar_ExactBoundary_TouchCounts()
+		{
+			// high == ema exactly -> touch; low == ema exactly -> touch
+			Assert.True(KatTradeCalculator.IsEmaTouchBar(100.0, 90.0, 100.0));
+			Assert.True(KatTradeCalculator.IsEmaTouchBar(100.0, 90.0, 90.0));
+			// fully above / fully below -> no touch
+			Assert.False(KatTradeCalculator.IsEmaTouchBar(101.0, 100.25, 100.0));
+			Assert.False(KatTradeCalculator.IsEmaTouchBar(99.75, 99.0, 100.0));
+		}
+		#endregion
+
+		#region ValidateEmaPlace — strict equality rejected
+		[Fact]
+		public void ValidateEmaPlace_EntryExactlyAtEma_Invalid()
+		{
+			// Strictly above/below required: entry == ema fails both directions
+			Assert.False(KatTradeCalculator.ValidateEmaPlace(KatOrderAction.Buy, 100.0, new[] { 100.0 }, out _));
+			Assert.False(KatTradeCalculator.ValidateEmaPlace(KatOrderAction.Sell, 100.0, new[] { 100.0 }, out _));
+		}
+		#endregion
+
+		#region CalculateTriggerPrice — tick rounding
+		[Fact]
+		public void CalculateTriggerPrice_MisalignedBase_RoundsToTick()
+		{
+			// 100.03 + 2*0.25 = 100.53 -> rounds to nearest tick 100.50
+			double price = KatTradeCalculator.CalculateTriggerPrice(KatOrderAction.Buy, 100.03, 2, 0.25);
+			Assert.Equal(100.50, price);
+		}
+		#endregion
+
+		#region CalculateFixedDistanceTriggerPrice — zero distance
+		[Fact]
+		public void CalculateFixedDistanceTriggerPrice_ZeroDistance_EqualsCurrentPrice()
+		{
+			Assert.Equal(100.0, KatTradeCalculator.CalculateFixedDistanceTriggerPrice(KatOrderAction.Buy, 100.0, 0, 0.25));
+			Assert.Equal(100.0, KatTradeCalculator.CalculateFixedDistanceTriggerPrice(KatOrderAction.Sell, 100.0, 0, 0.25));
+		}
+		#endregion
+
+		#region CalculateEmaAngle — negative ticksize fallback
+		[Fact]
+		public void CalculateEmaAngle_NegativeTickSize_FallsBackToQuarterTick()
+		{
+			Assert.Equal(45.0, KatTradeCalculator.CalculateEmaAngle(100.25, 100.0, -1.0));
+		}
+		#endregion
+
+		#region AtmXmlParser — whitespace-padded numbers
+		[Fact]
+		public void ParseXml_WhitespacePaddedNumbers_ParsedCorrectly()
+		{
+			string xml = "<AtmStrategy><EntryQuantity> 2 </EntryQuantity><Brackets><Bracket>"
+				+ "<StopLoss> 20 </StopLoss><Target>\n40\n</Target></Bracket></Brackets></AtmStrategy>";
+			AtmTemplateData data = KatAtmXmlParser.ParseXml(xml);
+			Assert.Equal(20, data.StopLoss);
+			Assert.Equal(40, data.Target);
+			Assert.Equal(2, data.Quantity);
+		}
+		#endregion
+
+		#region IsAccountAllowed — spaced exclude token
+		[Fact]
+		public void IsAccountAllowed_SpacedBangToken_StillExcludes()
+		{
+			// "! BX" -> exclude "BX" after inner trim
+			Assert.False(KatTradeCalculator.IsAccountAllowed("BX123", "! BX"));
+			Assert.False(KatTradeCalculator.IsAccountAllowed("BX123", "  !BX  , Sim"));
+		}
+		#endregion
 	}
 }
