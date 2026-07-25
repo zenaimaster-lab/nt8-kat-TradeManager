@@ -80,15 +80,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 				RemoveWpfControls();
 				CreateWpfControls();
 			}
-			else if (PanelLocation == KatHudLocation.ChartTrader && panelBorder != null)
-			{
-				var ctControl = GetChartTraderControl();
-				if (ctControl is FrameworkElement fe && fe.ActualWidth > 50)
-				{
-					if (Math.Abs(panelBorder.Width - fe.ActualWidth) > 2)
-						panelBorder.Width = fe.ActualWidth;
-				}
-			}
 		}
 
 		private void SyncCachedValues()
@@ -279,15 +270,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 				var ctControl = GetChartTraderControl();
 				if (ctControl != null && ctControl is FrameworkElement fe && fe.Visibility == Visibility.Visible)
 				{
-					panelBorder.Width = fe.ActualWidth > 50 ? fe.ActualWidth : 240;
-					panelBorder.HorizontalAlignment = HorizontalAlignment.Right;
+					int ctColumn = (chartGrid.Children.Contains(fe)) ? Grid.GetColumn(fe) : Math.Max(0, chartGrid.ColumnDefinitions.Count - 1);
+
+					panelBorder.Width = double.NaN;
+					panelBorder.HorizontalAlignment = HorizontalAlignment.Stretch;
 					panelBorder.VerticalAlignment = VerticalAlignment.Bottom;
 					panelBorder.Margin = new Thickness(0, 0, 0, 0);
 					panelBorder.Cursor = Cursors.Arrow;
 					System.Windows.Controls.Panel.SetZIndex(panelBorder, 99999);
 
-					Grid.SetColumn(panelBorder, 0);
-					Grid.SetColumnSpan(panelBorder, Math.Max(1, chartGrid.ColumnDefinitions.Count > 0 ? chartGrid.ColumnDefinitions.Count : 99));
+					Grid.SetColumn(panelBorder, ctColumn);
+					Grid.SetColumnSpan(panelBorder, 1);
 					Grid.SetRow(panelBorder, 0);
 					Grid.SetRowSpan(panelBorder, Math.Max(1, chartGrid.RowDefinitions.Count > 0 ? chartGrid.RowDefinitions.Count : 99));
 
