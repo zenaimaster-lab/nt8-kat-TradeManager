@@ -84,9 +84,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 		// Daily Risk Control cached states & fields (default ON)
 		private volatile bool cachedIsDailyMaxDD = true;
 		private volatile bool cachedIsDailyMaxProfit = true;
-		private volatile double cachedDailyMaxDD = 500.0;
-		private volatile double cachedDailyMaxProfit = 1000.0;
-		private volatile double cachedDailyPnL = 0.0;
+		private double cachedDailyMaxDD = 500.0;
+		private double cachedDailyMaxProfit = 1000.0;
+		private double cachedDailyPnL = 0.0;
+		private DateTime lastSessionStartUtc = DateTime.MinValue;
+		private double sessionStartRealizedPnL = 0.0;
+		private bool isSessionStartCaptured = false;
+
 
 		// EMA indicators for multi-timeframe candle scanning
 		private EMA[] ema34Series;
@@ -860,39 +864,34 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private double CalculateDailyPnL()
 		{
 			if (account == null) return 0;
-			DateTime sessionStartUtc = KatTradeCalculator.GetNySessionStartUtc(DateTime.UtcNow);
 
-			double realized = 0;
+			DateTime currentSessionStartUtc = KatTradeCalculator.GetNySessionStartUtc(DateTime.UtcNow);
+			double currentRealizedPnL = 0;
 			try
 			{
-				if (account.Trades != null)
-				{
-					lock (account.Trades)
-					{
-						foreach (Trade trade in account.Trades)
-						{
-							if (trade != null && trade.Exit != null && trade.Exit.Time.ToUniversalTime() >= sessionStartUtc)
-							{
-								realized += trade.ProfitCurrency;
-							}
-						}
-					}
-				}
-			}
-			catch (Exception ex)
-			{
-				Print(string.Format("[KatTradeManager] Error calculating daily realized PnL: {0}", ex.Message));
-			}
-
-			double unrealized = 0;
-			try
-			{
-				unrealized = account.Get(AccountItem.UnrealizedProfitLoss, Currency.UsDollar);
+				currentRealizedPnL = account.Get(AccountItem.GrossRealizedProfitLoss, Currency.UsDollar);
 			}
 			catch {}
 
-			return realized + unrealized;
+			if (!isSessionStartCaptured || currentSessionStartUtc > lastSessionStartUtc)
+			{
+				lastSessionStartUtc = currentSessionStartUtc;
+				sessionStartRealizedPnL = currentRealizedPnL;
+				isSessionStartCaptured = true;
+			}
+
+			double dailyRealized = currentRealizedPnL - sessionStartRealizedPnL;
+
+			double dailyUnrealized = 0;
+			try
+			{
+				dailyUnrealized = account.Get(AccountItem.UnrealizedProfitLoss, Currency.UsDollar);
+			}
+			catch {}
+
+			return dailyRealized + dailyUnrealized;
 		}
+
 
 		private bool IsDailyRiskBreached(out string breachReason)
 		{
