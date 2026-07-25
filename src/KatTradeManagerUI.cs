@@ -80,6 +80,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 				RemoveWpfControls();
 				CreateWpfControls();
 			}
+			else if (PanelLocation == KatHudLocation.ChartTrader && panelBorder != null)
+			{
+				var ctControl = GetChartTraderControl();
+				if (ctControl is FrameworkElement fe && fe.ActualWidth > 50)
+				{
+					if (Math.Abs(panelBorder.Width - fe.ActualWidth) > 2)
+						panelBorder.Width = fe.ActualWidth;
+				}
+			}
 		}
 
 		private void SyncCachedValues()
@@ -237,9 +246,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				var ctControl = GetChartTraderControl();
 				if (ctControl != null)
 				{
-					var ctPanel = FindChartTraderPanel(ctControl);
-					if (ctPanel != null && ctPanel.Children.Contains(panelBorder))
-						return true;
+					return chartGrid != null && chartGrid.Children.Contains(panelBorder);
 				}
 			}
 
@@ -270,33 +277,21 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (PanelLocation == KatHudLocation.ChartTrader)
 			{
 				var ctControl = GetChartTraderControl();
-				var ctPanel = ctControl != null ? FindChartTraderPanel(ctControl) : null;
-
-				if (ctPanel != null)
+				if (ctControl != null && ctControl is FrameworkElement fe && fe.Visibility == Visibility.Visible)
 				{
-					panelBorder.Width = double.NaN;
-					panelBorder.HorizontalAlignment = HorizontalAlignment.Stretch;
+					panelBorder.Width = fe.ActualWidth > 50 ? fe.ActualWidth : 240;
+					panelBorder.HorizontalAlignment = HorizontalAlignment.Right;
 					panelBorder.VerticalAlignment = VerticalAlignment.Bottom;
+					panelBorder.Margin = new Thickness(0, 0, 0, 0);
 					panelBorder.Cursor = Cursors.Arrow;
 					System.Windows.Controls.Panel.SetZIndex(panelBorder, 99999);
 
-					if (ctPanel is FrameworkElement fe)
-						fe.ClipToBounds = false;
+					Grid.SetColumn(panelBorder, 0);
+					Grid.SetColumnSpan(panelBorder, Math.Max(1, chartGrid.ColumnDefinitions.Count > 0 ? chartGrid.ColumnDefinitions.Count : 99));
+					Grid.SetRow(panelBorder, 0);
+					Grid.SetRowSpan(panelBorder, Math.Max(1, chartGrid.RowDefinitions.Count > 0 ? chartGrid.RowDefinitions.Count : 99));
 
-					if (ctPanel is Grid g)
-					{
-						int lastRow = Math.Max(0, g.RowDefinitions.Count - 1);
-						Grid.SetColumn(panelBorder, 0);
-						Grid.SetColumnSpan(panelBorder, Math.Max(1, g.ColumnDefinitions.Count > 0 ? g.ColumnDefinitions.Count : 99));
-						Grid.SetRow(panelBorder, lastRow);
-						Grid.SetRowSpan(panelBorder, 1);
-						g.Children.Add(panelBorder);
-					}
-					else
-					{
-						ctPanel.Children.Add(panelBorder);
-					}
-
+					chartGrid.Children.Add(panelBorder);
 					isChartTraderAttached = true;
 				}
 			}

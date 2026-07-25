@@ -1,16 +1,16 @@
 # Graph Report - nt8-kat-TradeManager  (2026-07-25)
 
 ## Corpus Check
-- 21 files · ~21,348 words
+- 21 files · ~21,370 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 224 nodes · 297 edges · 22 communities (10 shown, 12 thin omitted)
+- 224 nodes · 298 edges · 22 communities (10 shown, 12 thin omitted)
 - Extraction: 89% EXTRACTED · 11% INFERRED · 0% AMBIGUOUS · INFERRED: 33 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `b0c37c64`
+- Built from commit: `e6e0ee0f`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
