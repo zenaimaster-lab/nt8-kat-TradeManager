@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.34 (2026-07-25) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.35 (2026-07-25) */
 
 using System;
 using System.Collections.Generic;
@@ -193,12 +193,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			mainPanel.Children.Add(paramGrid);
 
-			// ATM Selection Dropdown (Full width without label)
+			// ATM Selection Dropdown (Section 1: ATM dropdown and above)
 			atmSelector = new ComboBox
 			{
 				FontSize = 11,
 				Height = 22,
-				Margin = new Thickness(0, 2, 0, 6),
+				Margin = new Thickness(0, 2, 0, 10),
 				HorizontalAlignment = HorizontalAlignment.Stretch
 			};
 			string atmDir = System.IO.Path.Combine(NinjaTrader.Core.Globals.UserDataDir, "templates", "AtmStrategy");
@@ -242,7 +242,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			mainPanel.Children.Add(atmSelector);
 
-			// EMA 34 (Orange/Amber theme) & EMA 89 (Purple/Violet theme) Button Rows
+			// Section 2: 4 buttons Buy/Sell Last EMA (EMA 34 & EMA 89)
 			SolidColorBrush buy34Bg  = new SolidColorBrush(Color.FromRgb(100, 115, 30)); // Amber/Golden Green (Buy + 34 Orange/Yellow)
 			SolidColorBrush sell34Bg = new SolidColorBrush(Color.FromRgb(175, 75, 25));  // Burnt Orange-Red (Sell + 34 Orange)
 			SolidColorBrush buy89Bg  = new SolidColorBrush(Color.FromRgb(35, 95, 110));  // Teal-Purple Green (Buy + 89 Purple)
@@ -264,7 +264,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			mainPanel.Children.Add(ema34Grid);
 
-			Grid ema89Grid = new Grid { Margin = new Thickness(0, 2, 0, 4) };
+			Grid ema89Grid = new Grid { Margin = new Thickness(0, 2, 0, 10) };
 			ema89Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 			ema89Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
 			ema89Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -279,7 +279,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			mainPanel.Children.Add(ema89Grid);
 
-			// Partial Candle Mode Toggle Button
+			// Section 3: Partial Candle button down to end of Buy/Sell Distance
 			SolidColorBrush partialOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
 			SolidColorBrush partialOnBg  = new SolidColorBrush(Color.FromRgb(0, 122, 204));
 			string partialOnText  = string.Format("⚡ Partial {0}%: ON", cachedPartialPercent);
@@ -308,8 +308,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			mainPanel.Children.Add(btnPartialCandle);
 
 
-			// Buttons Section
-			Grid orderBtnGrid = new Grid { Margin = new Thickness(0, 4, 0, 4) };
+			Grid orderBtnGrid = new Grid { Margin = new Thickness(0, 4, 0, 10) };
 			orderBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 			orderBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
 			orderBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -337,7 +336,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			orderBtnGrid.Children.Add(sellCol);
 			mainPanel.Children.Add(orderBtnGrid);
 
-			// Buy / Sell Market Buttons (Placed above Close / BE / Revert, height 48, font 12)
+			// Section 4: Buy/Sell Market down to the bottom (Close/Flatten)
+
 			Grid mktBtnGrid = new Grid { Margin = new Thickness(0, 2, 0, 4) };
 			mktBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 			mktBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });

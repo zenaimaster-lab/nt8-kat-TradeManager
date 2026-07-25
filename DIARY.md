@@ -24,6 +24,13 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.35] — 2026-07-25
+- **Added Visual Section Spacing Gaps in HUD Panel**:
+  - Section 1 (ATM dropdown & above): added 10px bottom margin after ATM selector.
+  - Section 2 (BUY/SELL Last EMA 34 & 89): added 10px bottom margin after EMA 89 grid.
+  - Section 3 (Partial Candle & BUY/SELL Distance): added 10px bottom margin after order grid.
+  - Section 4 (BUY/SELL Market, BE, Revert, Close/Flatten): grouped at bottom of HUD panel.
+
 ### [v0.34] — 2026-07-25
 - **Fixed NinjaTrader 8 Order Modification Compilation Error**:
   - Fixed `CS1501: No overload for method 'Change' takes 4 arguments` error in `KatTradeManager.SetBreakeven()`.
