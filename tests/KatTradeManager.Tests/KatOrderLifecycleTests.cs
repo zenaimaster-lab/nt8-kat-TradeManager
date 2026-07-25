@@ -57,10 +57,11 @@ namespace KatTradeManager.Tests
 		public void CalculateCandlePrice_HalfCandleWithRenko_StillReturnsMidpoint()
 		{
 			double result = KatTradeCalculator.CalculateCandlePrice(
-				KatOrderAction.Buy, true, 100.0, 90.0, 92.0, 98.0, true, 0.25);
+				KatOrderAction.Buy, true, 50.0, 100.0, 90.0, 92.0, 98.0, true, 0.25);
 
 			Assert.Equal(95.0, result, 4);
 		}
+
 
 		[Fact]
 		public void CalculateCandlePrice_RenkoBrickNoHalf_ReturnsHighForBuy()

@@ -24,7 +24,20 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.32] — 2026-07-25
+- **Partial Candle Mode Refactor with Configurable Pullback %**:
+  - Renamed `1/2 Candle` toggle button to `Partial Candle`.
+  - Display button text dynamically reflects configured percentage (e.g. `⚡ Partial 30%: ON` when active).
+  - Added `DefaultPartialCandlePercent` NinjaScript Indicator setting (Range 1-99%, default: `30%`).
+  - Updated price calculation in `KatTradeCalculator.CalculatePartialCandlePrice`:
+    - Buy: `High - (High - Low) * (pullbackPercent / 100.0)`
+    - Sell: `Low + (High - Low) * (pullbackPercent / 100.0)`
+  - Backward compatible: preserved 50% midpoint overload for existing callers.
+- **Tests**: Expanded test suite to 97 tests (all passing in 111ms).
+- **Graphify**: AST-only update.
+
 ### [v0.31] — 2026-07-25
+
 - **EMA 34 & EMA 89 Buy/Sell Last Candle Feature**:
   - Added 2 button rows (`BUY Last 34` / `SELL Last 34` and `BUY Last 89` / `SELL Last 89`) in WPF control panel placed above `1/2 Candle ON/OFF` button.
   - Button height (48px) and font size (12pt) match `BUY Previous` / `SELL Previous` button sizes.

@@ -1,4 +1,5 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.31 (2026-07-25) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.32 (2026-07-25) */
+
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -80,7 +81,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 			cachedTfIndex = (int)DefaultTimeframe;
 			cachedBufferTicks = DefaultBufferTicks;
 			cachedDistanceTicks = DefaultDistanceTicks;
+			cachedPartialPercent = DefaultPartialCandlePercent > 0 ? DefaultPartialCandlePercent : 30;
 		}
+
 
 		private void CreateWpfControls()
 		{
@@ -276,31 +279,34 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			mainPanel.Children.Add(ema89Grid);
 
-			// 1/2 Candle Mode Toggle Button
+			// Partial Candle Mode Toggle Button
+			SolidColorBrush partialOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
+			SolidColorBrush partialOnBg  = new SolidColorBrush(Color.FromRgb(0, 122, 204));
+			string partialOnText  = string.Format("⚡ Partial {0}%: ON", cachedPartialPercent);
+			string partialOffText = "Partial Candle: OFF";
 
-			SolidColorBrush halfOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
-			SolidColorBrush halfOnBg  = new SolidColorBrush(Color.FromRgb(0, 122, 204));
-			Button btnHalfCandle = CreateButton(cachedIsHalfCandle ? "⚡ 1/2 Candle: ON" : "1/2 Candle: OFF",
-				cachedIsHalfCandle ? halfOnBg : halfOffBg, null, 24, 11);
-			btnHalfCandle.Foreground = cachedIsHalfCandle ? Brushes.White : Brushes.LightGray;
+			Button btnPartialCandle = CreateButton(cachedIsPartialCandle ? partialOnText : partialOffText,
+				cachedIsPartialCandle ? partialOnBg : partialOffBg, null, 24, 11);
+			btnPartialCandle.Foreground = cachedIsPartialCandle ? Brushes.White : Brushes.LightGray;
 
-			btnHalfCandle.Click += (s, ev) =>
+			btnPartialCandle.Click += (s, ev) =>
 			{
-				cachedIsHalfCandle = !cachedIsHalfCandle;
-				if (cachedIsHalfCandle)
+				cachedIsPartialCandle = !cachedIsPartialCandle;
+				if (cachedIsPartialCandle)
 				{
-					btnHalfCandle.Content = "⚡ 1/2 Candle: ON";
-					btnHalfCandle.Background = halfOnBg;
-					btnHalfCandle.Foreground = Brushes.White;
+					btnPartialCandle.Content = string.Format("⚡ Partial {0}%: ON", cachedPartialPercent);
+					btnPartialCandle.Background = partialOnBg;
+					btnPartialCandle.Foreground = Brushes.White;
 				}
 				else
 				{
-					btnHalfCandle.Content = "1/2 Candle: OFF";
-					btnHalfCandle.Background = halfOffBg;
-					btnHalfCandle.Foreground = Brushes.LightGray;
+					btnPartialCandle.Content = "Partial Candle: OFF";
+					btnPartialCandle.Background = partialOffBg;
+					btnPartialCandle.Foreground = Brushes.LightGray;
 				}
 			};
-			mainPanel.Children.Add(btnHalfCandle);
+			mainPanel.Children.Add(btnPartialCandle);
+
 
 			// Buttons Section
 			Grid orderBtnGrid = new Grid { Margin = new Thickness(0, 4, 0, 4) };

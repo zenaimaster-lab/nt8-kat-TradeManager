@@ -16,8 +16,21 @@ namespace KatTradeManager.Tests
 			Assert.Equal(expectedMid, result, 4);
 		}
 
+		[Theory]
+		[InlineData(KatOrderAction.Buy, 100.0, 90.0, 30.0, 0.25, 97.0)]
+		[InlineData(KatOrderAction.Sell, 100.0, 90.0, 30.0, 0.25, 93.0)]
+		[InlineData(KatOrderAction.Buy, 100.0, 90.0, 50.0, 0.25, 95.0)]
+		[InlineData(KatOrderAction.Sell, 100.0, 90.0, 50.0, 0.25, 95.0)]
+		[InlineData(KatOrderAction.Buy, 100.0, 90.0, 10.0, 0.25, 99.0)]
+		[InlineData(KatOrderAction.Sell, 100.0, 90.0, 10.0, 0.25, 91.0)]
+		public void CalculatePartialCandlePrice_CalculatesCorrectPullback(KatOrderAction action, double high, double low, double pct, double tickSize, double expected)
+		{
+			double result = KatTradeCalculator.CalculatePartialCandlePrice(action, high, low, pct, tickSize);
+			Assert.Equal(expected, result, 4);
+		}
+
 		[Fact]
-		public void CalculateCandlePrice_HalfCandle_ReturnsMidpoint()
+		public void CalculateCandlePrice_PartialCandle_Returns30PercentPullbackByDefault()
 		{
 			double high = 100.0;
 			double low = 90.0;
@@ -25,12 +38,13 @@ namespace KatTradeManager.Tests
 			double close = 98.0;
 			double tickSize = 0.25;
 
-			double buyPrice = KatTradeCalculator.CalculateCandlePrice(KatOrderAction.Buy, true, high, low, open, close, false, tickSize);
-			double sellPrice = KatTradeCalculator.CalculateCandlePrice(KatOrderAction.Sell, true, high, low, open, close, false, tickSize);
+			double buyPrice = KatTradeCalculator.CalculateCandlePrice(KatOrderAction.Buy, true, 30.0, high, low, open, close, false, tickSize);
+			double sellPrice = KatTradeCalculator.CalculateCandlePrice(KatOrderAction.Sell, true, 30.0, high, low, open, close, false, tickSize);
 
-			Assert.Equal(95.0, buyPrice, 4);
-			Assert.Equal(95.0, sellPrice, 4);
+			Assert.Equal(97.0, buyPrice, 4);
+			Assert.Equal(93.0, sellPrice, 4);
 		}
+
 
 		[Fact]
 		public void CalculateCandlePrice_StandardCandle_ReturnsHighOrLow()

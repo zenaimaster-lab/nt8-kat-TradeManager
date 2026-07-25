@@ -87,9 +87,10 @@ namespace KatTradeManager.Tests
 			double tickSize = 0.25;
 			int bufferTicks = 2; // +0.50
 
-			// Half candle base = (110 + 100) / 2 = 105.0
-			double halfBase = KatTradeCalculator.CalculateCandlePrice(KatOrderAction.Buy, true, high, low, open, close, false, tickSize);
+			// Half candle base (50% pullback) = (110 + 100) / 2 = 105.0
+			double halfBase = KatTradeCalculator.CalculateCandlePrice(KatOrderAction.Buy, true, 50.0, high, low, open, close, false, tickSize);
 			Assert.Equal(105.0, halfBase);
+
 
 			// Buy: Trigger = 105.50. If currentPrice = 108.0 (price ran above midpoint)
 			// Trigger (105.50) <= Current (108.0) -> Limit order at 105.50

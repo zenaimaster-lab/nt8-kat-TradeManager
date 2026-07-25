@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 0.31 (2026-07-25)
+ * Version: 0.32 (2026-07-25)
  * NinjaTrader 8 TradeManager Indicator
  */
 
@@ -39,7 +39,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "0.31";
+		public const string VERSION = "0.32";
 		public const string RELEASE_DATE = "2026-07-25";
 
 		private volatile Account account;
@@ -56,7 +56,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private EMA[] ema89Series;
 
 		// Thread-safe cached values from UI controls (synced by watchdog on UI thread)
-
 		private volatile int cachedQuantity;
 		private volatile int cachedTfIndex;
 		private volatile int cachedBufferTicks;
@@ -86,8 +85,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private int pendingAtmSL1Trigger;
 		private int pendingAtmSL2Trigger;
 
-		// 1/2 Candle toggle state & Renko chart detection
-		private volatile bool cachedIsHalfCandle = false;
+		// Partial Candle toggle state, Pullback %, & Renko chart detection
+		private volatile bool cachedIsPartialCandle = false;
+		private volatile int cachedPartialPercent = 30;
 		private bool isRenkoChart = false;
 
 		// Thread synchronization lock for bar price caching
@@ -127,7 +127,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 				DefaultBufferTicks                  = 2;
 				DefaultDistanceTicks                = 320; // Default 80 points = 320 ticks
 				DefaultAtmTemplate                  = "Sim101_ATM";
+				DefaultPartialCandlePercent         = 30;
 			}
+
 			else if (State == State.Configure)
 			{
 				AddDataSeries(BarsPeriodType.Second, 30);
@@ -301,7 +303,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					double open  = isCurrentCandle ? cachedCurrentOpen[barIdx]  : cachedPrevOpen[barIdx];
 					double close = isCurrentCandle ? cachedCurrentClose[barIdx] : cachedPrevClose[barIdx];
 
-					basePrice = KatTradeCalculator.CalculateCandlePrice(katAction, cachedIsHalfCandle, high, low, open, close, barIdx == 0 && isRenkoChart, cachedTickSize);
+					basePrice = KatTradeCalculator.CalculateCandlePrice(katAction, cachedIsPartialCandle, cachedPartialPercent, high, low, open, close, barIdx == 0 && isRenkoChart, cachedTickSize);
 					currentPx = cachedCurrentPrice > 0 ? cachedCurrentPrice : basePrice;
 				}
 
@@ -387,13 +389,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 								foundBarsAgo = barsAgo;
 								double open  = Opens[barIdx][barsAgo];
 								double close = Closes[barIdx][barsAgo];
-								basePrice = KatTradeCalculator.CalculateCandlePrice(katAction, cachedIsHalfCandle, h, l, open, close, barIdx == 0 && isRenkoChart, cachedTickSize);
+								basePrice = KatTradeCalculator.CalculateCandlePrice(katAction, cachedIsPartialCandle, cachedPartialPercent, h, l, open, close, barIdx == 0 && isRenkoChart, cachedTickSize);
 								break;
 							}
 						}
 					}
 					currentPx = cachedCurrentPrice > 0 ? cachedCurrentPrice : basePrice;
 				}
+
 
 				if (foundBarsAgo < 0 || basePrice <= 0)
 				{
@@ -603,6 +606,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Range(1, 10000)]
 		[Display(Name="Default Distance (Ticks)", Order=6, GroupName="Parameters")]
 		public int DefaultDistanceTicks { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(1, 99)]
+		[Display(Name="Partial Candle Pullback (%)", Order=7, GroupName="Parameters")]
+		public int DefaultPartialCandlePercent { get; set; }
 		#endregion
 	}
 }
+

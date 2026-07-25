@@ -1,6 +1,6 @@
 # NT8 Kat TradeManager
 
-**Current Version**: `v0.31` (Released: `2026-07-25`)
+**Current Version**: `v0.32` (Released: `2026-07-25`)
 
 An advanced TradeManager Indicator for **NinjaTrader 8 (NT8)** designed for fast execution, candle-based pending stop orders, and dynamic risk management.
 
@@ -8,7 +8,8 @@ An advanced TradeManager Indicator for **NinjaTrader 8 (NT8)** designed for fast
 
 - **On-Chart WPF Control Panel**: Interactive buttons and dropdown selectors directly on your NinjaTrader 8 charts.
 - **EMA 34 & EMA 89 Touch/Cross Orders**: Place Buy/Sell orders based on the most recent candle touching or crossing EMA 34 or EMA 89 lines.
-- **1/2 Candle Mode Toggle**: Half-candle midpoint order pricing, automatically converting orders to StopMarket or Limit as appropriate.
+- **Partial Candle Mode Toggle**: Configurable pullback percentage (default 30% from High/Low), automatically determining StopMarket vs Limit order types.
+
 - **Candle-Based Pending Stops**:
 
   - Place **Buy Stop** / **Sell Stop** at High/Low of **Current Candle** or **Previous Candle**.

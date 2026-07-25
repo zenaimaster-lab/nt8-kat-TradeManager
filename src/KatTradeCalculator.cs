@@ -82,22 +82,39 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		public static double CalculateHalfCandlePrice(double high, double low, double tickSize)
 		{
-			double mid = (high + low) / 2.0;
-			if (tickSize <= 0) return mid;
-			return Math.Round(mid / tickSize) * tickSize;
+			return CalculatePartialCandlePrice(KatOrderAction.Buy, high, low, 50.0, tickSize);
 		}
 
-		public static double CalculateCandlePrice(KatOrderAction action, bool isHalfCandle, double high, double low, double open, double close, bool isRenko, double tickSize)
+		public static double CalculatePartialCandlePrice(KatOrderAction action, double high, double low, double pullbackPercent, double tickSize)
 		{
-			if (isHalfCandle)
+			if (pullbackPercent <= 0) pullbackPercent = 30.0;
+			double range = high - low;
+			double pct = pullbackPercent / 100.0;
+			double rawPrice = action == KatOrderAction.Buy
+				? high - (range * pct)
+				: low + (range * pct);
+
+			if (tickSize <= 0) return rawPrice;
+			return Math.Round(rawPrice / tickSize) * tickSize;
+		}
+
+		public static double CalculateCandlePrice(KatOrderAction action, bool isPartialCandle, double high, double low, double open, double close, bool isRenko, double tickSize)
+		{
+			return CalculateCandlePrice(action, isPartialCandle, 30.0, high, low, open, close, isRenko, tickSize);
+		}
+
+		public static double CalculateCandlePrice(KatOrderAction action, bool isPartialCandle, double pullbackPercent, double high, double low, double open, double close, bool isRenko, double tickSize)
+		{
+			if (isPartialCandle)
 			{
-				return CalculateHalfCandlePrice(high, low, tickSize);
+				return CalculatePartialCandlePrice(action, high, low, pullbackPercent, tickSize);
 			}
 
 			// Renko bricks have no wicks: high == max(open,close), low == min(open,close)
 			// Standard logic (Buy=high, Sell=low) works identically for Renko
 			return action == KatOrderAction.Buy ? high : low;
 		}
+
 
 		public static KatOrderType DetermineOrderType(KatOrderAction action, double triggerPrice, double currentPrice, out double limitPrice, out double stopPrice)
 		{
