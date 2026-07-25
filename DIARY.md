@@ -24,6 +24,13 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.50] — 2026-07-25
+- **Floating ChartTrader HUD Overlay**:
+  - Re-anchored `panelBorder` to the top-level outer container `Grid` of `ChartTraderControl` with `Panel.SetZIndex(panelBorder, 99999)` and `ClipToBounds = false`.
+  - When chart window height is reduced, HUD panel floats on top of ChartTrader's native controls, gradually covering buttons from bottom to top so HUD is always 100% visible and prioritized.
+- **Crisp Arrow Button Styling**:
+  - Replaced `<-- SL` and `SL -->` labels with clean arrow symbols `◀ SL` and `SL ▶`.
+
 ### [v0.49] — 2026-07-25
 - **Swing Stop Loss Shift Controls (`<-- SL` & `SL -->`)**:
   - Added new HUD control grid directly under `SELL last 89` in Section 2 with gray background buttons (`#2D3241`) matching Close/Flatten styling.
