@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 0.52 (2026-07-25)
+ * Version: 0.54 (2026-07-25)
  * NinjaTrader 8 TradeManager Indicator
  */
 
@@ -69,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "0.53";
+		public const string VERSION = "0.54";
 		public const string RELEASE_DATE = "2026-07-25";
 
 		private volatile Account account;
@@ -883,12 +883,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (workingStops.Count > 0)
 				{
 					frozenStopPrice = workingStops[0].StopPrice;
-					string atmId = NinjaTrader.NinjaScript.AtmStrategy.GetAtmStrategyUniqueId(workingStops[0]);
+					string atmId = workingStops[0].AtmStrategyId;
 
 					if (!string.IsNullOrEmpty(atmId))
 					{
-						NinjaTrader.NinjaScript.AtmStrategy.ChangeStopLoss(frozenStopPrice, 0, atmId);
-						Print(string.Format("[KatTradeManager] ATM Strategy {0} Stop Loss locked @ {1}", atmId, frozenStopPrice));
+						NinjaTrader.NinjaScript.AtmStrategy.StopAtmStrategy(atmId);
+						Print(string.Format("[KatTradeManager] Native ATM Strategy {0} stopped — Trailing disabled, SL frozen @ {1}", atmId, frozenStopPrice));
 					}
 					else
 					{
@@ -941,16 +941,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 					if (Math.Abs(stopOrder.StopPrice - frozenStopPrice) > 0.000001)
 					{
 						lastFreezeEnforceTime = DateTime.Now;
-						string atmId = NinjaTrader.NinjaScript.AtmStrategy.GetAtmStrategyUniqueId(stopOrder);
-						if (!string.IsNullOrEmpty(atmId))
-						{
-							NinjaTrader.NinjaScript.AtmStrategy.ChangeStopLoss(frozenStopPrice, 0, atmId);
-						}
-						else
-						{
-							stopOrder.StopPrice = frozenStopPrice;
-							account.Change(new[] { stopOrder });
-						}
+						stopOrder.StopPrice = frozenStopPrice;
+						account.Change(new[] { stopOrder });
 						Print(string.Format("[KatTradeManager] Trailing movement overridden — SL restored to frozen price {0}", frozenStopPrice));
 					}
 				}

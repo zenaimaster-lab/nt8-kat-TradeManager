@@ -24,6 +24,12 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.54] — 2026-07-25
+- **Fix NinjaScript Compilation Errors**:
+  - Replaced invalid `AtmStrategy.GetAtmStrategyUniqueId` with native `order.AtmStrategyId` property on `NinjaTrader.Cbi.Order`.
+  - Replaced non-existent `AtmStrategy.ChangeStopLoss` static method with `AtmStrategy.StopAtmStrategy(atmId)` and standard `account.Change(new[] { stopOrder })`.
+  - Restored clean compilation in NinjaTrader 8.
+
 ### [v0.53] — 2026-07-25
 - **Safe Native ATM Stop Engine (`Freeze Trail`)**:
   - Refactored `FreezeCurrentStopLoss()` to invoke `NinjaTrader.NinjaScript.AtmStrategy.StopAtmStrategy(atmId)` when `Freeze Trail` is activated.
