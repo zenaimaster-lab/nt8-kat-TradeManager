@@ -24,6 +24,11 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.36] — 2026-07-25
+- **HUD Section Card Architecture & Button Spacing Refinement**:
+  - Wrapped all 4 HUD sections in distinct solid black section card containers (`CreateSectionCard` helper) with background `#0A0C12`, subtle border `#232A38`, 5px corner radius, and 6px padding.
+  - Standardized internal button spacing: set uniform 4px vertical and horizontal gaps between all buttons within the same section.
+
 ### [v0.35] — 2026-07-25
 - **Added Visual Section Spacing Gaps in HUD Panel**:
   - Section 1 (ATM dropdown & above): added 10px bottom margin after ATM selector.
