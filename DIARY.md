@@ -24,6 +24,14 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.37] — 2026-07-25
+- **Darkened Section 4 Button Palette Below Distance Order Colors**:
+  - `BUY Market`: adjusted to deep stealth green `#0C3019` (darker than BUY Distance `#10381E`).
+  - `SELL Market`: adjusted to deep stealth red `#370F12` (darker than SELL Distance `#4B1418`).
+  - `BE`: adjusted to deep slate teal `#0E303E`.
+  - `Revert`: adjusted to deep burnt amber `#4B2A0A`.
+  - `Close/Flatten`: adjusted to deep dark maroon `#3C0E12`.
+
 ### [v0.36] — 2026-07-25
 - **HUD Section Card Architecture & Button Spacing Refinement**:
   - Wrapped all 4 HUD sections in distinct solid black section card containers (`CreateSectionCard` helper) with background `#0A0C12`, subtle border `#232A38`, 5px corner radius, and 6px padding.

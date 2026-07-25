@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.35 (2026-07-25) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.37 (2026-07-25) */
 
 using System;
 using System.Collections.Generic;
@@ -355,7 +355,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			mainPanel.Children.Add(CreateSectionCard(sec3Panel, 6));
 
 
-			// --- SECTION 4: Market Orders & Position Management ---
+			// --- SECTION 4: Market Orders & Position Management (Darker than BUY/SELL Distance) ---
 			StackPanel sec4Panel = new StackPanel();
 
 			Grid mktBtnGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
@@ -363,8 +363,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			mktBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
 			mktBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-			SolidColorBrush buyMktBg  = new SolidColorBrush(Color.FromRgb(16, 140, 75));
-			SolidColorBrush sellMktBg = new SolidColorBrush(Color.FromRgb(185, 42, 48));
+			SolidColorBrush buyMktBg  = new SolidColorBrush(Color.FromRgb(12, 48, 25)); // Deep dark green (darker than BUY Distance 16,56,30)
+			SolidColorBrush sellMktBg = new SolidColorBrush(Color.FromRgb(55, 15, 18)); // Deep dark red (darker than SELL Distance 75,20,24)
 
 			Button btnBuyMkt = CreateButton("BUY Market", buyMktBg, (s, ev) => PlaceMarketOrder(OrderAction.Buy), 48, 12);
 			Grid.SetColumn(btnBuyMkt, 0);
@@ -381,8 +381,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			beRevertGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
 			beRevertGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-			SolidColorBrush beBg     = new SolidColorBrush(Color.FromRgb(20, 110, 140));
-			SolidColorBrush revertBg = new SolidColorBrush(Color.FromRgb(175, 105, 20));
+			SolidColorBrush beBg     = new SolidColorBrush(Color.FromRgb(14, 48, 62)); // Deep dark slate teal
+			SolidColorBrush revertBg = new SolidColorBrush(Color.FromRgb(75, 42, 10)); // Deep dark amber
 
 			Button btnBE = CreateButton("BE", beBg, (s, ev) => SetBreakeven(), 33, 12);
 			Grid.SetColumn(btnBE, 0);
@@ -394,9 +394,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			sec4Panel.Children.Add(beRevertGrid);
 
-			SolidColorBrush closeBg = new SolidColorBrush(Color.FromRgb(160, 30, 35));
+			SolidColorBrush closeBg = new SolidColorBrush(Color.FromRgb(60, 14, 18)); // Deep dark crimson/maroon
 			Button btnClose = CreateButton("Close/Flatten", closeBg, (s, ev) => ClosePosition(), 33, 15);
 			sec4Panel.Children.Add(btnClose);
+
 
 			mainPanel.Children.Add(CreateSectionCard(sec4Panel, 0));
 
