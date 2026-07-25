@@ -24,6 +24,11 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.47] — 2026-07-25
+- **Fixed ChartTrader Squeezed Layout Bug**:
+  - Replaced deep depth-first visual search with shallowest visual tree depth algorithm (`GetVisualDepth`) and direct `ContentControl`/`ScrollViewer` extraction, preventing HUD from being attached to nested 2-column sub-grids inside Market buttons.
+  - Added dynamic Grid row creation (`RowDefinitions.Add(RowDefinition)`) and `Grid.SetColumnSpan` spanning 100% width across all columns so HUD is placed at the very bottom of ChartTrader without column squeezing.
+
 ### [v0.46] — 2026-07-25
 - **Enhanced ChartTrader Docking Placement & Bottom-Left Fallback**:
   - Refined `FindChartTraderPanel` visual tree search to target the main vertical `StackPanel` containing all order controls, properly embedding HUD at the very bottom of the right-side ChartTrader panel.

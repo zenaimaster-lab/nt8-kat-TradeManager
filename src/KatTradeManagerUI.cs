@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.46 (2026-07-25) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.47 (2026-07-25) */
 
 using System;
 using System.Collections.Generic;
@@ -137,26 +137,53 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 		}
 
+		private int GetVisualDepth(DependencyObject element)
+		{
+			int depth = 0;
+			DependencyObject parent = VisualTreeHelper.GetParent(element);
+			while (parent != null)
+			{
+				depth++;
+				parent = VisualTreeHelper.GetParent(parent);
+			}
+			return depth;
+		}
+
 		private Panel FindChartTraderPanel(DependencyObject ctControl)
 		{
 			if (ctControl == null) return null;
 
-			List<StackPanel> verticalPanels = new List<StackPanel>();
-			FindAllVisualChildren<StackPanel>(ctControl, verticalPanels);
+			// 1. Direct Content of ContentControl (UserControl)
+			if (ctControl is ContentControl cc && cc.Content is FrameworkElement contentFe)
+			{
+				if (contentFe is ScrollViewer sv && sv.Content is Panel svPanel)
+					return svPanel;
+				if (contentFe is Panel contentPanel)
+					return contentPanel;
+			}
 
-			var mainStack = verticalPanels
+			// 2. Search for ScrollViewer inside ctControl
+			ScrollViewer innerSv = FindVisualChild<ScrollViewer>(ctControl);
+			if (innerSv != null && innerSv.Content is Panel innerSvPanel)
+				return innerSvPanel;
+
+			// 3. Fallback: Find vertical StackPanels and pick the top-most (shallowest depth)
+			List<StackPanel> stackPanels = new List<StackPanel>();
+			FindAllVisualChildren<StackPanel>(ctControl, stackPanels);
+			var topStack = stackPanels
 				.Where(sp => sp.Orientation == Orientation.Vertical)
-				.OrderByDescending(sp => sp.Children.Count)
+				.OrderBy(GetVisualDepth)
 				.FirstOrDefault();
 
-			if (mainStack != null)
-				return mainStack;
+			if (topStack != null)
+				return topStack;
 
+			// 4. Fallback: Find Grids and pick the top-most (shallowest depth)
 			List<Grid> grids = new List<Grid>();
 			FindAllVisualChildren<Grid>(ctControl, grids);
-			var mainGrid = grids.OrderByDescending(g => g.Children.Count).FirstOrDefault();
-			if (mainGrid != null)
-				return mainGrid;
+			var topGrid = grids.OrderBy(GetVisualDepth).FirstOrDefault();
+			if (topGrid != null)
+				return topGrid;
 
 			return null;
 		}
@@ -245,7 +272,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 					panelBorder.VerticalAlignment = VerticalAlignment.Bottom;
 					panelBorder.Cursor = Cursors.Arrow;
 
-					ctPanel.Children.Add(panelBorder);
+					if (ctPanel is Grid g)
+					{
+						Grid.SetColumn(panelBorder, 0);
+						Grid.SetColumnSpan(panelBorder, Math.Max(1, g.ColumnDefinitions.Count > 0 ? g.ColumnDefinitions.Count : 99));
+						int newRow = g.RowDefinitions.Count;
+						g.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+						Grid.SetRow(panelBorder, newRow);
+						g.Children.Add(panelBorder);
+					}
+					else
+					{
+						ctPanel.Children.Add(panelBorder);
+					}
+
 					isChartTraderAttached = true;
 				}
 			}
