@@ -55,14 +55,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (bufferTicks < 0) bufferTicks = 0;
 			if (tickSize <= 0) return basePrice;
 
-			if (action == KatOrderAction.Buy)
-			{
-				return basePrice + (bufferTicks * tickSize);
-			}
-			else
-			{
-				return basePrice - (bufferTicks * tickSize);
-			}
+			double price = action == KatOrderAction.Buy
+				? basePrice + (bufferTicks * tickSize)
+				: basePrice - (bufferTicks * tickSize);
+
+			double rounded = Math.Round(price / tickSize) * tickSize;
+			return Math.Round(rounded, 8);
 		}
 
 		public static double CalculateFixedDistanceTriggerPrice(KatOrderAction action, double currentPrice, int distanceTicks, double tickSize)
@@ -70,15 +68,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (tickSize <= 0) return currentPrice;
 			if (distanceTicks < 0) distanceTicks = Math.Abs(distanceTicks);
 
-			if (action == KatOrderAction.Buy)
-			{
-				return currentPrice + (distanceTicks * tickSize);
-			}
-			else
-			{
-				return currentPrice - (distanceTicks * tickSize);
-			}
+			double price = action == KatOrderAction.Buy
+				? currentPrice + (distanceTicks * tickSize)
+				: currentPrice - (distanceTicks * tickSize);
+
+			double rounded = Math.Round(price / tickSize) * tickSize;
+			return Math.Round(rounded, 8);
 		}
+
 
 		public static double CalculateHalfCandlePrice(double high, double low, double tickSize)
 		{
@@ -95,8 +92,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 				: low + (range * pct);
 
 			if (tickSize <= 0) return rawPrice;
-			return Math.Round(rawPrice / tickSize) * tickSize;
+			double rounded = Math.Round(rawPrice / tickSize) * tickSize;
+			return Math.Round(rounded, 8);
 		}
+
 
 		public static double CalculateCandlePrice(KatOrderAction action, bool isPartialCandle, double high, double low, double open, double close, bool isRenko, double tickSize)
 		{

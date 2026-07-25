@@ -23,11 +23,14 @@ namespace KatTradeManager.Tests
 		[InlineData(KatOrderAction.Sell, 100.0, 90.0, 50.0, 0.25, 95.0)]
 		[InlineData(KatOrderAction.Buy, 100.0, 90.0, 10.0, 0.25, 99.0)]
 		[InlineData(KatOrderAction.Sell, 100.0, 90.0, 10.0, 0.25, 91.0)]
+		[InlineData(KatOrderAction.Buy, 100.0, 90.0, 33.0, 0.25, 96.75)] // 100 - 3.3 = 96.7 -> rounded to 96.75
+		[InlineData(KatOrderAction.Sell, 100.0, 90.0, 17.0, 0.25, 91.75)] // 90 + 1.7 = 91.7 -> rounded to 91.75
 		public void CalculatePartialCandlePrice_CalculatesCorrectPullback(KatOrderAction action, double high, double low, double pct, double tickSize, double expected)
 		{
 			double result = KatTradeCalculator.CalculatePartialCandlePrice(action, high, low, pct, tickSize);
 			Assert.Equal(expected, result, 4);
 		}
+
 
 		[Fact]
 		public void CalculateCandlePrice_PartialCandle_Returns30PercentPullbackByDefault()
