@@ -24,6 +24,17 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.56] — 2026-07-25
+- **Full Codebase Audit, Bug Fixes, Module Split & Test Expansion**:
+  - **Bug fix**: `PlaceEmaOrder` off-by-one loop bound (`barsAgo <= maxBars` → `< maxBars`) — eliminated out-of-range series access on the last scan iteration.
+  - **Bug fix**: `ClosePosition` and `CancelAllOrders` wrapped in try/catch with null-check on `CreateOrder` — exceptions can no longer escape into the 500ms UI watchdog or button handlers (chart crash risk removed).
+  - **Bug fix**: Emergency flatten spam — `EvaluateDailyRiskLimits` now flattens only once per breach episode (`dailyRiskFlattened` latch, resets when PnL recovers) instead of re-submitting close orders every 500ms while a breach persists.
+  - **Hardening**: `SetBreakeven`/`ShiftSlToSwing` null-check created SL orders before `Submit`.
+  - **Refactor**: Extracted order execution, position management, swing SL and daily risk logic (~650 lines) into new partial class `src/KatTradeManager.OrderOps.cs`. Main file now 799 lines (lifecycle + properties + drawing).
+  - **Refactor**: Moved pure logic into `KatTradeCalculator` for testability: `IsAccountAllowed(accName, filter)` and `FindSwingPoints(series, findLows, maxSwings, strength, tickSize)`. Indicator methods are now thin delegates.
+  - **Tests**: New `KatAccountFilterSwingSessionTests.cs` — 16 tests covering account filter tokens, swing point detection and `GetNySessionStartUtc` boundaries (EDT/EST). Suite: 111 → 127 tests, all passing.
+  - **Graphify entity mapping**: `KatTradeManager.OrderOps` (new file), `KatTradeCalculator.IsAccountAllowed` (new), `KatTradeCalculator.FindSwingPoints` (new), `KatTradeManager.GetSwingPoints` (now delegates).
+
 ### [v0.55] — 2026-07-25
 - **Clean NinjaScript Freeze Trail Engine**:
   - Removed all non-standard `AtmStrategyId` property and `StopAtmStrategy` method calls.

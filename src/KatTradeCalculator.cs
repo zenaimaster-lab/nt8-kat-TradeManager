@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace NinjaTrader.NinjaScript.Indicators
 {
@@ -270,6 +272,78 @@ namespace NinjaTrader.NinjaScript.Indicators
 				}
 			}
 			return true;
+		}
+
+		/// <summary>
+		/// Checks account name against comma/semicolon-separated filter.
+		/// Tokens prefixed with '!' are excludes; plain tokens are includes.
+		/// Empty filter = allow all. Excludes win over includes.
+		/// </summary>
+		public static bool IsAccountAllowed(string accName, string accountFilter)
+		{
+			if (string.IsNullOrWhiteSpace(accName)) return false;
+			if (string.IsNullOrWhiteSpace(accountFilter)) return true;
+			string[] tokens = accountFilter.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries).Select(f => f.Trim()).ToArray();
+			if (tokens.Length == 0) return true;
+
+			var excludes = tokens.Where(t => t.StartsWith("!") && t.Length > 1).Select(t => t.Substring(1).Trim()).ToList();
+			var includes = tokens.Where(t => !t.StartsWith("!") && t.Length > 0).ToList();
+
+			if (excludes.Any(ex => accName.IndexOf(ex, StringComparison.OrdinalIgnoreCase) >= 0))
+				return false;
+
+			if (includes.Count > 0)
+				return includes.Any(inc => accName.IndexOf(inc, StringComparison.OrdinalIgnoreCase) >= 0);
+
+			return true;
+		}
+
+		/// <summary>
+		/// Finds swing points in a price series indexed by barsAgo (0 = current bar).
+		/// findLows=true returns swing lows (for Long SL), false returns swing highs (for Short SL).
+		/// Results ordered most-recent-first, deduplicated within one tick.
+		/// </summary>
+		public static List<double> FindSwingPoints(double[] seriesBarsAgo, bool findLows, int maxSwings, int strength, double tickSize)
+		{
+			List<double> swings = new List<double>();
+			if (seriesBarsAgo == null || strength < 1 || maxSwings < 1) return swings;
+			int barCount = seriesBarsAgo.Length;
+			if (barCount < strength * 2 + 1) return swings;
+			if (tickSize <= 0) tickSize = 0.25;
+
+			int maxBarAgo = Math.Min(barCount - strength - 1, 500);
+
+			for (int barsAgo = strength; barsAgo <= maxBarAgo; barsAgo++)
+			{
+				double candidate = seriesBarsAgo[barsAgo];
+				bool isSwing = true;
+				for (int k = 1; k <= strength; k++)
+				{
+					if (findLows)
+					{
+						if (seriesBarsAgo[barsAgo - k] < candidate || seriesBarsAgo[barsAgo + k] < candidate)
+						{
+							isSwing = false;
+							break;
+						}
+					}
+					else
+					{
+						if (seriesBarsAgo[barsAgo - k] > candidate || seriesBarsAgo[barsAgo + k] > candidate)
+						{
+							isSwing = false;
+							break;
+						}
+					}
+				}
+
+				if (isSwing && !swings.Any(s => Math.Abs(s - candidate) < tickSize))
+					swings.Add(candidate);
+
+				if (swings.Count >= maxSwings) break;
+			}
+
+			return swings;
 		}
 
 		/// <summary>

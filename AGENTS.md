@@ -47,6 +47,7 @@ On every code change, BEFORE closing session:
 6. **Deploy NT8 (MANDATORY FULL SYNC)**: copy ALL source `.cs` files (`KatTradeManager.cs` AND `src/*.cs`) to `C:\Users\kieuanhtuan\Documents\NinjaTrader 8\bin\Custom\Indicators\` with force overwrite:
    - `KatTradeManager.cs`
    - `src\KatTradeManagerUI.cs`
+   - `src\KatTradeManager.OrderOps.cs`
    - `src\KatTradeCalculator.cs`
    - `src\KatAtmXmlParser.cs`
 7. **Git sync**:
@@ -57,4 +58,4 @@ On every code change, BEFORE closing session:
 ## Version Tracking
 - Code versions: KatTradeManager.cs VERSION constant
 - Doc versions: README.md, DIARY.md
-- Current: v0.30 (2026-07-25)
+- Current: v0.56 (2026-07-25)
