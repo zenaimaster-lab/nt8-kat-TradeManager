@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.44 (2026-07-25) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.45 (2026-07-25) */
 
 using System;
 using System.Collections.Generic;
@@ -68,10 +68,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 			// Sync UI control values to thread-safe cached fields
 			SyncCachedValues();
 
-			bool isAttached = panelBorder != null && chartGrid.Children.Contains(panelBorder);
-			if (!isAttached)
+			if (!IsPanelAttached())
 			{
-				panelBorder = null;
+				RemoveWpfControls();
 				CreateWpfControls();
 			}
 		}
@@ -89,6 +88,105 @@ namespace NinjaTrader.NinjaScript.Indicators
 			cachedPartialPercent = DefaultPartialCandlePercent > 0 ? DefaultPartialCandlePercent : 30;
 		}
 
+		// ponytail: uses visual tree type name matching for ChartTraderControl; fallback to chart grid if hidden
+		private DependencyObject GetChartTraderControl()
+		{
+			if (ChartControl == null) return null;
+
+			if (ChartControl.OwnerChart != null && ChartControl.OwnerChart.ChartTrader != null)
+			{
+				var ct = ChartControl.OwnerChart.ChartTrader;
+				if (ct.Visibility == Visibility.Visible) return ct;
+			}
+
+			Window window = Window.GetWindow(ChartControl);
+			if (window != null)
+			{
+				var ct = FindVisualChildByTypeName(window, "ChartTraderControl") ?? FindVisualChildByTypeName(window, "ChartTrader");
+				if (ct is FrameworkElement fe && fe.Visibility == Visibility.Visible) return ct;
+			}
+
+			return null;
+		}
+
+		private DependencyObject FindVisualChildByTypeName(DependencyObject parent, string typeName)
+		{
+			if (parent == null) return null;
+			int count = VisualTreeHelper.GetChildrenCount(parent);
+			for (int i = 0; i < count; i++)
+			{
+				DependencyObject child = VisualTreeHelper.GetChild(parent, i);
+				if (child != null && child.GetType().Name.Equals(typeName, StringComparison.OrdinalIgnoreCase))
+					return child;
+				DependencyObject result = FindVisualChildByTypeName(child, typeName);
+				if (result != null) return result;
+			}
+			return null;
+		}
+
+		private Panel FindChartTraderPanel(DependencyObject ctControl)
+		{
+			if (ctControl == null) return null;
+
+			StackPanel sp = FindVisualChild<StackPanel>(ctControl);
+			if (sp != null) return sp;
+
+			Grid g = FindVisualChild<Grid>(ctControl);
+			if (g != null) return g;
+
+			return null;
+		}
+
+		private T FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+		{
+			if (parent == null) return null;
+			int count = VisualTreeHelper.GetChildrenCount(parent);
+			for (int i = 0; i < count; i++)
+			{
+				DependencyObject child = VisualTreeHelper.GetChild(parent, i);
+				if (child is T typedChild)
+					return typedChild;
+				T result = FindVisualChild<T>(child);
+				if (result != null) return result;
+			}
+			return null;
+		}
+
+		private void DetachFromParent(UIElement element)
+		{
+			if (element == null) return;
+			DependencyObject parent = LogicalTreeHelper.GetParent(element) ?? VisualTreeHelper.GetParent(element);
+			if (parent is Panel panel)
+			{
+				panel.Children.Remove(element);
+			}
+			else if (parent is ContentControl contentControl)
+			{
+				contentControl.Content = null;
+			}
+			else if (parent is Decorator decorator)
+			{
+				decorator.Child = null;
+			}
+		}
+
+		private bool IsPanelAttached()
+		{
+			if (panelBorder == null) return false;
+
+			if (PanelLocation == KatHudLocation.ChartTrader)
+			{
+				var ctControl = GetChartTraderControl();
+				if (ctControl != null)
+				{
+					var ctPanel = FindChartTraderPanel(ctControl);
+					if (ctPanel != null && ctPanel.Children.Contains(panelBorder))
+						return true;
+				}
+			}
+
+			return chartGrid != null && chartGrid.Children.Contains(panelBorder);
+		}
 
 		private void CreateWpfControls()
 		{
@@ -96,56 +194,86 @@ namespace NinjaTrader.NinjaScript.Indicators
 			chartGrid = ChartControl.Parent as Grid;
 			if (chartGrid == null) return;
 
+			DetachFromParent(panelBorder);
+
 			panelBorder = new Border
 			{
 				Tag = "KatTradeManagerPanel",
 				Background = new SolidColorBrush(Color.FromArgb(240, 20, 24, 33)),
-				BorderBrush = Brushes.Transparent,
-				BorderThickness = new Thickness(0),
+				BorderBrush = new SolidColorBrush(Color.FromRgb(35, 42, 56)),
+				BorderThickness = new Thickness(1),
 				CornerRadius = new CornerRadius(6),
-				Width = 240,
-				HorizontalAlignment = HorizontalAlignment.Right,
-				VerticalAlignment = VerticalAlignment.Top,
-				Margin = new Thickness(0, 30, 20, 0),
 				Padding = new Thickness(8),
-				Cursor = Cursors.SizeAll
-			};
-			System.Windows.Controls.Panel.SetZIndex(panelBorder, 9999);
-
-			// Mouse Drag Support
-			Point dragStart = new Point();
-			bool isDragging = false;
-
-			panelBorder.MouseLeftButtonDown += (s, ev) =>
-			{
-				dragStart = ev.GetPosition(chartGrid);
-				panelBorder.CaptureMouse();
-				isDragging = true;
-				ev.Handled = true;
+				Margin = new Thickness(2, 4, 2, 4)
 			};
 
-			panelBorder.MouseMove += (s, ev) =>
+			bool isChartTraderAttached = false;
+
+			if (PanelLocation == KatHudLocation.ChartTrader)
 			{
-				if (isDragging)
+				var ctControl = GetChartTraderControl();
+				var ctPanel = ctControl != null ? FindChartTraderPanel(ctControl) : null;
+
+				if (ctPanel != null)
 				{
-					Point current = ev.GetPosition(chartGrid);
-					Thickness m = panelBorder.Margin;
-					panelBorder.Margin = new Thickness(
-						m.Left + (current.X - dragStart.X),
-						m.Top + (current.Y - dragStart.Y), 0, 0);
-					panelBorder.HorizontalAlignment = HorizontalAlignment.Left;
-					dragStart = current;
-				}
-			};
+					panelBorder.Width = double.NaN;
+					panelBorder.HorizontalAlignment = HorizontalAlignment.Stretch;
+					panelBorder.VerticalAlignment = VerticalAlignment.Bottom;
+					panelBorder.Cursor = Cursors.Arrow;
 
-			panelBorder.MouseLeftButtonUp += (s, ev) =>
-			{
-				if (isDragging)
-				{
-					panelBorder.ReleaseMouseCapture();
-					isDragging = false;
+					ctPanel.Children.Add(panelBorder);
+					isChartTraderAttached = true;
 				}
-			};
+			}
+
+			if (!isChartTraderAttached)
+			{
+				// InChart mode or Fallback when ChartTrader is closed/hidden
+				panelBorder.Width = 240;
+				panelBorder.HorizontalAlignment = HorizontalAlignment.Right;
+				panelBorder.VerticalAlignment = PanelLocation == KatHudLocation.ChartTrader ? VerticalAlignment.Bottom : VerticalAlignment.Top;
+				panelBorder.Margin = PanelLocation == KatHudLocation.ChartTrader ? new Thickness(0, 0, 10, 10) : new Thickness(0, 30, 20, 0);
+				panelBorder.Cursor = PanelLocation == KatHudLocation.ChartTrader ? Cursors.Arrow : Cursors.SizeAll;
+				System.Windows.Controls.Panel.SetZIndex(panelBorder, 9999);
+				Grid.SetColumnSpan(panelBorder, 3);
+
+				Point dragStart = new Point();
+				bool isDragging = false;
+
+				panelBorder.MouseLeftButtonDown += (s, ev) =>
+				{
+					if (PanelLocation == KatHudLocation.ChartTrader) return;
+					dragStart = ev.GetPosition(chartGrid);
+					panelBorder.CaptureMouse();
+					isDragging = true;
+					ev.Handled = true;
+				};
+
+				panelBorder.MouseMove += (s, ev) =>
+				{
+					if (isDragging && PanelLocation != KatHudLocation.ChartTrader)
+					{
+						Point current = ev.GetPosition(chartGrid);
+						Thickness m = panelBorder.Margin;
+						panelBorder.Margin = new Thickness(
+							m.Left + (current.X - dragStart.X),
+							m.Top + (current.Y - dragStart.Y), 0, 0);
+						panelBorder.HorizontalAlignment = HorizontalAlignment.Left;
+						dragStart = current;
+					}
+				};
+
+				panelBorder.MouseLeftButtonUp += (s, ev) =>
+				{
+					if (isDragging)
+					{
+						panelBorder.ReleaseMouseCapture();
+						isDragging = false;
+					}
+				};
+
+				chartGrid.Children.Add(panelBorder);
+			}
 
 			mainPanel = new StackPanel();
 
@@ -449,11 +577,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 			mainPanel.Children.Add(CreateSectionCard(sec4Panel, 0));
 
 			panelBorder.Child = mainPanel;
-
-			Grid.SetColumnSpan(panelBorder, 3);
-			chartGrid.Children.Add(panelBorder);
-
-
 		}
 
 		private void AddGridRow(Grid grid, string labelText, FrameworkElement inputElement)
@@ -518,11 +641,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private void RemoveWpfControls()
 		{
 			DetachHotkeyHandler();
-			if (panelBorder != null && chartGrid != null && chartGrid.Children.Contains(panelBorder))
+			if (panelBorder != null)
 			{
-				chartGrid.Children.Remove(panelBorder);
+				DetachFromParent(panelBorder);
+				panelBorder = null;
 			}
-			panelBorder = null;
 		}
 
 		private void AttachHotkeyHandler()

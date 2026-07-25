@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 0.44 (2026-07-25)
+ * Version: 0.45 (2026-07-25)
  * NinjaTrader 8 TradeManager Indicator
  */
 
@@ -56,12 +56,20 @@ public enum KatEmaTimeframe
 	Min60 = 8
 }
 
+public enum KatHudLocation
+{
+	[Display(Name = "Chart Trader")]
+	ChartTrader = 0,
+	[Display(Name = "In Chart")]
+	InChart = 1
+}
+
 namespace NinjaTrader.NinjaScript.Indicators
 {
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "0.44";
+		public const string VERSION = "0.45";
 		public const string RELEASE_DATE = "2026-07-25";
 
 		private volatile Account account;
@@ -188,6 +196,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 				// Default Settings
 				IsPanelVisible						= true;
+				PanelLocation						= KatHudLocation.ChartTrader;
 				DefaultQuantity						= 1;
 				AccountName							= "Sim101";
 				AccountFilter						= "";
@@ -903,6 +912,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[NinjaScriptProperty]
 		[Display(Name="Show Control Panel", Order=0, GroupName="Parameters")]
 		public bool IsPanelVisible { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="HUD Location", Order=0, GroupName="Parameters", Description="Select where to display HUD: ChartTrader (right-side panel) or InChart (chart overlay)")]
+		public KatHudLocation PanelLocation { get; set; }
 
 		[NinjaScriptProperty]
 		[Range(1, 100)]

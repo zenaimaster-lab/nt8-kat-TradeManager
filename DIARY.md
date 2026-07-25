@@ -24,6 +24,12 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.45] — 2026-07-25
+- **Added HUD Panel Location Setting (`PanelLocation`)**:
+  - Added `HUD Location` (`PanelLocation`) enum property to Indicator Settings with options: `ChartTrader` (right-side panel, default) and `InChart` (floating overlay inside chart area).
+  - Implemented WPF Visual Tree detection (`GetChartTraderControl`, `FindChartTraderPanel`) to automatically attach the HUD panel to the bottom of NinjaTrader 8's native ChartTrader right-side column, freeing up 100% of chart candle view area.
+  - Implemented automatic fallback to `InChart` overlay if ChartTrader is disabled or hidden by user.
+
 ### [v0.44] — 2026-07-25
 - **Added Account Filter Setting (`AccountFilter`)**:
   - Added configurable `AccountFilter` property in Indicator settings (comma-separated keywords, e.g. `79424, Sim101` or `!BX, !LTE`).
