@@ -39,8 +39,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "0.40";
+		public const string VERSION = "0.41";
 		public const string RELEASE_DATE = "2026-07-25";
+
 
 		private volatile Account account;
 		private Grid chartGrid;
@@ -541,9 +542,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 					// Store pending draw request — OnBarUpdate (data thread) will execute the actual Draw calls
 					lock (priceLock)
 					{
-						KatOrderAction katAction = ToKatAction(action);
 						pendingLevels = KatTradeCalculator.CalculateAtmLevels(
 							katAction, triggerPrice, atmStopLoss, atmTarget, atmBETrigger, atmSL1Trigger, atmSL2Trigger, cachedTickSize);
+
 						pendingEntryPrice = triggerPrice;
 						pendingAtmStopLoss = atmStopLoss;
 						pendingAtmTarget = atmTarget;

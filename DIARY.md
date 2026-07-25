@@ -24,7 +24,13 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.41] — 2026-07-25
+- **Fixed CS0136 Variable Scope Shadowing Error**:
+  - Resolved compiler error in `KatTradeManager.cs` where `katAction` variable was re-declared inside `PlaceOrderInternal`'s inner `lock (priceLock)` scope.
+  - Re-deployed clean `.cs` files to NinjaTrader 8.
+
 ### [v0.40] — 2026-07-25
+
 - **Added EMA Place & EMA Angle HUD Buttons and 5m Multi-EMA Validation Engine**:
   - Placed 2 new toggle buttons (`EMA Place` and `EMA Angle`) side-by-side on 1 row directly below `Partial Candle` button on the HUD.
   - Default state: ON for both, with very dark blue background `#0C234B` when ON and dark slate `#2D3241` when OFF.
