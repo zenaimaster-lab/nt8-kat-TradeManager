@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.49 (2026-07-25) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.51 (2026-07-25) */
 
 using System;
 using System.Collections.Generic;
@@ -282,10 +282,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 					if (ctPanel is Grid g)
 					{
+						int lastRow = Math.Max(0, g.RowDefinitions.Count - 1);
 						Grid.SetColumn(panelBorder, 0);
 						Grid.SetColumnSpan(panelBorder, Math.Max(1, g.ColumnDefinitions.Count > 0 ? g.ColumnDefinitions.Count : 99));
-						Grid.SetRow(panelBorder, 0);
-						Grid.SetRowSpan(panelBorder, Math.Max(1, g.RowDefinitions.Count > 0 ? g.RowDefinitions.Count : 99));
+						Grid.SetRow(panelBorder, lastRow);
+						Grid.SetRowSpan(panelBorder, 1);
 						g.Children.Add(panelBorder);
 					}
 					else

@@ -24,6 +24,11 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.51] — 2026-07-25
+- **Bottom Alignment Fix for Floating ChartTrader HUD**:
+  - Assigned `panelBorder` to the last row (`Grid.SetRow(panelBorder, lastRow)`) of ChartTrader's Grid.
+  - Ensures HUD panel starts attached at the very bottom of ChartTrader at normal window height, and floats upward over native buttons when window height is reduced.
+
 ### [v0.50] — 2026-07-25
 - **Floating ChartTrader HUD Overlay**:
   - Re-anchored `panelBorder` to the top-level outer container `Grid` of `ChartTraderControl` with `Panel.SetZIndex(panelBorder, 99999)` and `ClipToBounds = false`.

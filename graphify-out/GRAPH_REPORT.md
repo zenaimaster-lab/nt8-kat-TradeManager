@@ -1,7 +1,7 @@
 # Graph Report - nt8-kat-TradeManager  (2026-07-25)
 
 ## Corpus Check
-- 21 files · ~20,754 words
+- 21 files · ~20,809 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `f8019b4e`
+- Built from commit: `f59549a3`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
