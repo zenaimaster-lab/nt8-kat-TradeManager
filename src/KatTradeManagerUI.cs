@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.59 (2026-07-25) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.60 (2026-07-26) */
 
 using System;
 using System.Collections.Generic;
@@ -317,6 +317,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 				panelBorder.MouseLeftButtonDown += (s, ev) =>
 				{
 					dragStart = ev.GetPosition(chartGrid);
+
+					// Normalize to Left/Top alignment with an absolute margin BEFORE dragging.
+					// Fallback mode uses VerticalAlignment.Bottom, where Margin.Top is ignored —
+					// without this, vertical dragging silently does nothing in fallback mode.
+					Point pos = panelBorder.TranslatePoint(new Point(0, 0), chartGrid);
+					panelBorder.HorizontalAlignment = HorizontalAlignment.Left;
+					panelBorder.VerticalAlignment = VerticalAlignment.Top;
+					panelBorder.Margin = new Thickness(Math.Max(0, pos.X), Math.Max(0, pos.Y), 0, 0);
+
 					panelBorder.CaptureMouse();
 					isDragging = true;
 					ev.Handled = true;

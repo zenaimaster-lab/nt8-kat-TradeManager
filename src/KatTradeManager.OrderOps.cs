@@ -1,4 +1,4 @@
-/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.59 (2026-07-25) */
+/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.60 (2026-07-26) */
 
 using System;
 using System.Collections.Generic;
@@ -421,6 +421,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private void FreezeCurrentStopLoss()
 		{
 			if (account == null || Instrument == null) return;
+			frozenStopPrice = 0; // clear stale value from a previous freeze episode — enforcement re-captures fresh
 			try
 			{
 				Position pos = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);

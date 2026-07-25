@@ -298,5 +298,58 @@ namespace KatTradeManager.Tests
 			Assert.False(KatTradeCalculator.IsAccountAllowed("BX123", "  !BX  , Sim"));
 		}
 		#endregion
+
+		#region Doji & degenerate candles
+		[Fact]
+		public void CalculatePartialCandlePrice_DojiCandle_ReturnsSamePrice()
+		{
+			// high == low -> range 0 -> pullback lands exactly on that price, both directions
+			Assert.Equal(100.0, KatTradeCalculator.CalculatePartialCandlePrice(KatOrderAction.Buy, 100.0, 100.0, 30.0, 0.25));
+			Assert.Equal(100.0, KatTradeCalculator.CalculatePartialCandlePrice(KatOrderAction.Sell, 100.0, 100.0, 30.0, 0.25));
+		}
+
+		[Fact]
+		public void IsEmaTouchBar_NaNEma_ReturnsFalse()
+		{
+			// NaN comparisons are always false -> no phantom touch from an uninitialized EMA
+			Assert.False(KatTradeCalculator.IsEmaTouchBar(200.0, 100.0, double.NaN));
+		}
+		#endregion
+
+		#region ValidateEmaAngle — flat slope fails positive threshold
+		[Fact]
+		public void ValidateEmaAngle_FlatEma_FailsPositiveThreshold()
+		{
+			Assert.False(KatTradeCalculator.ValidateEmaAngle(KatOrderAction.Buy,
+				new[] { 100.0 }, new[] { 100.0 }, new[] { 15.0 }, 0.25, out string err));
+			Assert.NotNull(err);
+		}
+		#endregion
+
+		#region FindSwingPoints — 500-bar scan cap
+		[Fact]
+		public void FindSwingPoints_SwingBeyond500BarCap_NotReturned()
+		{
+			// Descending ramp (no accidental swings), one dip inside the cap, one beyond it
+			double[] series = new double[600];
+			for (int i = 0; i < series.Length; i++) series[i] = 600.0 - i;
+			series[100] = 90.0;  // swing low inside cap (barsAgo 100)
+			series[550] = 40.0;  // swing low beyond maxBarAgo = min(600-3-1, 500) = 500 -> excluded
+
+			var lows = KatTradeCalculator.FindSwingPoints(series, true, 20, 3, 0.25);
+			Assert.Single(lows);
+			Assert.Equal(90.0, lows[0]);
+		}
+		#endregion
+
+		#region CalculatePartialCandlePrice — no tick rounding when tickSize unknown
+		[Fact]
+		public void CalculatePartialCandlePrice_ZeroTickSize_ReturnsUnroundedPrice()
+		{
+			// 110 high, 100 low, 33% buy pullback: 110 - 10*0.33 = 106.7 (unrounded)
+			double price = KatTradeCalculator.CalculatePartialCandlePrice(KatOrderAction.Buy, 110.0, 100.0, 33.0, 0.0);
+			Assert.Equal(106.7, price, 6);
+		}
+		#endregion
 	}
 }

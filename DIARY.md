@@ -24,6 +24,13 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.60] — 2026-07-26
+- **Audit Round 5: Freeze-Trail Stale Price Fix, Vertical Drag Fix, Boundary Tests**:
+  - **Bug fix (trading impact)**: Freeze Trail could yank the stop loss to a STALE price — `FreezeCurrentStopLoss` left `frozenStopPrice` untouched when toggled ON with no position / no working stops ("waiting" branch). A value from a previous freeze episode survived, and the next appearance of a working stop got force-changed to the outdated price (e.g. froze at 100, toggled off, toggled on while flat, new stop trails to 120 → enforcement slammed it back to 100). Now `frozenStopPrice` is reset to 0 at the start of every freeze activation, so enforcement always re-captures the CURRENT stop.
+  - **Bug fix (UX)**: Vertical dragging silently did nothing in ChartTrader-fallback mode — the panel uses `VerticalAlignment.Bottom` there, where `Margin.Top` is ignored, but the drag handler only ever adjusted `Margin.Top`. Mouse-down now normalizes the panel to `Left`/`Top` alignment with an absolute margin (via `TranslatePoint`) before the drag begins; horizontal-only drag is fixed in both fallback and InChart modes. Round-1 clamping still applies.
+  - **Tests**: `KatCalculatorGapTests.cs` round 4 (+5): doji-candle partial price (high==low), NaN EMA touch guard, flat-EMA angle failing a positive threshold, `FindSwingPoints` 500-bar scan cap (swing beyond cap excluded), partial price with unknown tick size (unrounded). Suite: 155 → **160 tests, all passing**. Compile gate: **succeeded**.
+  - **Graphify entity mapping**: `KatTradeManager.FreezeCurrentStopLoss` (stale-reset), `KatTradeManager.CreateWpfControls` (drag alignment normalize), `KatTradeCalculator.FindSwingPoints` (cap coverage), `KatTradeCalculator.CalculatePartialCandlePrice` (doji/no-tick coverage).
+
 ### [v0.59] — 2026-07-25
 - **Audit Round 4: Orphaned-Order Fix, Volatile Termination Flag, Boundary Tests**:
   - **Runtime verification**: `NinjaTrader.Custom.dll` recompiled at 21:58 (after v0.58 deploy at 21:04) — NT8's file watcher auto-compiled v0.58 cleanly. Compile gate + live NT8 compile both green.
