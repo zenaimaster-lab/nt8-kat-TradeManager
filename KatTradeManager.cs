@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 0.39 (2026-07-25)
+ * Version: 0.40 (2026-07-25)
  * NinjaTrader 8 TradeManager Indicator
  */
 
@@ -39,7 +39,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "0.39";
+		public const string VERSION = "0.40";
 		public const string RELEASE_DATE = "2026-07-25";
 
 		private volatile Account account;
@@ -54,6 +54,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 		// EMA indicators for multi-timeframe candle scanning
 		private EMA[] ema34Series;
 		private EMA[] ema89Series;
+
+		// EMA 5m series for EMA Place & EMA Angle validation
+		private EMA[] emaPlace5mSeries;
+		private EMA[] emaAngle5mSeries;
+
+		// HUD toggle state for EMA Place & EMA Angle (default ON)
+		private volatile bool cachedIsEmaPlace = true;
+		private volatile bool cachedIsEmaAngle = true;
 
 		// Thread-safe cached values from UI controls (synced by watchdog on UI thread)
 		private volatile int cachedQuantity;
@@ -92,7 +100,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		// Thread synchronization lock for bar price caching
 		private readonly object priceLock = new object();
-		private const int NUM_SERIES = 4; // chart + 30s + 1m + 2m
+		private const int NUM_SERIES = 5; // chart + 30s + 1m + 2m + 5m
 		private double[] cachedCurrentHigh  = new double[NUM_SERIES];
 		private double[] cachedCurrentLow   = new double[NUM_SERIES];
 		private double[] cachedCurrentOpen  = new double[NUM_SERIES];
@@ -128,6 +136,25 @@ namespace NinjaTrader.NinjaScript.Indicators
 				DefaultDistanceTicks                = 320; // Default 80 points = 320 ticks
 				DefaultAtmTemplate                  = "Sim101_ATM";
 				DefaultPartialCandlePercent         = 30;
+
+				// EMA Place Defaults (5m TF)
+				EmaPlace1Enabled                    = true;
+				EmaPlace1Period                     = 9;
+				EmaPlace2Enabled                    = true;
+				EmaPlace2Period                     = 34;
+				EmaPlace3Enabled                    = true;
+				EmaPlace3Period                     = 89;
+
+				// EMA Angle Defaults (5m TF)
+				EmaAngle1Enabled                    = true;
+				EmaAngle1Period                     = 9;
+				EmaAngle1MinAngle                   = 35.0;
+				EmaAngle2Enabled                    = true;
+				EmaAngle2Period                     = 34;
+				EmaAngle2MinAngle                   = 30.0;
+				EmaAngle3Enabled                    = true;
+				EmaAngle3Period                     = 89;
+				EmaAngle3MinAngle                   = 15.0;
 			}
 
 			else if (State == State.Configure)
@@ -135,6 +162,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				AddDataSeries(BarsPeriodType.Second, 30);
 				AddDataSeries(BarsPeriodType.Minute, 1);
 				AddDataSeries(BarsPeriodType.Minute, 2);
+				AddDataSeries(BarsPeriodType.Minute, 5);
 			}
 			else if (State == State.DataLoaded)
 			{
@@ -157,7 +185,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 					ema89Series[i] = EMA(BarsArray[i], 89);
 				}
 
+				// Initialize 5m series EMAs for EMA Place & Angle checks (BarsArray[4] = 5m series)
+				emaPlace5mSeries = new EMA[3];
+				if (EmaPlace1Enabled) emaPlace5mSeries[0] = EMA(BarsArray[4], EmaPlace1Period);
+				if (EmaPlace2Enabled) emaPlace5mSeries[1] = EMA(BarsArray[4], EmaPlace2Period);
+				if (EmaPlace3Enabled) emaPlace5mSeries[2] = EMA(BarsArray[4], EmaPlace3Period);
+
+				emaAngle5mSeries = new EMA[3];
+				if (EmaAngle1Enabled) emaAngle5mSeries[0] = EMA(BarsArray[4], EmaAngle1Period);
+				if (EmaAngle2Enabled) emaAngle5mSeries[1] = EMA(BarsArray[4], EmaAngle2Period);
+				if (EmaAngle3Enabled) emaAngle5mSeries[2] = EMA(BarsArray[4], EmaAngle3Period);
+
 				Print(string.Format("[KatTradeManager] v{0} loaded — cached mode active (Renko: {1})", VERSION, isRenkoChart));
+
 
 
 				if (Account.All != null && Account.All.Count > 0)
@@ -423,6 +463,65 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			try
 			{
+				KatOrderAction katAction = ToKatAction(action);
+				double checkPrice = (orderType == OrderType.Market) ? (cachedCurrentPrice > 0 ? cachedCurrentPrice : triggerPrice) : triggerPrice;
+
+				lock (priceLock)
+				{
+					// Validation 1: EMA Place Check (5m TF)
+					if (cachedIsEmaPlace)
+					{
+						double[] emaVals = new double[3];
+						int valCount = 0;
+						if (EmaPlace1Enabled && emaPlace5mSeries != null && emaPlace5mSeries[0] != null && CurrentBars[4] >= 0)
+							emaVals[valCount++] = emaPlace5mSeries[0][0];
+						if (EmaPlace2Enabled && emaPlace5mSeries != null && emaPlace5mSeries[1] != null && CurrentBars[4] >= 0)
+							emaVals[valCount++] = emaPlace5mSeries[1][0];
+						if (EmaPlace3Enabled && emaPlace5mSeries != null && emaPlace5mSeries[2] != null && CurrentBars[4] >= 0)
+							emaVals[valCount++] = emaPlace5mSeries[2][0];
+
+						if (valCount > 0 && !KatTradeCalculator.ValidateEmaPlace(katAction, checkPrice, emaVals.Take(valCount).ToArray(), out string errPlace))
+						{
+							Print(string.Format("[KatTradeManager] Order REJECTED by EMA Place: {0}", errPlace));
+							return;
+						}
+					}
+
+					// Validation 2: EMA Angle Check (5m TF)
+					if (cachedIsEmaAngle)
+					{
+						double[] currEmas = new double[3];
+						double[] prevEmas = new double[3];
+						double[] minAngles = new double[3];
+						int angleCount = 0;
+
+						if (EmaAngle1Enabled && emaAngle5mSeries != null && emaAngle5mSeries[0] != null && CurrentBars[4] >= 1)
+						{
+							currEmas[angleCount] = emaAngle5mSeries[0][0];
+							prevEmas[angleCount] = emaAngle5mSeries[0][1];
+							minAngles[angleCount++] = EmaAngle1MinAngle;
+						}
+						if (EmaAngle2Enabled && emaAngle5mSeries != null && emaAngle5mSeries[1] != null && CurrentBars[4] >= 1)
+						{
+							currEmas[angleCount] = emaAngle5mSeries[1][0];
+							prevEmas[angleCount] = emaAngle5mSeries[1][1];
+							minAngles[angleCount++] = EmaAngle2MinAngle;
+						}
+						if (EmaAngle3Enabled && emaAngle5mSeries != null && emaAngle5mSeries[2] != null && CurrentBars[4] >= 1)
+						{
+							currEmas[angleCount] = emaAngle5mSeries[2][0];
+							prevEmas[angleCount] = emaAngle5mSeries[2][1];
+							minAngles[angleCount++] = EmaAngle3MinAngle;
+						}
+
+						if (angleCount > 0 && !KatTradeCalculator.ValidateEmaAngle(katAction, currEmas.Take(angleCount).ToArray(), prevEmas.Take(angleCount).ToArray(), minAngles.Take(angleCount).ToArray(), cachedTickSize, out string errAngle))
+						{
+							Print(string.Format("[KatTradeManager] Order REJECTED by EMA Angle: {0}", errAngle));
+							return;
+						}
+					}
+				}
+
 				int qty = cachedQuantity > 0 ? cachedQuantity : DefaultQuantity;
 				string entryName = "Entry";
 
@@ -437,6 +536,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					{
 						account.Submit(new[] { entryOrder });
 					}
+
 
 					// Store pending draw request — OnBarUpdate (data thread) will execute the actual Draw calls
 					lock (priceLock)
@@ -707,7 +807,81 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Range(1, 99)]
 		[Display(Name="Partial Candle Pullback (%)", Order=7, GroupName="Parameters")]
 		public int DefaultPartialCandlePercent { get; set; }
+
+		#region EMA Place Properties (5m TF)
+		[NinjaScriptProperty]
+		[Display(Name="EMA Place 1 Enabled", Order=10, GroupName="EMA Filters (5m)")]
+		public bool EmaPlace1Enabled { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(1, 500)]
+		[Display(Name="EMA Place 1 Period", Order=11, GroupName="EMA Filters (5m)")]
+		public int EmaPlace1Period { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="EMA Place 2 Enabled", Order=12, GroupName="EMA Filters (5m)")]
+		public bool EmaPlace2Enabled { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(1, 500)]
+		[Display(Name="EMA Place 2 Period", Order=13, GroupName="EMA Filters (5m)")]
+		public int EmaPlace2Period { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="EMA Place 3 Enabled", Order=14, GroupName="EMA Filters (5m)")]
+		public bool EmaPlace3Enabled { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(1, 500)]
+		[Display(Name="EMA Place 3 Period", Order=15, GroupName="EMA Filters (5m)")]
+		public int EmaPlace3Period { get; set; }
+		#endregion
+
+		#region EMA Angle Properties (5m TF)
+		[NinjaScriptProperty]
+		[Display(Name="EMA Angle 1 Enabled", Order=16, GroupName="EMA Filters (5m)")]
+		public bool EmaAngle1Enabled { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(1, 500)]
+		[Display(Name="EMA Angle 1 Period", Order=17, GroupName="EMA Filters (5m)")]
+		public int EmaAngle1Period { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0.0, 90.0)]
+		[Display(Name="EMA Angle 1 Min Angle (°)", Order=18, GroupName="EMA Filters (5m)")]
+		public double EmaAngle1MinAngle { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="EMA Angle 2 Enabled", Order=19, GroupName="EMA Filters (5m)")]
+		public bool EmaAngle2Enabled { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(1, 500)]
+		[Display(Name="EMA Angle 2 Period", Order=20, GroupName="EMA Filters (5m)")]
+		public int EmaAngle2Period { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0.0, 90.0)]
+		[Display(Name="EMA Angle 2 Min Angle (°)", Order=21, GroupName="EMA Filters (5m)")]
+		public double EmaAngle2MinAngle { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="EMA Angle 3 Enabled", Order=22, GroupName="EMA Filters (5m)")]
+		public bool EmaAngle3Enabled { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(1, 500)]
+		[Display(Name="EMA Angle 3 Period", Order=23, GroupName="EMA Filters (5m)")]
+		public int EmaAngle3Period { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0.0, 90.0)]
+		[Display(Name="EMA Angle 3 Min Angle (°)", Order=24, GroupName="EMA Filters (5m)")]
+		public double EmaAngle3MinAngle { get; set; }
+		#endregion
 		#endregion
 	}
 }
+
 

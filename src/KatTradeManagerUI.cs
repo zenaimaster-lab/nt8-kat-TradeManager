@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.39 (2026-07-25) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.40 (2026-07-25) */
 
 using System;
 using System.Collections.Generic;
@@ -312,6 +312,46 @@ namespace NinjaTrader.NinjaScript.Indicators
 				}
 			};
 			sec3Panel.Children.Add(btnPartialCandle);
+
+			// --- EMA Place & EMA Angle filter buttons (side-by-side below Partial Candle) ---
+			Grid emaFilterGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
+			emaFilterGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			emaFilterGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
+			emaFilterGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+			SolidColorBrush emaOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
+			SolidColorBrush emaOnBg  = new SolidColorBrush(Color.FromRgb(12, 35, 75)); // Very dark blue
+
+			Button btnEmaPlace = CreateButton(cachedIsEmaPlace ? "Ema place: ON" : "Ema place: OFF",
+				cachedIsEmaPlace ? emaOnBg : emaOffBg, null, 24, 10);
+			btnEmaPlace.Foreground = cachedIsEmaPlace ? Brushes.White : Brushes.LightGray;
+
+			btnEmaPlace.Click += (s, ev) =>
+			{
+				cachedIsEmaPlace = !cachedIsEmaPlace;
+				btnEmaPlace.Content = cachedIsEmaPlace ? "Ema place: ON" : "Ema place: OFF";
+				btnEmaPlace.Background = cachedIsEmaPlace ? emaOnBg : emaOffBg;
+				btnEmaPlace.Foreground = cachedIsEmaPlace ? Brushes.White : Brushes.LightGray;
+			};
+			Grid.SetColumn(btnEmaPlace, 0);
+			emaFilterGrid.Children.Add(btnEmaPlace);
+
+			Button btnEmaAngle = CreateButton(cachedIsEmaAngle ? "Ema angle: ON" : "Ema angle: OFF",
+				cachedIsEmaAngle ? emaOnBg : emaOffBg, null, 24, 10);
+			btnEmaAngle.Foreground = cachedIsEmaAngle ? Brushes.White : Brushes.LightGray;
+
+			btnEmaAngle.Click += (s, ev) =>
+			{
+				cachedIsEmaAngle = !cachedIsEmaAngle;
+				btnEmaAngle.Content = cachedIsEmaAngle ? "Ema angle: ON" : "Ema angle: OFF";
+				btnEmaAngle.Background = cachedIsEmaAngle ? emaOnBg : emaOffBg;
+				btnEmaAngle.Foreground = cachedIsEmaAngle ? Brushes.White : Brushes.LightGray;
+			};
+			Grid.SetColumn(btnEmaAngle, 2);
+			emaFilterGrid.Children.Add(btnEmaAngle);
+
+			sec3Panel.Children.Add(emaFilterGrid);
+
 
 			Grid orderBtnGrid = new Grid { Margin = new Thickness(0, 0, 0, 0) };
 			orderBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });

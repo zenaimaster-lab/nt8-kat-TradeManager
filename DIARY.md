@@ -24,7 +24,21 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.40] — 2026-07-25
+- **Added EMA Place & EMA Angle HUD Buttons and 5m Multi-EMA Validation Engine**:
+  - Placed 2 new toggle buttons (`EMA Place` and `EMA Angle`) side-by-side on 1 row directly below `Partial Candle` button on the HUD.
+  - Default state: ON for both, with very dark blue background `#0C234B` when ON and dark slate `#2D3241` when OFF.
+  - Added 5m DataSeries (`BarsArray[4]`) in `State.Configure` and initialized 5m EMA series in `State.DataLoaded`.
+  - Added configurable indicator parameters under `"EMA Filters (5m)"`:
+    - EMA Place: EMA 1 (9 default, ON), EMA 2 (34 default, ON), EMA 33 (89 default, ON).
+    - EMA Angle: EMA 1 (9, min angle >= 35°), EMA 2 (34, min angle >= 30°), EMA 3 (89, min angle >= 15°).
+  - Implemented `KatTradeCalculator.CalculateEmaAngle`, `ValidateEmaPlace`, and `ValidateEmaAngle`.
+  - Integrated pre-order validation into `PlaceOrderInternal` to reject orders if EMA Place or EMA Angle requirements fail.
+  - Added 10 new unit tests covering EMA Place & Angle math and validation logic in `KatEmaPlaceAndAngleTests.cs` (Total: 111 tests passing).
+  - Graphify Entity Mapping: `KatTradeManager` -> `KatTradeCalculator` -> `KatTradeManagerUI` (5m EMA validation pipeline).
+
 ### [v0.39] — 2026-07-25
+
 - **Fixed Compilation Error CS0128**:
   - Removed duplicate `sec1Panel` StackPanel variable declaration in `KatTradeManagerUI.CreateWpfControls()`.
 

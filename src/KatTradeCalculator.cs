@@ -198,7 +198,78 @@ namespace NinjaTrader.NinjaScript.Indicators
 				levels.Sl1Price = triggerPrice - (sl1TriggerTicks * tickSize);
 				levels.Sl2Price = triggerPrice - (sl2TriggerTicks * tickSize);
 			}
+
 			return levels;
+		}
+
+		/// <summary>
+		/// Calculates EMA slope angle in degrees relative to tick size.
+		/// Positive for upward slope, negative for downward slope.
+		/// </summary>
+		public static double CalculateEmaAngle(double emaCurrent, double emaPrev, double tickSize)
+		{
+			// ponytail: Math.Atan of tick change per bar converted to degrees
+			if (tickSize <= 0) tickSize = 0.25;
+			double deltaTicks = (emaCurrent - emaPrev) / tickSize;
+			double radians = Math.Atan(deltaTicks);
+			return Math.Round(radians * (180.0 / Math.PI), 2);
+		}
+
+		/// <summary>
+		/// Validates if entry price is strictly above (Buy) or below (Sell) all enabled EMA values.
+		/// </summary>
+		public static bool ValidateEmaPlace(KatOrderAction action, double entryPrice, double[] emaValues, out string errorReason)
+		{
+			errorReason = null;
+			if (emaValues == null || emaValues.Length == 0) return true;
+
+			for (int i = 0; i < emaValues.Length; i++)
+			{
+				double ema = emaValues[i];
+				if (ema <= 0) continue;
+
+				if (action == KatOrderAction.Buy && entryPrice <= ema)
+				{
+					errorReason = string.Format("Entry price {0} is not above EMA ({1})", entryPrice, ema);
+					return false;
+				}
+				if (action == KatOrderAction.Sell && entryPrice >= ema)
+				{
+					errorReason = string.Format("Entry price {0} is not below EMA ({1})", entryPrice, ema);
+					return false;
+				}
+			}
+			return true;
+		}
+
+		/// <summary>
+		/// Validates if current EMA slope angles satisfy minimum degree thresholds for all enabled EMAs.
+		/// </summary>
+		public static bool ValidateEmaAngle(KatOrderAction action, double[] currentEmas, double[] prevEmas, double[] minAngles, double tickSize, out string errorReason)
+		{
+			errorReason = null;
+			if (currentEmas == null || prevEmas == null || minAngles == null) return true;
+
+			int count = Math.Min(currentEmas.Length, Math.Min(prevEmas.Length, minAngles.Length));
+			for (int i = 0; i < count; i++)
+			{
+				if (minAngles[i] <= 0) continue;
+
+				double curr = currentEmas[i];
+				double prev = prevEmas[i];
+				if (curr <= 0 || prev <= 0) continue;
+
+				double angle = action == KatOrderAction.Buy
+					? CalculateEmaAngle(curr, prev, tickSize)
+					: CalculateEmaAngle(prev, curr, tickSize);
+
+				if (angle < minAngles[i])
+				{
+					errorReason = string.Format("EMA slope angle {0:F1}° < required {1}°", angle, minAngles[i]);
+					return false;
+				}
+			}
+			return true;
 		}
 	}
 }
