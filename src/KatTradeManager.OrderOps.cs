@@ -1,4 +1,4 @@
-/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.56 (2026-07-25) */
+/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.57 (2026-07-25) */
 
 using System;
 using System.Collections.Generic;
@@ -274,10 +274,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (account == null) return;
 			try
 			{
-				foreach (Order order in account.Orders.Where(o => o.OrderState == OrderState.Working || o.OrderState == OrderState.Accepted).ToList())
-				{
-					account.Cancel(new[] { order });
-				}
+			var workingOrders = account.Orders.Where(o => o.OrderState == OrderState.Working || o.OrderState == OrderState.Accepted).ToArray();
+			if (workingOrders.Length > 0)
+				account.Cancel(workingOrders);
 				entryOrder = null;
 				pendingRemoveLines = true; // ponytail: single removal path — OnBarUpdate (data thread) executes it
 			}
@@ -712,16 +711,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 				bool hasWorkingOrders = account.Orders.Any(o => (o.OrderState == OrderState.Working || o.OrderState == OrderState.Accepted) && o.Instrument == Instrument);
 
 				// ponytail: flatten once per breach episode — flag resets when PnL recovers, prevents order spam from 500ms watchdog
-				if ((hasOpenPos || hasWorkingOrders) && !dailyRiskFlattened)
+				// Interlocked: this method runs on BOTH data thread (OnBarUpdate) and UI thread (watchdog) —
+				// check-then-set on a bool raced and could submit ClosePosition twice (position flip).
+				if (hasOpenPos || hasWorkingOrders)
 				{
-					dailyRiskFlattened = true;
-					Print(string.Format("[KatTradeManager] EMERGENCY FLATTEN triggered by Daily Risk Protection: {0}", breachReason));
-					ClosePosition();
+					if (System.Threading.Interlocked.CompareExchange(ref dailyRiskFlattened, 1, 0) == 0)
+					{
+						Print(string.Format("[KatTradeManager] EMERGENCY FLATTEN triggered by Daily Risk Protection: {0}", breachReason));
+						ClosePosition();
+					}
 				}
 			}
 			else
 			{
-				dailyRiskFlattened = false;
+				System.Threading.Interlocked.Exchange(ref dailyRiskFlattened, 0);
 			}
 		}
 		#endregion

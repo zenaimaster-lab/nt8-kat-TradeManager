@@ -48,6 +48,7 @@ On every code change, BEFORE closing session:
    - `KatTradeManager.cs`
    - `src\KatTradeManagerUI.cs`
    - `src\KatTradeManager.OrderOps.cs`
+   - `src\KatTradeManager.Properties.cs`
    - `src\KatTradeCalculator.cs`
    - `src\KatAtmXmlParser.cs`
 7. **Git sync**:
@@ -58,4 +59,4 @@ On every code change, BEFORE closing session:
 ## Version Tracking
 - Code versions: KatTradeManager.cs VERSION constant
 - Doc versions: README.md, DIARY.md
-- Current: v0.56 (2026-07-25)
+- Current: v0.57 (2026-07-25)

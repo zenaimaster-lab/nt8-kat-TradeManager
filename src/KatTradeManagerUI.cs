@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.56 (2026-07-25) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.57 (2026-07-25) */
 
 using System;
 using System.Collections.Generic;
@@ -22,6 +22,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 	{
 		#region WPF UI Construction & Handlers
 		private bool isHotkeyAttached = false;
+		private Window hotkeyWindow; // cached at attach — chart can move to a new window before detach
 
 		private void StartPanelWatchdog()
 		{
@@ -327,9 +328,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 					{
 						Point current = ev.GetPosition(chartGrid);
 						Thickness m = panelBorder.Margin;
-						panelBorder.Margin = new Thickness(
-							m.Left + (current.X - dragStart.X),
-							m.Top + (current.Y - dragStart.Y), 0, 0);
+						double newLeft = m.Left + (current.X - dragStart.X);
+						double newTop = m.Top + (current.Y - dragStart.Y);
+
+						// Clamp: keep at least 40px of the panel reachable inside the chart
+						const double minVisible = 40;
+						double maxLeft = Math.Max(0, chartGrid.ActualWidth - minVisible);
+						double maxTop = Math.Max(0, chartGrid.ActualHeight - minVisible);
+						newLeft = Math.Max(-panelBorder.ActualWidth + minVisible, Math.Min(newLeft, maxLeft));
+						newTop = Math.Max(-panelBorder.ActualHeight + minVisible, Math.Min(newTop, maxTop));
+
+						panelBorder.Margin = new Thickness(newLeft, newTop, 0, 0);
 						panelBorder.HorizontalAlignment = HorizontalAlignment.Left;
 						dragStart = current;
 					}
@@ -410,6 +419,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (System.IO.Directory.Exists(atmDir))
 			{
 				var files = System.IO.Directory.GetFiles(atmDir, "*.xml");
+				Array.Sort(files, StringComparer.OrdinalIgnoreCase); // deterministic order -> deterministic default selection
 				foreach (var file in files)
 				{
 					string name = System.IO.Path.GetFileNameWithoutExtension(file);
@@ -806,14 +816,29 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private void AttachHotkeyHandler()
 		{
-			if (isHotkeyAttached || ChartControl == null) return;
+			if (ChartControl == null) return;
+
+			// Chart dragged to a different window while attached -> move handler to the new window
+			if (isHotkeyAttached)
+			{
+				Window current = Window.GetWindow(ChartControl);
+				if (current != hotkeyWindow)
+				{
+					DetachHotkeyHandler();
+				}
+				else
+				{
+					return;
+				}
+			}
+
 			ChartControl.PreviewKeyDown += OnChartPreviewKeyDown;
 
-			Window window = Window.GetWindow(ChartControl);
-			if (window != null)
+			hotkeyWindow = Window.GetWindow(ChartControl);
+			if (hotkeyWindow != null)
 			{
-				window.PreviewKeyDown -= OnChartPreviewKeyDown;
-				window.PreviewKeyDown += OnChartPreviewKeyDown;
+				hotkeyWindow.PreviewKeyDown -= OnChartPreviewKeyDown;
+				hotkeyWindow.PreviewKeyDown += OnChartPreviewKeyDown;
 			}
 
 			isHotkeyAttached = true;
@@ -823,13 +848,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			if (!isHotkeyAttached) return;
 			if (ChartControl != null)
-			{
 				ChartControl.PreviewKeyDown -= OnChartPreviewKeyDown;
-				Window window = Window.GetWindow(ChartControl);
-				if (window != null)
-				{
-					window.PreviewKeyDown -= OnChartPreviewKeyDown;
-				}
+			if (hotkeyWindow != null)
+			{
+				hotkeyWindow.PreviewKeyDown -= OnChartPreviewKeyDown;
+				hotkeyWindow = null;
 			}
 			isHotkeyAttached = false;
 		}

@@ -24,6 +24,19 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.57] — 2026-07-25
+- **Full Audit Round 2: Critical Race Fix, Hotkey Leak Fix, Drag Clamp, Module Split & Test Gaps**:
+  - **Bug fix (CRITICAL)**: Emergency flatten double-fire race — `EvaluateDailyRiskLimits` runs on BOTH the data thread (`OnBarUpdate`) and the UI thread (500ms watchdog). The `dailyRiskFlattened` bool check-then-set could be passed by both threads simultaneously, submitting `ClosePosition` twice and FLIPPING the position. Replaced with `Interlocked.CompareExchange`/`Exchange` on an int flag — exactly one flatten per breach episode, guaranteed.
+  - **Bug fix**: Hotkey handler window leak — the window-level `PreviewKeyDown` handler was detached via a *fresh* `Window.GetWindow(ChartControl)` lookup; if the chart had been dragged to a different window, the old window kept the handler (keys in the detached window still fired trades). The window is now cached at attach time (`hotkeyWindow`), detach uses that exact reference, and attach detects window changes and re-attaches.
+  - **Bug fix**: InChart/fallback panel drag had no bounds clamping — the panel could be dragged fully off-chart and lost. Drag now clamps the margin so at least 40px of the panel always stays reachable inside the chart grid.
+  - **Improvement**: ATM template dropdown list is now sorted alphabetically (deterministic default selection instead of filesystem order).
+  - **Improvement**: `CancelAllOrders` now submits one batched `account.Cancel(Order[])` call instead of per-order cancels.
+  - **Refactor**: Extracted all `[NinjaScriptProperty]` definitions (~230 lines) into new partial class `src/KatTradeManager.Properties.cs`. Main file down to ~555 lines (lifecycle, price caching, drawing). Deploy list in `AGENTS.md` updated.
+  - **Known limitation (documented)**: Daily PnL baseline is captured at indicator load — PnL accumulated earlier in the session before load is not included. Full fix requires historical trade query; deferred.
+  - **Tests**: New `KatCalculatorGapTests.cs` — 14 tests covering `GetNySessionStartUtc` summer EDT offsets, `ValidateEmaPlace`/`ValidateEmaAngle` null/zero/mismatched-length guards, `CalculateEmaAngle` tick fallback & exact 45°, `IsAccountAllowed` semicolon separators, `CalculatePartialCandlePrice` percent edges. Suite: 127 → 141 tests, all passing.
+  - **Verification**: Full indicator source compiled against NinjaTrader.Core/Gui assemblies (harness) — zero errors in all touched files; brace/region balance verified on all 6 source files.
+  - **Graphify entity mapping**: `KatTradeManager.Properties` (new file), `KatTradeManager.EvaluateDailyRiskLimits` (Interlocked guard), `KatTradeManager.AttachHotkeyHandler`/`DetachHotkeyHandler` (window cache), `KatTradeManager.CreateWpfControls` (drag clamp, sorted ATM list), `KatTradeManager.CancelAllOrders` (batch cancel), `KatCalculatorGapTests` (new).
+
 ### [v0.56] — 2026-07-25
 - **Full Codebase Audit, Bug Fixes, Module Split & Test Expansion**:
   - **Bug fix**: `PlaceEmaOrder` off-by-one loop bound (`barsAgo <= maxBars` → `< maxBars`) — eliminated out-of-range series access on the last scan iteration.
