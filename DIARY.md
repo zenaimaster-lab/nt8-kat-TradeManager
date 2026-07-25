@@ -24,6 +24,16 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.58] — 2026-07-25
+- **Audit Round 3: Local Compile Gate, ChartTrader Migration Fix, Test Gap Round 2**:
+  - **New tooling**: `tools/CompileCheck/CompileCheck.csproj` — full local compile of ALL 6 indicator source files against .NET Framework 4.8 reference assemblies (NuGet `Microsoft.NETFramework.ReferenceAssemblies.net48`, no admin needed) + NinjaTrader.Core/Gui + compiled `NinjaTrader.Custom.dll` (provides built-in `EMA`). Mirrors NT8's internal Roslyn compile: `dotnet build tools/CompileCheck` = green gate before deploy. Build: **succeeded, zero errors, zero warnings**.
+  - **Bug fix**: Panel stuck in chartGrid fallback — when `PanelLocation = ChartTrader` and the ChartTrader panel reappeared (user re-opened ChartTrader after it was hidden), `IsPanelAttached` kept accepting the chartGrid fallback location so the HUD never migrated back into ChartTrader. Now, when the ChartTrader panel is available, attachment is only accepted from that panel — watchdog re-docks the HUD automatically.
+  - **Style**: `CancelAllOrders` batched-cancel block re-indented to try-body depth.
+  - **Docs**: `RULES.md` deploy list was stale (missing `OrderOps`/`Properties`) — updated to the full 6-file list; compile-gate command documented.
+  - **Noted, not changed**: `KatTradeCalculator.FindLastEmaTouchBar` + `CalculateHalfCandlePrice` are test-only (pre-existing dead code in production); `PlaceMarketOrder` intentionally bypasses EMA Place/Angle filters (market = manual override, daily-risk still enforced).
+  - **Tests**: `KatCalculatorGapTests.cs` round 2 (+7): `ParseFile` real temp-file roundtrip & directory-path guard, `FindSwingPoints` flat-series dedup & strength-1 turning points, `CalculatePartialCandlePrice` 100% boundary, `GetLineStartBar(0)`, `CalculateAtmLevels` negative-tick sign behavior. Suite: 141 → **148 tests, all passing**.
+  - **Graphify entity mapping**: `KatTradeManager.IsPanelAttached` (migration fix), `tools.CompileCheck` (new build gate), `KatAtmXmlParser.ParseFile` (roundtrip coverage), `KatTradeCalculator.FindSwingPoints` (degenerate-series coverage).
+
 ### [v0.57] — 2026-07-25
 - **Full Audit Round 2: Critical Race Fix, Hotkey Leak Fix, Drag Clamp, Module Split & Test Gaps**:
   - **Bug fix (CRITICAL)**: Emergency flatten double-fire race — `EvaluateDailyRiskLimits` runs on BOTH the data thread (`OnBarUpdate`) and the UI thread (500ms watchdog). The `dailyRiskFlattened` bool check-then-set could be passed by both threads simultaneously, submitting `ClosePosition` twice and FLIPPING the position. Replaced with `Interlocked.CompareExchange`/`Exchange` on an int flag — exactly one flatten per breach episode, guaranteed.

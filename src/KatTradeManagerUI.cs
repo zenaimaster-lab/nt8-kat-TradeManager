@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.57 (2026-07-25) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.58 (2026-07-25) */
 
 using System;
 using System.Collections.Generic;
@@ -226,8 +226,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (ctControl != null)
 				{
 					var ctPanel = FindChartTraderPanel(ctControl);
-					if (ctPanel != null && ctPanel.Children.Contains(panelBorder))
-						return true;
+					if (ctPanel != null)
+						return ctPanel.Children.Contains(panelBorder); // CT available -> panel must live there, not in chartGrid fallback
 				}
 			}
 

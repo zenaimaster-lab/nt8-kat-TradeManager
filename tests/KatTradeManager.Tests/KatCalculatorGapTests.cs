@@ -128,5 +128,102 @@ namespace KatTradeManager.Tests
 			Assert.Equal(95.0, price);
 		}
 		#endregion
+
+		#region ParseFile — real file roundtrip
+		[Fact]
+		public void ParseFile_ValidTempFile_ParsesSameAsParseXml()
+		{
+			string xml = "<AtmStrategy><EntryQuantity>3</EntryQuantity><Brackets><Bracket>"
+				+ "<StopLoss>20</StopLoss><Target>40</Target><Quantity>3</Quantity>"
+				+ "<StopStrategy><AutoBreakEvenProfitTrigger>10</AutoBreakEvenProfitTrigger>"
+				+ "<AutoTrailSteps><AutoTrailStep><ProfitTrigger>15</ProfitTrigger></AutoTrailStep>"
+				+ "<AutoTrailStep><ProfitTrigger>25</ProfitTrigger></AutoTrailStep></AutoTrailSteps>"
+				+ "</StopStrategy></Bracket></Brackets></AtmStrategy>";
+			string path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "kat_atm_test_" + System.Guid.NewGuid().ToString("N") + ".xml");
+			try
+			{
+				System.IO.File.WriteAllText(path, xml);
+				AtmTemplateData fromFile = KatAtmXmlParser.ParseFile(path);
+				AtmTemplateData fromText = KatAtmXmlParser.ParseXml(xml);
+
+				Assert.Equal(fromText.StopLoss, fromFile.StopLoss);
+				Assert.Equal(fromText.Target, fromFile.Target);
+				Assert.Equal(fromText.BETrigger, fromFile.BETrigger);
+				Assert.Equal(fromText.SL1Trigger, fromFile.SL1Trigger);
+				Assert.Equal(fromText.SL2Trigger, fromFile.SL2Trigger);
+				Assert.Equal(fromText.Quantity, fromFile.Quantity);
+				Assert.Equal(20, fromFile.StopLoss);
+				Assert.Equal(3, fromFile.Quantity);
+			}
+			finally
+			{
+				if (System.IO.File.Exists(path)) System.IO.File.Delete(path);
+			}
+		}
+
+		[Fact]
+		public void ParseFile_DirectoryPath_ReturnsDefaultSafely()
+		{
+			AtmTemplateData data = KatAtmXmlParser.ParseFile(System.IO.Path.GetTempPath());
+			Assert.Equal(0, data.StopLoss);
+			Assert.Equal(1, data.Quantity); // default preserved
+		}
+		#endregion
+
+		#region FindSwingPoints — degenerate series
+		[Fact]
+		public void FindSwingPoints_FlatSeries_ReturnsSingleDeduplicatedSwing()
+		{
+			// Every bar qualifies as a "swing" on a flat series; dedup within 1 tick collapses to one
+			double[] flat = new double[50];
+			for (int i = 0; i < flat.Length; i++) flat[i] = 100.0;
+
+			var lows = KatTradeCalculator.FindSwingPoints(flat, true, 20, 3, 0.25);
+			Assert.Single(lows);
+			Assert.Equal(100.0, lows[0]);
+		}
+
+		[Fact]
+		public void FindSwingPoints_StrengthOne_FindsImmediateTurningPoint()
+		{
+			// barsAgo-indexed: [0]=5, [1]=3, [2]=5 -> swing low at 3 (barsAgo=1)
+			double[] series = new double[] { 5.0, 3.0, 5.0 };
+			var lows = KatTradeCalculator.FindSwingPoints(series, true, 20, 1, 0.25);
+			Assert.Single(lows);
+			Assert.Equal(3.0, lows[0]);
+
+			var highs = KatTradeCalculator.FindSwingPoints(new double[] { 3.0, 5.0, 3.0 }, false, 20, 1, 0.25);
+			Assert.Single(highs);
+			Assert.Equal(5.0, highs[0]);
+		}
+		#endregion
+
+		#region CalculatePartialCandlePrice — full pullback boundary
+		[Fact]
+		public void CalculatePartialCandlePrice_FullPullback_BuyAtLowSellAtHigh()
+		{
+			Assert.Equal(100.0, KatTradeCalculator.CalculatePartialCandlePrice(KatOrderAction.Buy, 110.0, 100.0, 100.0, 0.25));
+			Assert.Equal(110.0, KatTradeCalculator.CalculatePartialCandlePrice(KatOrderAction.Sell, 110.0, 100.0, 100.0, 0.25));
+		}
+		#endregion
+
+		#region GetLineStartBar — zero bar
+		[Fact]
+		public void GetLineStartBar_ZeroCurrentBar_ReturnsZero()
+		{
+			Assert.Equal(0, KatTradeCalculator.GetLineStartBar(0, 20));
+		}
+		#endregion
+
+		#region CalculateAtmLevels — negative ticks invert side
+		[Fact]
+		public void AtmLevels_NegativeTicks_InvertsOffsetSide()
+		{
+			// Negative SL ticks on a Buy puts the SL line ABOVE entry — formula applies sign verbatim
+			var levels = KatTradeCalculator.CalculateAtmLevels(KatOrderAction.Buy, 100.0, -10, -20, 0, 0, 0, 0.25);
+			Assert.Equal(102.5, levels.SlPrice);
+			Assert.Equal(95.0, levels.TpPrice);
+		}
+		#endregion
 	}
 }

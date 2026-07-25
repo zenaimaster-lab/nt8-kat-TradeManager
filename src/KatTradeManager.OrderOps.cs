@@ -1,4 +1,4 @@
-/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.57 (2026-07-25) */
+/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.58 (2026-07-25) */
 
 using System;
 using System.Collections.Generic;
@@ -274,9 +274,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (account == null) return;
 			try
 			{
-			var workingOrders = account.Orders.Where(o => o.OrderState == OrderState.Working || o.OrderState == OrderState.Accepted).ToArray();
-			if (workingOrders.Length > 0)
-				account.Cancel(workingOrders);
+				var workingOrders = account.Orders.Where(o => o.OrderState == OrderState.Working || o.OrderState == OrderState.Accepted).ToArray();
+				if (workingOrders.Length > 0)
+					account.Cancel(workingOrders);
 				entryOrder = null;
 				pendingRemoveLines = true; // ponytail: single removal path — OnBarUpdate (data thread) executes it
 			}
