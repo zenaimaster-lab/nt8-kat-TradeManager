@@ -24,6 +24,20 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.28] — 2026-07-25
+- **Bug Fixes & Logic Improvements**:
+  - Fixed `KatTradeCalculator.CalculateAtmLevels`: early return on invalid trigger price (zero/negative) to prevent meaningless level calculations.
+  - Fixed `KatTradeCalculator.CalculateFixedDistanceTriggerPrice`: negative distance ticks now clamped to absolute value, preventing inverted orders.
+  - Simplified Renko candle price logic: removed redundant `Math.Max/Min(open/close)` branch since Renko bricks have no wicks and standard high/low logic produces identical results. Added test proving identity.
+  - Fixed `KatTradeManager.OnBarUpdate` line removal: only removes lines on terminal order states (Filled/Cancelled/Rejected), no longer removes on transient states like PendingChange/PendingSubmit.
+  - Fixed `KatTradeManager` pending flags race condition: `pendingRemoveLines` no longer clears `pendingDrawRequest`, so Cancel + New Order in same cycle correctly draws new lines.
+  - Fixed `PlaceFixedDistanceOrder` fallback price: uses `cachedCurrentClose` instead of `cachedCurrentHigh` for more accurate current price estimation.
+- **Test Suite Expansion**:
+  - Added `KatOrderLifecycleTests.cs` (25 tests): ATM levels edge cases, half-candle with Renko, negative buffer/distance clamping, multicurrency tick size Stop/Limit boundary testing, price-only (StopMarket vs Limit) output validation across 0.01/0.05/0.10/0.25/0.50/1.0 tick sizes.
+  - Updated `StressAndEdgeCaseTests.cs`: adjusted to match new negative distance clamping behavior.
+  - Total test count: 73 (all passing).
+- **Graphify**: AST-only update (no semantic extraction).
+
 ### [v0.27] — 2026-07-25
 - **Agent Configuration Infrastructure**:
   - Created `AGENTS.md` with Caveman Ultra mode, Pony Tail (full) rules, Karpathy guidelines, Graphify best practices, auto GitHub connection, and mandatory version bump workflow.

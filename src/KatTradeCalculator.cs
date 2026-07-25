@@ -35,6 +35,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public static double CalculateFixedDistanceTriggerPrice(KatOrderAction action, double currentPrice, int distanceTicks, double tickSize)
 		{
 			if (tickSize <= 0) return currentPrice;
+			if (distanceTicks < 0) distanceTicks = Math.Abs(distanceTicks);
 
 			if (action == KatOrderAction.Buy)
 			{
@@ -60,18 +61,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				return CalculateHalfCandlePrice(high, low, tickSize);
 			}
 
-			if (isRenko)
-			{
-				if (action == KatOrderAction.Buy)
-				{
-					return Math.Max(high, Math.Max(open, close));
-				}
-				else
-				{
-					return Math.Min(low, Math.Min(open, close));
-				}
-			}
-
+			// Renko bricks have no wicks: high == max(open,close), low == min(open,close)
+			// Standard logic (Buy=high, Sell=low) works identically for Renko
 			return action == KatOrderAction.Buy ? high : low;
 		}
 
@@ -135,6 +126,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			AtmLevels levels = new AtmLevels();
 			if (tickSize <= 0) tickSize = 0.25;
+			if (triggerPrice <= 0) return levels;
 
 			if (action == KatOrderAction.Buy)
 			{

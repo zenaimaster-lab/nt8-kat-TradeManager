@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 0.27 (2026-07-25)
+ * Version: 0.28 (2026-07-25)
  * NinjaTrader 8 TradeManager Indicator
  */
 
@@ -27,7 +27,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "0.27";
+		public const string VERSION = "0.28";
 		public const string RELEASE_DATE = "2026-07-25";
 
 		private volatile Account account;
@@ -208,7 +208,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (pendingRemoveLines)
 				{
 					pendingRemoveLines = false;
-					pendingDrawRequest = false; // cancel any pending draw too
 					RemoveExpectedLines();
 				}
 
@@ -219,18 +218,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 					DrawExpectedLines();
 				}
 
-				// Auto-remove lines when order reaches terminal state
+				// Auto-remove lines only on terminal states, not on transient states
 				if (entryOrder != null)
 				{
 					var state = entryOrder.OrderState;
-					bool isWorking = state == OrderState.Working || state == OrderState.Accepted;
-					bool isTerminal = state == OrderState.Filled || state == OrderState.Cancelled || state == OrderState.Rejected;
-					if (!isWorking && isExpectedLinesDrawn)
+					if (state == OrderState.Filled || state == OrderState.Cancelled || state == OrderState.Rejected)
 					{
-						RemoveExpectedLines();
-					}
-					if (isTerminal)
-					{
+						if (isExpectedLinesDrawn)
+							RemoveExpectedLines();
 						entryOrder = null;
 					}
 				}
@@ -313,7 +308,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					{
 						int barIdx = GetBarsInProgressIndex();
 						if (barIdx >= 0 && barIdx < NUM_SERIES)
-							currentPx = cachedCurrentHigh[barIdx] > 0 ? cachedCurrentHigh[barIdx] : 0;
+							currentPx = cachedCurrentClose[barIdx] > 0 ? cachedCurrentClose[barIdx] : 0;
 					}
 				}
 

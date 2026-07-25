@@ -64,28 +64,36 @@ namespace KatTradeManager.Tests
 		}
 
 		[Fact]
-		public void CalculateFixedDistanceTriggerPrice_NegativeDistance_HandlesInvertedDistance()
+		public void CalculateFixedDistanceTriggerPrice_NegativeDistance_ClampedToPositive()
 		{
 			double currentPrice = 2000.0;
 			double buyTrigger = KatTradeCalculator.CalculateFixedDistanceTriggerPrice(KatOrderAction.Buy, currentPrice, -10, 0.25);
 			double sellTrigger = KatTradeCalculator.CalculateFixedDistanceTriggerPrice(KatOrderAction.Sell, currentPrice, -10, 0.25);
 
-			Assert.Equal(1997.50, buyTrigger, 4);
-			Assert.Equal(2002.50, sellTrigger, 4);
+			Assert.Equal(2002.50, buyTrigger, 4);
+			Assert.Equal(1997.50, sellTrigger, 4);
 		}
 
 		[Fact]
 		public void FixedDistanceOrder_ShouldUseDetermineOrderType_NotHardcodedStopMarket()
 		{
-			// When price is at 2000 and we do BUY +Distance with -10 ticks (below market),
-			// the order should be Limit, not StopMarket
+			// When price is at 2000 and we do BUY +Distance with -10 ticks
+			// Negative distance is clamped to positive (10 ticks), so Buy trigger = 2002.50 > 2000 => StopMarket
 			double currentPrice = 2000.0;
 			double triggerPrice = KatTradeCalculator.CalculateFixedDistanceTriggerPrice(KatOrderAction.Buy, currentPrice, -10, 0.25);
-			// triggerPrice = 1997.50, below currentPrice = 2000.0
+			Assert.Equal(2002.50, triggerPrice, 4);
 			KatOrderType orderType = KatTradeCalculator.DetermineOrderType(KatOrderAction.Buy, triggerPrice, currentPrice, out double limitPrice, out double stopPrice);
-			Assert.Equal(KatOrderType.Limit, orderType);
-			Assert.Equal(1997.50, limitPrice, 4);
-			Assert.Equal(0.0, stopPrice, 4);
+			Assert.Equal(KatOrderType.StopMarket, orderType);
+			Assert.Equal(2002.50, stopPrice, 4);
+			Assert.Equal(0.0, limitPrice, 4);
+
+			// Sell +Distance with -10 ticks => clamped to 10 ticks, trigger = 1997.50 < 2000 => StopMarket
+			double sellTriggerPrice = KatTradeCalculator.CalculateFixedDistanceTriggerPrice(KatOrderAction.Sell, currentPrice, -10, 0.25);
+			Assert.Equal(1997.50, sellTriggerPrice, 4);
+			KatOrderType sellOrderType = KatTradeCalculator.DetermineOrderType(KatOrderAction.Sell, sellTriggerPrice, currentPrice, out double sellLimitPrice, out double sellStopPrice);
+			Assert.Equal(KatOrderType.StopMarket, sellOrderType);
+			Assert.Equal(1997.50, sellStopPrice, 4);
+			Assert.Equal(0.0, sellLimitPrice, 4);
 		}
 
 		#endregion
