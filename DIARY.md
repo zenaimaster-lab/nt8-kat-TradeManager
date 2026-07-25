@@ -24,6 +24,12 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.55] — 2026-07-25
+- **Clean NinjaScript Freeze Trail Engine**:
+  - Removed all non-standard `AtmStrategyId` property and `StopAtmStrategy` method calls.
+  - Relies exclusively on standard NinjaTrader 8 `account.Orders` inspection, `frozenStopPrice` lock, and `account.Change(new[] { stopOrder })` watchdog enforcement to override trailing shifts.
+  - Zero custom API dependency — completely clean NinjaScript compilation.
+
 ### [v0.54] — 2026-07-25
 - **Fix NinjaScript Compilation Errors**:
   - Replaced invalid `AtmStrategy.GetAtmStrategyUniqueId` with native `order.AtmStrategyId` property on `NinjaTrader.Cbi.Order`.

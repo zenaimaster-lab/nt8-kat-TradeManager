@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 0.54 (2026-07-25)
+ * Version: 0.55 (2026-07-25)
  * NinjaTrader 8 TradeManager Indicator
  */
 
@@ -69,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "0.54";
+		public const string VERSION = "0.55";
 		public const string RELEASE_DATE = "2026-07-25";
 
 		private volatile Account account;
@@ -883,17 +883,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (workingStops.Count > 0)
 				{
 					frozenStopPrice = workingStops[0].StopPrice;
-					string atmId = workingStops[0].AtmStrategyId;
-
-					if (!string.IsNullOrEmpty(atmId))
-					{
-						NinjaTrader.NinjaScript.AtmStrategy.StopAtmStrategy(atmId);
-						Print(string.Format("[KatTradeManager] Native ATM Strategy {0} stopped — Trailing disabled, SL frozen @ {1}", atmId, frozenStopPrice));
-					}
-					else
-					{
-						Print(string.Format("[KatTradeManager] Freeze Trail active @ Stop Loss price: {0}", frozenStopPrice));
-					}
+					Print(string.Format("[KatTradeManager] Freeze Trail active @ Stop Loss price: {0}", frozenStopPrice));
 				}
 				else
 				{
