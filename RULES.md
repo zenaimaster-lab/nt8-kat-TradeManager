@@ -19,9 +19,12 @@ Whenever any changes are made to this repository, the following workflow MUST be
   - Graphify entity mapping (Components, Dependencies, Actions, Data Flow).
 - Apply Karpathy Guidelines: surgical minimal diffs, zero unnecessary abstractions, clear success criteria.
 
-## 3. NinjaTrader 8 Deployment
-- Copy/deploy `KatTradeManager.cs` directly to NinjaTrader 8 custom indicators directory:
-  `C:\Users\kieuanhtuan\Documents\NinjaTrader 8\bin\Custom\Indicators\KatTradeManager.cs`
+## 3. NinjaTrader 8 Deployment (MANDATORY FULL SYNC HARD RULE)
+- MUST copy/deploy ALL source `.cs` files (`KatTradeManager.cs` + all `src/*.cs` files) directly to NinjaTrader 8 custom indicators directory with force overwrite on every code change to prevent stale file compilation mismatches:
+  - `KatTradeManager.cs` -> `C:\Users\kieuanhtuan\Documents\NinjaTrader 8\bin\Custom\Indicators\KatTradeManager.cs`
+  - `src\KatTradeManagerUI.cs` -> `C:\Users\kieuanhtuan\Documents\NinjaTrader 8\bin\Custom\Indicators\KatTradeManagerUI.cs`
+  - `src\KatTradeCalculator.cs` -> `C:\Users\kieuanhtuan\Documents\NinjaTrader 8\bin\Custom\Indicators\KatTradeCalculator.cs`
+  - `src\KatAtmXmlParser.cs` -> `C:\Users\kieuanhtuan\Documents\NinjaTrader 8\bin\Custom\Indicators\KatAtmXmlParser.cs`
 
 ## 4. Git & GitHub Synchronization
 - Stage all modified files (`git add .`).

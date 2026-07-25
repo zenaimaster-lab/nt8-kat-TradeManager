@@ -44,7 +44,11 @@ On every code change, BEFORE closing session:
    - `DIARY.md`: new version history entry
 4. **Update Graphify**: run `graphify update .`
 5. **Update Diary**: add entry with timestamp, changes summary, Graphify entity mapping.
-6. **Deploy NT8**: copy `KatTradeManager.cs` to `C:\Users\kieuanhtuan\Documents\NinjaTrader 8\bin\Custom\Indicators\KatTradeManager.cs`
+6. **Deploy NT8 (MANDATORY FULL SYNC)**: copy ALL source `.cs` files (`KatTradeManager.cs` AND `src/*.cs`) to `C:\Users\kieuanhtuan\Documents\NinjaTrader 8\bin\Custom\Indicators\` with force overwrite:
+   - `KatTradeManager.cs`
+   - `src\KatTradeManagerUI.cs`
+   - `src\KatTradeCalculator.cs`
+   - `src\KatAtmXmlParser.cs`
 7. **Git sync**:
    - `git add .`
    - `git commit -m "vX.XX (YYYY-MM-DD): Description"`
@@ -53,4 +57,4 @@ On every code change, BEFORE closing session:
 ## Version Tracking
 - Code versions: KatTradeManager.cs VERSION constant
 - Doc versions: README.md, DIARY.md
-- Current: v0.27 (2026-07-25)
+- Current: v0.30 (2026-07-25)
