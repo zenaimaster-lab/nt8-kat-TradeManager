@@ -1,4 +1,4 @@
-/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.62 (2026-07-26) */
+/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.63 (2026-07-26) */
 
 using System;
 using System.Collections.Generic;
@@ -29,6 +29,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Print(string.Format("[KatTradeManager] ATM template '{0}' not found — submitting order WITHOUT ATM strategy", tpl));
 			}
 			account.Submit(new[] { order });
+		}
+
+		private DateTime lastEntrySubmitTime = DateTime.MinValue;
+		private const double EntryDebounceMs = 500;
+
+		// Blocks accidental duplicate entry submissions (mouse-jitter double-click, hotkey bounce).
+		// Callers are UI-thread only, so check-then-set needs no lock.
+		private bool IsEntryDebounced()
+		{
+			if ((DateTime.Now - lastEntrySubmitTime).TotalMilliseconds < EntryDebounceMs) return true;
+			lastEntrySubmitTime = DateTime.Now;
+			return false;
 		}
 
 		private int GetBarsInProgressIndex()
@@ -186,6 +198,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 				return;
 			}
 
+			if (IsEntryDebounced())
+			{
+				Print("[KatTradeManager] Duplicate entry ignored (anti-spam debounce).");
+				return;
+			}
+
 			try
 
 			{
@@ -280,12 +298,29 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 		}
 
+		private const string CloseOrderName = "KAT_CLOSE";
+
+		// True while our own market close order is still working — double-clicking Close/Revert must not
+		// submit a second close (position flip) or cancel the in-flight one.
+		private bool IsCloseInFlight()
+		{
+			if (account == null || Instrument == null) return false;
+			try
+			{
+				return account.Orders.Any(o => o.Instrument == Instrument && o.Name == CloseOrderName
+					&& (o.OrderState == OrderState.Working || o.OrderState == OrderState.Accepted));
+			}
+			catch { return false; }
+		}
+
 		private void CancelAllOrders()
 		{
 			if (account == null) return;
 			try
 			{
-				var workingOrders = account.Orders.Where(o => o.OrderState == OrderState.Working || o.OrderState == OrderState.Accepted).ToArray();
+				// Never cancel our own close order — a just-submitted close can already be Accepted here
+				var workingOrders = account.Orders.Where(o => o.Name != CloseOrderName
+					&& (o.OrderState == OrderState.Working || o.OrderState == OrderState.Accepted)).ToArray();
 				if (workingOrders.Length > 0)
 					account.Cancel(workingOrders);
 				entryOrder = null;
@@ -302,15 +337,22 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (account == null || Instrument == null) return;
 			try
 			{
+				CancelAllOrders();
+
+				if (IsCloseInFlight())
+				{
+					Print("[KatTradeManager] Close already in flight — duplicate close ignored");
+					return;
+				}
+
 				Position pos = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
 				if (pos != null && pos.MarketPosition != MarketPosition.Flat)
 				{
 					OrderAction action = pos.MarketPosition == MarketPosition.Long ? OrderAction.Sell : OrderAction.Buy;
-					Order closeOrder = account.CreateOrder(Instrument, action, OrderType.Market, OrderEntry.Manual, TimeInForce.Gtc, pos.Quantity, 0, 0, "", "KAT_CLOSE", NinjaTrader.Core.Globals.MaxDate, null);
+					Order closeOrder = account.CreateOrder(Instrument, action, OrderType.Market, OrderEntry.Manual, TimeInForce.Gtc, pos.Quantity, 0, 0, "", CloseOrderName, NinjaTrader.Core.Globals.MaxDate, null);
 					if (closeOrder != null)
 						account.Submit(new[] { closeOrder });
 				}
-				CancelAllOrders();
 			}
 			catch (Exception ex)
 			{
@@ -325,6 +367,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (IsDailyRiskBreached(out string breachReason))
 			{
 				Print(string.Format("[KatTradeManager] Market Order REJECTED by Daily Risk Protection: {0}", breachReason));
+				return;
+			}
+
+			if (IsEntryDebounced())
+			{
+				Print("[KatTradeManager] Duplicate market order ignored (anti-spam debounce).");
 				return;
 			}
 
@@ -398,6 +446,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (account == null || Instrument == null) return;
 			try
 			{
+				if (IsCloseInFlight())
+				{
+					Print("[KatTradeManager] Revert: close already in flight — wait for fill before reverting again.");
+					return;
+				}
+
 				Position pos = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
 				if (pos == null || pos.MarketPosition == MarketPosition.Flat)
 				{

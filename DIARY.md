@@ -24,6 +24,16 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.63] — 2026-07-26
+- **Audit Round 8: Anti-Order-Spam Hardening (kick-out protection)**:
+  - **Bug fix (critical)**: `ClosePosition` could cancel its OWN just-submitted close order — `account.Submit(close)` immediately followed by `CancelAllOrders()`, and a market order can already be `Accepted` in `account.Orders` at that point → close silently cancelled, position left open while the user (or the emergency-flatten latch) believed it was closed. `CancelAllOrders` now always excludes orders named `KAT_CLOSE`.
+  - **Bug fix (critical)**: Double-clicking **Close/flatten** submitted two market close orders → position FLIPPED (Long 3 → Short 3). New `IsCloseInFlight()` guard (any working/accepted `KAT_CLOSE` on the instrument) makes the second click a no-op. `ClosePosition` restructured: cancel orders first (excluding the close), then skip if a close is already in flight, then submit.
+  - **Bug fix**: Double-clicking **Revert** while the close was still in flight fired a second close + an extra reverse market order → over-reversal. `RevertPosition` now aborts up-front when a close is in flight.
+  - **Hardening**: 500 ms anti-spam debounce on both entry paths (`PlaceOrderInternal`, `PlaceMarketOrder`) — mouse-jitter double-clicks and hotkey bounces can no longer duplicate entries. All hotkeys route through the same methods, so they are covered too.
+  - **Spam-safety matrix (verified)**: auto paths are bounded — watchdog risk-eval is latched by `Interlocked` (max 1 flatten per breach episode, both threads), Freeze-Trail enforcement is rate-limited to 1 change batch per 3 s, line drawing submits nothing; user paths are now guarded — entries debounced, close/revert in-flight-guarded, BE/Swing-SL are single `account.Change` batches per deliberate click with natural stop conditions.
+  - **Tests**: 166/166 passing (no pure-logic change this round; guards are NT8-runtime side). Compile gate: **succeeded**.
+  - **Graphify entity mapping**: `KatTradeManager.IsCloseInFlight` (new), `KatTradeManager.CancelAllOrders` (KAT_CLOSE exclusion), `KatTradeManager.ClosePosition` (restructured), `KatTradeManager.RevertPosition` (in-flight guard), `KatTradeManager.IsEntryDebounced` (new).
+
 ### [v0.62] — 2026-07-26
 - **Audit Round 7: Swing-SL Direction Fix, ATM Quantity Contract Fix**:
   - **Bug fix (trading logic)**: `ShiftSlToSwing`'s fallback (`swings.FirstOrDefault(differing)`) fired when no swing existed in the intended direction and moved the stop loss the WRONG way — for a Long it grabbed a HIGHER swing low (tightening the SL) when the user pressed the loosen button (◀ SL), and vice-versa for Short. Fallback removed: when no further swing exists in the intended direction, the indicator now prints "No further swing points found on chart." and leaves the stop untouched.
