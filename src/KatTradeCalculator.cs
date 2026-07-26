@@ -275,6 +275,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 		}
 
 		/// <summary>
+		/// A protective stop for a LONG position must sit BELOW current market; for SHORT, ABOVE.
+		/// Placing it on the wrong side gets rejected by the broker (rejections still count toward order rate).
+		/// </summary>
+		public static bool IsStopOnValidSide(bool isLongPosition, double stopPrice, double currentPrice)
+		{
+			if (stopPrice <= 0 || currentPrice <= 0) return false;
+			return isLongPosition ? stopPrice < currentPrice : stopPrice > currentPrice;
+		}
+
+		/// <summary>
 		/// Checks account name against comma/semicolon-separated filter.
 		/// Tokens prefixed with '!' are excludes; plain tokens are includes.
 		/// Empty filter = allow all. Excludes win over includes.

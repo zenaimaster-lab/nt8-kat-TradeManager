@@ -415,5 +415,31 @@ namespace KatTradeManager.Tests
 			Assert.Equal(0, data.Quantity);
 		}
 		#endregion
+
+		#region IsStopOnValidSide
+		[Fact]
+		public void IsStopOnValidSide_LongPosition_StopMustBeBelowMarket()
+		{
+			Assert.True(KatTradeCalculator.IsStopOnValidSide(true, 99.0, 100.0));
+			Assert.False(KatTradeCalculator.IsStopOnValidSide(true, 101.0, 100.0)); // underwater BE case
+			Assert.False(KatTradeCalculator.IsStopOnValidSide(true, 100.0, 100.0)); // exactly at market
+		}
+
+		[Fact]
+		public void IsStopOnValidSide_ShortPosition_StopMustBeAboveMarket()
+		{
+			Assert.True(KatTradeCalculator.IsStopOnValidSide(false, 101.0, 100.0));
+			Assert.False(KatTradeCalculator.IsStopOnValidSide(false, 99.0, 100.0));
+			Assert.False(KatTradeCalculator.IsStopOnValidSide(false, 100.0, 100.0));
+		}
+
+		[Fact]
+		public void IsStopOnValidSide_ZeroOrNegativePrices_Invalid()
+		{
+			Assert.False(KatTradeCalculator.IsStopOnValidSide(true, 0.0, 100.0));
+			Assert.False(KatTradeCalculator.IsStopOnValidSide(true, 99.0, 0.0));
+			Assert.False(KatTradeCalculator.IsStopOnValidSide(false, -5.0, 100.0));
+		}
+		#endregion
 	}
 }

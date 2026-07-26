@@ -1,4 +1,4 @@
-/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.63 (2026-07-26) */
+/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.64 (2026-07-26) */
 
 using System;
 using System.Collections.Generic;
@@ -412,6 +412,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 				double bePrice = KatTradeCalculator.CalculateBreakevenPrice(katAction, pos.AveragePrice, bufferTicks, tickSize);
 
+				// Underwater position: BE stop would sit on the wrong side of market -> broker rejection
+				if (!KatTradeCalculator.IsStopOnValidSide(pos.MarketPosition == MarketPosition.Long, bePrice, cachedCurrentPrice))
+				{
+					Print(string.Format("[KatTradeManager] BE skipped: stop {0} invalid vs current market {1} (position underwater or price unavailable).", bePrice, cachedCurrentPrice));
+					return;
+				}
+
 				var workingStops = account.Orders.Where(o => o.Instrument == Instrument &&
 					(o.OrderState == OrderState.Working || o.OrderState == OrderState.Accepted) &&
 					(o.OrderType == OrderType.StopMarket || o.OrderType == OrderType.StopLimit) &&
@@ -659,10 +666,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 							}
 						}
 
-					// ponytail: no fallback to "any differing swing" — it moved the SL in the WRONG
-					// direction (tightened on the loosen button). No swing in the intended direction = stop.
-					if (nextSwing > 0)
+						// ponytail: no fallback to "any differing swing" — it moved the SL in the WRONG
+						// direction (tightened on the loosen button). No swing in the intended direction = stop.
+						if (nextSwing > 0)
 						{
+							// Validate BEFORE recording — an invalid-side swing must never enter history
+							if (!KatTradeCalculator.IsStopOnValidSide(pos.MarketPosition == MarketPosition.Long, nextSwing, cachedCurrentPrice))
+							{
+								Print(string.Format("[KatTradeManager] Swing SL skipped: {0} invalid vs current market {1}.", nextSwing, cachedCurrentPrice));
+								return;
+							}
 							slMoveHistory.Add(nextSwing);
 							currentSlHistoryIndex = slMoveHistory.Count - 1;
 							targetPrice = nextSwing;
@@ -673,6 +686,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 							return;
 						}
 					}
+				}
+
+				// Historical swing can sit on the wrong side of current market (price already moved past it)
+				// -> changing the stop there would be rejected by the broker.
+				if (!KatTradeCalculator.IsStopOnValidSide(pos.MarketPosition == MarketPosition.Long, targetPrice, cachedCurrentPrice))
+				{
+					Print(string.Format("[KatTradeManager] Swing SL skipped: {0} invalid vs current market {1}.", targetPrice, cachedCurrentPrice));
+					return;
 				}
 
 				if (workingStops.Count > 0)

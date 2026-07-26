@@ -24,6 +24,14 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.64] — 2026-07-26
+- **Audit Round 9: Broker-Rejection Guards, NRE Race Fix**:
+  - **Bug fix (broker rejections = order-rate cost)**: `SetBreakeven` on an underwater position created/moved the stop to the wrong side of market (Long: sell stop ABOVE price) → broker rejection. Now guarded by new pure helper `KatTradeCalculator.IsStopOnValidSide` (Long: stop must be below market; Short: above) — prints a skip reason instead of spending an order-rate slot on a guaranteed rejection.
+  - **Bug fix**: `ShiftSlToSwing` could target a historical swing that is already on the wrong side of current market (price moved past it) → `account.Change` rejection. Guarded twice: at swing selection (invalid swings never enter `slMoveHistory`) and as a final net before applying. Also repaired the round-6 indentation damage in that block.
+  - **Bug fix (robustness)**: `OnBarUpdate` read `entryOrder.OrderState` right after a null-check — the UI thread (`CancelAllOrders`) can null the volatile field in between → NullReferenceException caught by the broad catch (log spam each occurrence). Now uses a local copy.
+  - **Tests**: +3 facts (`IsStopOnValidSide` long/short/zero-price cases). Suite: 166 → **169 tests, all passing**. Compile gate: **succeeded**.
+  - **Graphify entity mapping**: `KatTradeCalculator.IsStopOnValidSide` (new pure helper), `KatTradeManager.SetBreakeven` (underwater guard), `KatTradeManager.ShiftSlToSwing` (selection + net guards), `KatTradeManager.OnBarUpdate` (local-copy fix).
+
 ### [v0.63] — 2026-07-26
 - **Audit Round 8: Anti-Order-Spam Hardening (kick-out protection)**:
   - **Bug fix (critical)**: `ClosePosition` could cancel its OWN just-submitted close order — `account.Submit(close)` immediately followed by `CancelAllOrders()`, and a market order can already be `Accepted` in `account.Orders` at that point → close silently cancelled, position left open while the user (or the emergency-flatten latch) believed it was closed. `CancelAllOrders` now always excludes orders named `KAT_CLOSE`.
