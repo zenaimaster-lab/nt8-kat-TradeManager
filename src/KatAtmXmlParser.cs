@@ -11,7 +11,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public int BETrigger { get; set; }
 		public int SL1Trigger { get; set; }
 		public int SL2Trigger { get; set; }
-		public int Quantity { get; set; } = 1;
+		// 0 = "not specified in template" — callers must keep the user's current quantity instead of stomping it
+		public int Quantity { get; set; } = 0;
 	}
 
 	public static class KatAtmXmlParser

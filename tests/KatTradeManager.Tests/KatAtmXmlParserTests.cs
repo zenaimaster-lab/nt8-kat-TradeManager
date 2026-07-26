@@ -86,12 +86,12 @@ namespace KatTradeManager.Tests
 			AtmTemplateData invalidData = KatAtmXmlParser.ParseXml(invalidXml);
 
 			// Assert
-			Assert.Equal(1, emptyData.Quantity);
+			Assert.Equal(0, emptyData.Quantity);
 			Assert.Equal(0, emptyData.StopLoss);
 			Assert.Equal(0, emptyData.Target);
 			Assert.Equal(0, emptyData.BETrigger);
 
-			Assert.Equal(1, invalidData.Quantity);
+			Assert.Equal(0, invalidData.Quantity);
 			Assert.Equal(0, invalidData.StopLoss);
 		}
 	}

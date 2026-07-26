@@ -108,14 +108,14 @@ namespace KatTradeManager.Tests
 			AtmTemplateData dataSpace = KatAtmXmlParser.ParseXml("   \t\r\n  ");
 
 			Assert.NotNull(dataNull);
-			Assert.Equal(1, dataNull.Quantity);
+			Assert.Equal(0, dataNull.Quantity);
 			Assert.Equal(0, dataNull.StopLoss);
 
 			Assert.NotNull(dataEmpty);
-			Assert.Equal(1, dataEmpty.Quantity);
+			Assert.Equal(0, dataEmpty.Quantity);
 
 			Assert.NotNull(dataSpace);
-			Assert.Equal(1, dataSpace.Quantity);
+			Assert.Equal(0, dataSpace.Quantity);
 		}
 
 		[Fact]
@@ -130,7 +130,7 @@ namespace KatTradeManager.Tests
 			AtmTemplateData d3 = KatAtmXmlParser.ParseXml(randomNoise);
 
 			Assert.NotNull(d1);
-			Assert.Equal(1, d1.Quantity);
+			Assert.Equal(0, d1.Quantity);
 			Assert.NotNull(d2);
 			Assert.NotNull(d3);
 		}
@@ -152,7 +152,7 @@ namespace KatTradeManager.Tests
 			AtmTemplateData data = KatAtmXmlParser.ParseXml(xml);
 
 			Assert.NotNull(data);
-			Assert.Equal(1, data.Quantity); // EntryQuantity overflowed int.TryParse, negative bracket qty ignored
+			Assert.Equal(0, data.Quantity); // EntryQuantity overflowed int.TryParse, negative bracket qty ignored -> unspecified
 			Assert.Equal(0, data.StopLoss); // Non-number -> 0
 			Assert.Equal(0, data.Target);   // Overflow > int.MaxValue -> 0
 		}
@@ -165,7 +165,7 @@ namespace KatTradeManager.Tests
 			AtmTemplateData d3 = KatAtmXmlParser.ParseFile(@"C:\NonExistentFolder\NonExistentFile_12345.xml");
 
 			Assert.NotNull(d1);
-			Assert.Equal(1, d1.Quantity);
+			Assert.Equal(0, d1.Quantity);
 			Assert.NotNull(d2);
 			Assert.NotNull(d3);
 		}

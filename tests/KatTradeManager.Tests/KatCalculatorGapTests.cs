@@ -166,7 +166,7 @@ namespace KatTradeManager.Tests
 		{
 			AtmTemplateData data = KatAtmXmlParser.ParseFile(System.IO.Path.GetTempPath());
 			Assert.Equal(0, data.StopLoss);
-			Assert.Equal(1, data.Quantity); // default preserved
+			Assert.Equal(0, data.Quantity); // 0 = unspecified -> caller keeps user's quantity
 		}
 		#endregion
 
@@ -401,6 +401,18 @@ namespace KatTradeManager.Tests
 		{
 			Assert.True(KatTradeCalculator.IsAccountAllowed("Sim101", "Playback,Sim;Other"));
 			Assert.False(KatTradeCalculator.IsAccountAllowed("BxAcct", "Sim;!bx,Other"));
+		}
+		#endregion
+
+		#region AtmXmlParser — unspecified quantity stays zero
+		[Fact]
+		public void ParseXml_NoQuantityNodes_QuantityStaysZero()
+		{
+			// Valid template with levels but no quantity info -> 0 (unspecified), not 1
+			string xml = "<AtmStrategy><Brackets><Bracket><StopLoss>12</StopLoss></Bracket></Brackets></AtmStrategy>";
+			AtmTemplateData data = KatAtmXmlParser.ParseXml(xml);
+			Assert.Equal(12, data.StopLoss);
+			Assert.Equal(0, data.Quantity);
 		}
 		#endregion
 	}

@@ -24,6 +24,13 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.62] — 2026-07-26
+- **Audit Round 7: Swing-SL Direction Fix, ATM Quantity Contract Fix**:
+  - **Bug fix (trading logic)**: `ShiftSlToSwing`'s fallback (`swings.FirstOrDefault(differing)`) fired when no swing existed in the intended direction and moved the stop loss the WRONG way — for a Long it grabbed a HIGHER swing low (tightening the SL) when the user pressed the loosen button (◀ SL), and vice-versa for Short. Fallback removed: when no further swing exists in the intended direction, the indicator now prints "No further swing points found on chart." and leaves the stop untouched.
+  - **Bug fix (UX/data contract)**: `AtmTemplateData.Quantity` defaulted to 1, so an ATM template with no quantity info (or a file deleted between listing and loading) stomped the user's Contracts box to "1" via `LoadAtmTemplateSettings`. Default is now 0 = "unspecified"; the existing `atmQuantity > 0` guard preserves the user's quantity. Updated 9 existing test assertions + comment to the new contract.
+  - **Tests**: +1 (`ParseXml_NoQuantityNodes_QuantityStaysZero`). Suite: 165 → **166 tests, all passing**. Compile gate: **succeeded**.
+  - **Graphify entity mapping**: `KatTradeManager.ShiftSlToSwing` (fallback removed), `AtmTemplateData.Quantity` (0 = unspecified contract), `KatTradeManager.LoadAtmTemplateSettings` (stomp prevented).
+
 ### [v0.61] — 2026-07-26
 - **Audit Round 6: Account-Switch State Reset, XML Fallback & Angle Tests**:
   - **Bug fix (trading impact)**: Switching accounts via the HUD dropdown did not reset per-account state. The OLD account's gross realized PnL stayed as the daily-PnL session baseline → the new account showed phantom daily PnL (e.g. old account +$200 captured, new account at $0 → phantom −$200) causing false emergency flattens or missed breach detection. The stale `frozenStopPrice` from the old account could also yank the new account's stops to an outdated price. The account-change handler now resets: `isSessionStartCaptured = false`, `dailyRiskFlattened = 0` (Interlocked), `frozenStopPrice = 0`.

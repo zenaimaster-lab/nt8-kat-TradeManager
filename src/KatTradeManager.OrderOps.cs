@@ -1,4 +1,4 @@
-/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.61 (2026-07-26) */
+/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.62 (2026-07-26) */
 
 using System;
 using System.Collections.Generic;
@@ -605,12 +605,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 							}
 						}
 
-						if (nextSwing == 0 && swings.Count > 0)
-						{
-							nextSwing = swings.FirstOrDefault(s => Math.Abs(s - refPrice) > 1e-5);
-						}
-
-						if (nextSwing > 0)
+					// ponytail: no fallback to "any differing swing" — it moved the SL in the WRONG
+					// direction (tightened on the loosen button). No swing in the intended direction = stop.
+					if (nextSwing > 0)
 						{
 							slMoveHistory.Add(nextSwing);
 							currentSlHistoryIndex = slMoveHistory.Count - 1;
