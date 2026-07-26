@@ -28,7 +28,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		/// <summary>Start anchor (barsAgo) for short order lines. Never exceeds currentBar, never negative.</summary>
 		public static int GetLineStartBar(int currentBar, int maxBarsAgo)
 		{
-			if (currentBar <= 0) return 0;
+			if (currentBar <= 0 || maxBarsAgo <= 0) return 0;
 			return currentBar < maxBarsAgo ? currentBar : maxBarsAgo;
 		}
 

@@ -1,4 +1,4 @@
-/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.64 (2026-07-26) */
+/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.65 (2026-07-26) */
 
 using System;
 using System.Collections.Generic;
@@ -313,6 +313,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			catch { return false; }
 		}
 
+		// ponytail: intentionally ACCOUNT-WIDE (no Instrument filter) — matches "Close/flatten" and
+		// account-level daily-risk semantics. Every other order query in this class is Instrument-scoped.
 		private void CancelAllOrders()
 		{
 			if (account == null) return;

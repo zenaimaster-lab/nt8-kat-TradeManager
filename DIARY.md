@@ -24,6 +24,15 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.65] — 2026-07-26
+- **Final Audit Round 10: Contract Clamp, Deploy-Sync Verification, Scope Documentation**:
+  - **Bug fix (contract)**: `GetLineStartBar(currentBar, maxBarsAgo)` violated its own "never negative" contract for negative `maxBarsAgo` (returned it verbatim → future-bar anchor). Now clamps to 0. +1 test.
+  - **Verification (new)**: First-ever hash-level deploy sync check (repo vs `Indicators\`). Found only cosmetic EOL-tail differences (LF vs CRLF, NT8 compiles both); full sync re-established after deploy.
+  - **Docs**: `CancelAllOrders` account-wide scope (no `Instrument` filter) is now explicitly commented as intentional — matches "Close/flatten" and account-level daily-risk semantics; every other order query in the class is Instrument-scoped. Behavior unchanged.
+  - **Audit conclusion**: no further functional defects found across all 6 source files; auto paths bounded (Interlocked latch, 3 s freeze rate-limit), user paths guarded (debounce, in-flight close, side validation).
+  - **Tests**: 169 → **170 tests, all passing**. Compile gate: **succeeded**.
+  - **Graphify entity mapping**: `KatTradeCalculator.GetLineStartBar` (negative clamp), `KatTradeManager.CancelAllOrders` (scope documented).
+
 ### [v0.64] — 2026-07-26
 - **Audit Round 9: Broker-Rejection Guards, NRE Race Fix**:
   - **Bug fix (broker rejections = order-rate cost)**: `SetBreakeven` on an underwater position created/moved the stop to the wrong side of market (Long: sell stop ABOVE price) → broker rejection. Now guarded by new pure helper `KatTradeCalculator.IsStopOnValidSide` (Long: stop must be below market; Short: above) — prints a skip reason instead of spending an order-rate slot on a guaranteed rejection.

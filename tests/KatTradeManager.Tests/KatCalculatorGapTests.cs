@@ -213,6 +213,14 @@ namespace KatTradeManager.Tests
 		{
 			Assert.Equal(0, KatTradeCalculator.GetLineStartBar(0, 20));
 		}
+
+		[Fact]
+		public void GetLineStartBar_NegativeMaxBarsAgo_ClampedToZero()
+		{
+			// Doc contract: never negative — a bad maxBarsAgo must not produce a future-bar anchor
+			Assert.Equal(0, KatTradeCalculator.GetLineStartBar(10, -5));
+			Assert.Equal(0, KatTradeCalculator.GetLineStartBar(10, 0));
+		}
 		#endregion
 
 		#region CalculateAtmLevels — negative ticks invert side

@@ -1,16 +1,16 @@
 # Graph Report - nt8-kat-TradeManager  (2026-07-26)
 
 ## Corpus Check
-- 26 files · ~26,719 words
+- 26 files · ~26,926 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 322 nodes · 449 edges · 26 communities (12 shown, 14 thin omitted)
+- 323 nodes · 450 edges · 26 communities (12 shown, 14 thin omitted)
 - Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 53 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `d24623ae`
+- Built from commit: `1c002c92`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -37,7 +37,7 @@
 
 ## God Nodes (most connected - your core abstractions)
 1. `KatTradeManager` - 46 edges
-2. `KatCalculatorGapTests` - 43 edges
+2. `KatCalculatorGapTests` - 44 edges
 3. `KatTradeManager` - 29 edges
 4. `KatTradeManager` - 23 edges
 5. `KatTradeCalculator` - 20 edges
@@ -48,6 +48,8 @@
 10. `StressAndEdgeCaseTests` - 12 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `KatTradeManager` --references--> `bool`  [EXTRACTED]
+  KatTradeManager.cs → src/KatTradeManagerUI.cs
 - `KatTradeManager` --references--> `double`  [EXTRACTED]
   KatTradeManager.cs → src/KatTradeManager.OrderOps.cs
 - `KatTradeManager` --references--> `DateTime`  [EXTRACTED]
@@ -56,22 +58,20 @@
   KatTradeManager.cs → src/KatTradeManager.OrderOps.cs
 - `KatTradeManager` --references--> `List`  [EXTRACTED]
   KatTradeManager.cs → src/KatTradeManager.OrderOps.cs
-- `KatTradeManager` --references--> `MarketPosition`  [EXTRACTED]
-  KatTradeManager.cs → src/KatTradeManager.OrderOps.cs
 
 ## Communities (26 total, 14 thin omitted)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.11
-Nodes (14): Account, AtmLevels, bool, Border, ComboBox, DispatcherTimer, Grid, Indicator (+6 more)
+Nodes (13): Account, AtmLevels, Border, ComboBox, DispatcherTimer, Grid, Indicator, KatTradeManager (+5 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.14
-Nodes (7): DateTime, double, int, List, MarketPosition, KatTradeManager, NinjaTrader.NinjaScript.Indicators
+Cohesion: 0.11
+Nodes (5): bool, EMA, KatTradeManager, NinjaTrader.NinjaScript.Indicators, Window
 
 ### Community 3 - "Community 3"
-Cohesion: 0.13
-Nodes (4): EMA, KatTradeManager, NinjaTrader.NinjaScript.Indicators, Window
+Cohesion: 0.14
+Nodes (7): DateTime, double, int, List, MarketPosition, KatTradeManager, NinjaTrader.NinjaScript.Indicators
 
 ### Community 4 - "Community 4"
 Cohesion: 0.12
@@ -90,9 +90,9 @@ Nodes (3): AtmTemplateData, KatAtmXmlParser, NinjaTrader.NinjaScript.Indicators
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `KatTradeManager` connect `Community 1` to `Community 2`, `Community 3`, `Community 4`?**
-  _High betweenness centrality (0.066) - this node is a cross-community bridge._
-- **Why does `string` connect `Community 4` to `Community 1`, `Community 2`?**
-  _High betweenness centrality (0.041) - this node is a cross-community bridge._
+  _High betweenness centrality (0.065) - this node is a cross-community bridge._
+- **Why does `string` connect `Community 4` to `Community 1`, `Community 3`?**
+  _High betweenness centrality (0.040) - this node is a cross-community bridge._
 - **What connects `NinjaTrader.NinjaScript.Indicators`, `Account`, `Grid` to the rest of the system?**
   _32 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
@@ -100,6 +100,6 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `Community 1` be split into smaller, more focused modules?**
   _Cohesion score 0.11 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
-  _Cohesion score 0.14 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.11 - nodes in this community are weakly interconnected._
 - **Should `Community 3` be split into smaller, more focused modules?**
-  _Cohesion score 0.13 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.14 - nodes in this community are weakly interconnected._

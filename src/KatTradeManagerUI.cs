@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.64 (2026-07-26) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.65 (2026-07-26) */
 
 using System;
 using System.Collections.Generic;
