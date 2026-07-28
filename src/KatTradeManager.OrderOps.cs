@@ -1,4 +1,4 @@
-/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.81 (2026-07-28) */
+/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.82 (2026-07-28) */
 
 using System;
 using System.Collections.Generic;
@@ -10,6 +10,321 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class KatTradeManager
 	{
 		#region Order Execution & Trading Operations
+		private enum AccountOperationType
+		{
+			Submit,
+			Change,
+			Cancel
+		}
+
+		private sealed class AccountOperationRequest
+		{
+			public AccountOperationType Type;
+			public Order[] Orders;
+			public string Reason;
+			public readonly List<Action> Completions = new List<Action>();
+			public Action ExecuteOverride;
+			public volatile bool CallReturned;
+		}
+
+		private readonly object accountOperationLock = new object();
+		private readonly Queue<AccountOperationRequest> accountOperationQueue = new Queue<AccountOperationRequest>();
+		private AccountOperationRequest activeAccountOperation;
+		private int accountOperationPumpScheduled;
+		private int closeOperationQueued;
+
+		private static bool IsAccountOperationPending(OrderState state)
+		{
+			return state == OrderState.Submitted
+				|| state == OrderState.ChangePending
+				|| state == OrderState.ChangeSubmitted
+				|| state == OrderState.CancelPending
+				|| state == OrderState.CancelSubmitted;
+		}
+
+		private static bool IsAccountOperationTerminal(OrderState state)
+		{
+			return state == OrderState.Filled
+				|| state == OrderState.Cancelled
+				|| state == OrderState.Rejected;
+		}
+
+		private static bool IsAccountOperationEligible(AccountOperationType type, Order order)
+		{
+			if (order == null || IsAccountOperationTerminal(order.OrderState))
+				return false;
+
+			switch (type)
+			{
+				case AccountOperationType.Submit:
+					return order.OrderState == OrderState.Initialized;
+				case AccountOperationType.Change:
+					return order.OrderState == OrderState.Accepted
+						|| order.OrderState == OrderState.AcceptedByRisk
+						|| order.OrderState == OrderState.Working
+						|| order.OrderState == OrderState.TriggerPending
+						|| order.OrderState == OrderState.PartFilled
+						|| order.OrderState == OrderState.Suspended;
+				case AccountOperationType.Cancel:
+					return order.OrderState == OrderState.Initialized
+						|| order.OrderState == OrderState.Submitted
+						|| order.OrderState == OrderState.Accepted
+						|| order.OrderState == OrderState.AcceptedByRisk
+						|| order.OrderState == OrderState.Working
+						|| order.OrderState == OrderState.TriggerPending
+						|| order.OrderState == OrderState.PartFilled
+						|| order.OrderState == OrderState.Suspended;
+				default:
+					return false;
+			}
+		}
+
+		private static bool SameOrder(Order left, Order right)
+		{
+			if (ReferenceEquals(left, right)) return true;
+			if (left == null || right == null) return false;
+			return !string.IsNullOrEmpty(left.OrderId)
+				&& string.Equals(left.OrderId, right.OrderId, StringComparison.Ordinal);
+		}
+
+		private static bool OperationsOverlap(AccountOperationRequest request, Order[] orders)
+		{
+			return request != null
+				&& request.Orders != null
+				&& orders != null
+				&& request.Orders.Any(existing => orders.Any(order => SameOrder(existing, order)));
+		}
+
+		private AccountOperationRequest FindOverlappingOperationLocked(Order[] orders)
+		{
+			if (OperationsOverlap(activeAccountOperation, orders))
+				return activeAccountOperation;
+			return accountOperationQueue.FirstOrDefault(request => OperationsOverlap(request, orders));
+		}
+
+		private void LogAccountOperation(string eventName, AccountOperationRequest request, Order[] orders = null)
+		{
+			Order[] observed = orders ?? (request != null ? request.Orders : null);
+			string ids = observed == null
+				? string.Empty
+				: string.Join(",", observed.Where(order => order != null).Select(order => string.Format(
+					"{0}/{1}/{2}",
+					order.OrderId ?? string.Empty,
+					order.Oco ?? string.Empty,
+					order.Quantity)));
+			Print(string.Format(
+				"[KatTradeManager] Account operation {0}: type={1} reason={2} orders={3}",
+				eventName,
+				request != null ? request.Type.ToString() : string.Empty,
+				request != null ? request.Reason : string.Empty,
+				ids));
+		}
+
+		private void ScheduleAccountOperationPump()
+		{
+			if (account == null) return;
+			if (System.Threading.Interlocked.CompareExchange(ref accountOperationPumpScheduled, 1, 0) != 0)
+				return;
+
+			Action pump = () =>
+			{
+				try
+				{
+					PumpAccountOperationQueue();
+				}
+				finally
+				{
+					System.Threading.Interlocked.Exchange(ref accountOperationPumpScheduled, 0);
+				}
+			};
+
+			try
+			{
+				if (ChartControl != null && ChartControl.Dispatcher != null)
+					ChartControl.Dispatcher.BeginInvoke(pump);
+				else
+					pump();
+			}
+			catch
+			{
+				System.Threading.Interlocked.Exchange(ref accountOperationPumpScheduled, 0);
+			}
+		}
+
+		private void CompleteAccountOperation(AccountOperationRequest request)
+		{
+			List<Action> completions = null;
+			lock (accountOperationLock)
+			{
+				if (!ReferenceEquals(activeAccountOperation, request))
+					return;
+				activeAccountOperation = null;
+				completions = request.Completions.ToList();
+			}
+
+			LogAccountOperation("released", request);
+			foreach (Action completion in completions)
+			{
+				try { completion?.Invoke(); }
+				catch (Exception ex)
+				{
+					Print(string.Format("[KatTradeManager] Account operation continuation failed: {0}", ex.Message));
+				}
+			}
+			ScheduleAccountOperationPump();
+		}
+
+		private bool IsAccountOperationSettled(AccountOperationRequest request)
+		{
+			if (request == null || !request.CallReturned || request.Orders == null || request.Orders.Length == 0)
+				return false;
+
+			foreach (Order order in request.Orders)
+			{
+				if (order == null) continue;
+				if (request.Type == AccountOperationType.Submit
+					&& (order.OrderState == OrderState.Initialized || order.OrderState == OrderState.Submitted))
+					return false;
+				if ((request.Type == AccountOperationType.Change || request.Type == AccountOperationType.Cancel)
+					&& IsAccountOperationPending(order.OrderState))
+					return false;
+			}
+			return true;
+		}
+
+		private void TryCompleteActiveAccountOperation()
+		{
+			AccountOperationRequest request;
+			lock (accountOperationLock)
+				request = activeAccountOperation;
+			if (request != null && IsAccountOperationSettled(request))
+				CompleteAccountOperation(request);
+		}
+
+		private void QueueAccountOperation(
+			AccountOperationType type,
+			IEnumerable<Order> orders,
+			string reason,
+			Action completion = null,
+			Action executeOverride = null)
+		{
+			Order[] requested = (orders ?? Enumerable.Empty<Order>())
+				.Where(order => order != null)
+				.Distinct()
+				.ToArray();
+			if (requested.Length == 0)
+			{
+				completion?.Invoke();
+				return;
+			}
+
+			AccountOperationRequest request = new AccountOperationRequest
+			{
+				Type = type,
+				Orders = requested,
+				Reason = reason
+			};
+			if (completion != null)
+				request.Completions.Add(completion);
+			request.ExecuteOverride = executeOverride;
+
+			lock (accountOperationLock)
+			{
+				AccountOperationRequest overlap = FindOverlappingOperationLocked(requested);
+				if (overlap != null)
+				{
+					if (overlap.Type == type)
+					{
+						if (completion != null)
+							overlap.Completions.Add(completion);
+					}
+					else
+						overlap.Completions.Add(() => QueueAccountOperation(type, requested, reason, completion, executeOverride));
+					LogAccountOperation("coalesced", request, requested);
+					return;
+				}
+				accountOperationQueue.Enqueue(request);
+			}
+
+			LogAccountOperation("queued", request);
+			ScheduleAccountOperationPump();
+		}
+
+		private void PumpAccountOperationQueue()
+		{
+			TryCompleteActiveAccountOperation();
+
+			AccountOperationRequest request;
+			Order[] dispatchOrders;
+			lock (accountOperationLock)
+			{
+				if (activeAccountOperation != null || accountOperationQueue.Count == 0)
+					return;
+
+				request = accountOperationQueue.Peek();
+				dispatchOrders = request.Orders
+					.Where(order => IsAccountOperationEligible(request.Type, order))
+					.ToArray();
+
+				if (dispatchOrders.Length == 0)
+				{
+					bool waitingForPlatform = request.Orders.Any(order => order != null && IsAccountOperationPending(order.OrderState));
+					if (waitingForPlatform)
+						return;
+					accountOperationQueue.Dequeue();
+				}
+				else
+				{
+					accountOperationQueue.Dequeue();
+					request.Orders = dispatchOrders;
+					request.CallReturned = false;
+					activeAccountOperation = request;
+				}
+			}
+
+			if (dispatchOrders.Length == 0)
+			{
+				LogAccountOperation("skipped", request);
+				foreach (Action completion in request.Completions)
+					completion?.Invoke();
+				ScheduleAccountOperationPump();
+				return;
+			}
+
+			LogAccountOperation("dispatch", request);
+			try
+			{
+				if (request.ExecuteOverride != null)
+					request.ExecuteOverride();
+				else if (request.Type == AccountOperationType.Submit)
+					account.Submit(dispatchOrders);
+				else if (request.Type == AccountOperationType.Change)
+					account.Change(dispatchOrders);
+				else
+					account.Cancel(dispatchOrders);
+			}
+			catch (Exception ex)
+			{
+				Print(string.Format("[KatTradeManager] Account operation failed: type={0} reason={1} error={2}",
+					request.Type, request.Reason, ex));
+				CompleteAccountOperation(request);
+				return;
+			}
+
+			request.CallReturned = true;
+			TryCompleteActiveAccountOperation();
+		}
+
+		private void ResetAccountOperationQueue()
+		{
+			lock (accountOperationLock)
+			{
+				accountOperationQueue.Clear();
+				activeAccountOperation = null;
+			}
+			System.Threading.Interlocked.Exchange(ref accountOperationPumpScheduled, 0);
+			System.Threading.Interlocked.Exchange(ref closeOperationQueued, 0);
+		}
 		private static KatOrderAction ToKatAction(OrderAction action) => action == OrderAction.Buy ? KatOrderAction.Buy : KatOrderAction.Sell;
 		private static OrderType ToNtOrderType(KatOrderType type) => type == KatOrderType.StopMarket ? OrderType.StopMarket : OrderType.Limit;
 		private bool HasAtmTemplate(string templateName)
@@ -38,12 +353,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 					if (cachedIsAtmMerge && TryPrepareAtmScaleIn(order))
 					{
 						TrackAtmScaleIn(order);
-						account.Submit(new[] { order });
+						QueueAccountOperation(AccountOperationType.Submit, new[] { order }, "ATM MERGE scale-in submit");
 						Print(string.Format("[KatTradeManager] ATM MERGE scale-in submitted: name={0} type={1} state={2}",
 							order.Name, order.OrderType, order.OrderState));
 						return true;
 					}
-					NinjaTrader.NinjaScript.AtmStrategy.StartAtmStrategy(tpl, order);
+					QueueAccountOperation(
+						AccountOperationType.Submit,
+						new[] { order },
+						"ATM start",
+						executeOverride: () => NinjaTrader.NinjaScript.AtmStrategy.StartAtmStrategy(tpl, order));
 					Print(string.Format("[KatTradeManager] ATM start requested: template={0} name={1} state={2}",
 						tpl, order.Name, order.OrderState));
 					return true;
@@ -51,7 +370,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (!string.IsNullOrEmpty(tpl))
 					Print(string.Format("[KatTradeManager] ATM template '{0}' not found — submitting order WITHOUT ATM strategy", tpl));
 
-				account.Submit(new[] { order });
+				QueueAccountOperation(AccountOperationType.Submit, new[] { order }, "native submit");
 				Print(string.Format("[KatTradeManager] Native submit requested: name={0} type={1} state={2}",
 					order.Name, order.OrderType, order.OrderState));
 				return true;
@@ -189,7 +508,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{
 					if (candidates.Count > 0)
 					{
-						account.Cancel(candidates.ToArray());
+						QueueAccountOperation(AccountOperationType.Cancel, candidates, "ATM MERGE flat cleanup");
 						Print(string.Format("[KatTradeManager] ATM MERGE flat cleanup: removed={0}", candidates.Count));
 					}
 					ResetAtmScaleInTracking();
@@ -203,7 +522,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					.Where(o => !IsAtmExitAction(o.OrderAction, position.MarketPosition))
 					.ToList();
 				if (staleOppositeBrackets.Count > 0)
-					account.Cancel(staleOppositeBrackets.ToArray());
+					QueueAccountOperation(AccountOperationType.Cancel, staleOppositeBrackets, "ATM MERGE stale opposite cleanup");
 				List<Order> stops = brackets
 					.Where(o => o.OrderType == OrderType.StopMarket || o.OrderType == OrderType.StopLimit)
 					.ToList();
@@ -241,14 +560,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 					changes.Add(targetAnchor);
 				}
 				if (changes.Count > 0)
-					account.Change(changes.ToArray());
+					QueueAccountOperation(AccountOperationType.Change, changes, "ATM MERGE canonical quantity");
 
 				Order[] duplicates = stops
 					.Where(o => o != stopAnchor)
 					.Concat(targets.Where(o => o != targetAnchor))
 					.ToArray();
 				if (duplicates.Length > 0)
-					account.Cancel(duplicates);
+					QueueAccountOperation(AccountOperationType.Cancel, duplicates, "ATM MERGE duplicate cleanup");
 				int removedCount = duplicates.Length + staleOppositeBrackets.Count;
 				if (changes.Count > 0 || removedCount > 0)
 				{
@@ -368,7 +687,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			if (changes.Count == 0) return;
 
-			account.Change(changes.ToArray());
+			QueueAccountOperation(AccountOperationType.Change, changes, "ATM MERGE scale-in resize");
 			Print(string.Format("[KatTradeManager] ATM MERGE bracket resized: fillDelta={0} stop={1} target={2}",
 				fillDelta,
 				changes.Any(o => o.OrderType == OrderType.StopMarket || o.OrderType == OrderType.StopLimit),
@@ -736,6 +1055,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private bool IsCloseInFlight()
 		{
 			if (account == null || Instrument == null) return false;
+			if (System.Threading.Volatile.Read(ref closeOperationQueued) != 0)
+				return true;
 			try
 			{
 				return account.Orders.Any(o => o.Instrument == Instrument && o.Name == CloseOrderName
@@ -782,12 +1103,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 				subscribedAccount.OrderUpdate -= OnAccountOrderUpdate;
 			subscribedAccount = null;
 			ResetAtmScaleInTracking();
+			ResetAccountOperationQueue();
 		}
 
 		private void OnAccountOrderUpdate(object sender, OrderEventArgs e)
 		{
 			Order observed = e != null ? e.Order : null;
-			if (observed == null || Instrument == null || observed.Instrument != Instrument)
+			if (observed == null)
+				return;
+			TryCompleteActiveAccountOperation();
+			if (Instrument == null || observed.Instrument != Instrument)
 				return;
 
 			if (cachedIsAtmMerge
@@ -821,7 +1146,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 
 			if (observed.Name == CloseOrderName && IsTerminalOrderState(observed.OrderState))
+			{
+				System.Threading.Interlocked.Exchange(ref closeOperationQueued, 0);
 				SchedulePendingRevertRetry();
+			}
 			ProcessAtmScaleInUpdate(observed);
 			ScheduleAtmBracketMerge();
 		}
@@ -836,16 +1164,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		// ponytail: intentionally ACCOUNT-WIDE (no Instrument filter) — matches "Close/flatten" and
 		// account-level daily-risk semantics. Every other order query in this class is Instrument-scoped.
-		private void CancelAllOrders()
+		private void CancelAllOrders(Action afterCancel = null)
 		{
 			if (account == null) return;
 			try
 			{
-				// Never cancel our own close order — a just-submitted close can already be Accepted here
+				// Never cancel our own close order — a just-submitted close can already be Accepted here.
 				var workingOrders = account.Orders.Where(o => o.Name != CloseOrderName
-					&& (o.OrderState == OrderState.Working || o.OrderState == OrderState.Accepted)).ToArray();
-				if (workingOrders.Length > 0)
-					account.Cancel(workingOrders);
+					&& IsActiveOrderState(o.OrderState)).ToArray();
+				QueueAccountOperation(AccountOperationType.Cancel, workingOrders, "close/flatten cancellation", afterCancel);
 				entryOrder = null;
 				pendingRemoveLines = true; // ponytail: single removal path — OnBarUpdate (data thread) executes it
 			}
@@ -855,6 +1182,50 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 		}
 
+		private void SubmitQueuedClose()
+		{
+			if (account == null || Instrument == null)
+			{
+				System.Threading.Interlocked.Exchange(ref closeOperationQueued, 0);
+				return;
+			}
+
+			try
+			{
+				Position pos = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
+				if (pos == null || pos.MarketPosition == MarketPosition.Flat)
+				{
+					System.Threading.Interlocked.Exchange(ref closeOperationQueued, 0);
+					return;
+				}
+
+				OrderAction action = pos.MarketPosition == MarketPosition.Long ? OrderAction.Sell : OrderAction.BuyToCover;
+				Order closeOrder = account.CreateOrder(Instrument, action, OrderType.Market, OrderEntry.Manual, TimeInForce.Gtc, pos.Quantity, 0, 0, "", CloseOrderName, NinjaTrader.Core.Globals.MaxDate, null);
+				if (closeOrder == null)
+				{
+					System.Threading.Interlocked.Exchange(ref closeOperationQueued, 0);
+					Print("[KatTradeManager] Close order creation returned null.");
+					return;
+				}
+
+				QueueAccountOperation(
+					AccountOperationType.Submit,
+					new[] { closeOrder },
+					"close/flatten submit",
+					completion: () =>
+					{
+						if (IsTerminalOrderState(closeOrder.OrderState))
+							System.Threading.Interlocked.Exchange(ref closeOperationQueued, 0);
+					});
+				Print(string.Format("[KatTradeManager] Close submit queued: action={0} qty={1} state={2}",
+					action, pos.Quantity, closeOrder.OrderState));
+			}
+			catch (Exception ex)
+			{
+				System.Threading.Interlocked.Exchange(ref closeOperationQueued, 0);
+				Print(string.Format("[KatTradeManager] Error queuing close position: {0}", ex));
+			}
+		}
 		private void ClosePosition()
 		{
 			if (account == null || Instrument == null)
@@ -864,9 +1235,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			try
 			{
-				CancelAllOrders();
-
-				if (IsCloseInFlight())
+				if (System.Threading.Volatile.Read(ref closeOperationQueued) != 0 || IsCloseInFlight())
 				{
 					Print("[KatTradeManager] Close already in flight — duplicate close ignored");
 					return;
@@ -875,20 +1244,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Position pos = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
 				if (pos != null && pos.MarketPosition != MarketPosition.Flat)
 				{
-					OrderAction action = pos.MarketPosition == MarketPosition.Long ? OrderAction.Sell : OrderAction.BuyToCover;
-					Order closeOrder = account.CreateOrder(Instrument, action, OrderType.Market, OrderEntry.Manual, TimeInForce.Gtc, pos.Quantity, 0, 0, "", CloseOrderName, NinjaTrader.Core.Globals.MaxDate, null);
-					if (closeOrder != null)
-					{
-						account.Submit(new[] { closeOrder });
-						Print(string.Format("[KatTradeManager] Close submit requested: action={0} qty={1} state={2}",
-							action, pos.Quantity, closeOrder.OrderState));
-					}
-					else
-						Print("[KatTradeManager] Close order creation returned null.");
+					if (System.Threading.Interlocked.CompareExchange(ref closeOperationQueued, 1, 0) != 0)
+						return;
+					CancelAllOrders(SubmitQueuedClose);
+					Print(string.Format("[KatTradeManager] Close sequence queued: qty={0}", pos.Quantity));
 				}
 			}
 			catch (Exception ex)
 			{
+				System.Threading.Interlocked.Exchange(ref closeOperationQueued, 0);
 				Print(string.Format("[KatTradeManager] Error closing position: {0}", ex.ToString()));
 			}
 		}
@@ -996,10 +1360,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (workingStops.Count > 0)
 				{
 					foreach (Order stopOrder in workingStops)
-					{
 						stopOrder.StopPriceChanged = bePrice;
-						account.Change(new[] { stopOrder });
-					}
+					QueueAccountOperation(AccountOperationType.Change, workingStops, "breakeven stop change");
 					Print(string.Format("[KatTradeManager] Moved {0} Stop Loss order(s) to Breakeven @ {1} (Buffer: {2} ticks)", workingStops.Count, bePrice, bufferTicks));
 					ShowHudStatus(string.Format("BE stop moved @ {0}", bePrice), System.Windows.Media.Brushes.LightGreen);
 				}
@@ -1009,7 +1371,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					Order slOrder = account.CreateOrder(Instrument, slAction, OrderType.StopMarket, OrderEntry.Manual, TimeInForce.Gtc, pos.Quantity, 0, bePrice, "", "KAT_SL_BE", NinjaTrader.Core.Globals.MaxDate, null);
 					if (slOrder != null)
 					{
-						account.Submit(new[] { slOrder });
+						QueueAccountOperation(AccountOperationType.Submit, new[] { slOrder }, "breakeven stop submit");
 						Print(string.Format("[KatTradeManager] Submitted Breakeven Stop Loss @ {0} (Buffer: {1} ticks)", bePrice, bufferTicks));
 						ShowHudStatus(string.Format("BE stop submitted @ {0}", bePrice), System.Windows.Media.Brushes.LightGreen);
 					}
@@ -1189,11 +1551,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 					return;
 				}
 
+				List<Order> changes = new List<Order>();
 				foreach (Order stopOrder in workingStops)
 				{
 					if (Math.Abs(stopOrder.StopPrice - frozenStopPrice) > 0.000001)
 					{
-						lastFreezeEnforceTime = DateTime.Now;
 						stopOrder.StopPriceChanged = frozenStopPrice;
 						// StopLimit must move its limit with the stop, else the trailed limit is left behind
 						// and can invert the stop/limit relationship -> rejected or unsafe protective order.
@@ -1203,9 +1565,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 							stopOrder.LimitPriceChanged = KatTradeCalculator.CalculateFrozenStopLimitPrice(
 								pos.MarketPosition == MarketPosition.Long, frozenStopPrice, stopOrder.StopPrice, stopOrder.LimitPrice, tickSize);
 						}
-						account.Change(new[] { stopOrder });
-						Print(string.Format("[KatTradeManager] Trailing movement overridden — SL restored to frozen price {0}", frozenStopPrice));
+						changes.Add(stopOrder);
 					}
+				}
+				if (changes.Count > 0)
+				{
+					lastFreezeEnforceTime = DateTime.Now;
+					QueueAccountOperation(AccountOperationType.Change, changes, "freeze trail stop restoration");
+					Print(string.Format("[KatTradeManager] Trailing movement overridden — {0} SL order(s) restored to frozen price {1}", changes.Count, frozenStopPrice));
 				}
 			}
 			catch (Exception ex)
@@ -1370,6 +1737,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 				if (workingStops.Count > 0)
 				{
+					List<Order> changes = new List<Order>();
 					foreach (Order stopOrder in workingStops)
 					{
 						double limitOffset = stopOrder.OrderType == OrderType.StopLimit
@@ -1385,8 +1753,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 								? targetPrice - limitOffset
 								: targetPrice + limitOffset;
 						}
-						account.Change(new[] { stopOrder });
+						changes.Add(stopOrder);
 					}
+					QueueAccountOperation(AccountOperationType.Change, changes, "swing stop change");
 					Print(string.Format("[KatTradeManager] Shifted Stop Loss to Swing @ {0} (Step {1}/{2})", targetPrice, currentSlHistoryIndex, slMoveHistory.Count - 1));
 				}
 				else
@@ -1394,7 +1763,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					OrderAction slAction = pos.MarketPosition == MarketPosition.Long ? OrderAction.Sell : OrderAction.BuyToCover;
 					Order slOrder = account.CreateOrder(Instrument, slAction, OrderType.StopMarket, OrderEntry.Manual, TimeInForce.Gtc, pos.Quantity, 0, targetPrice, "", "KAT_SL_SWING", NinjaTrader.Core.Globals.MaxDate, null);
 					if (slOrder != null)
-						account.Submit(new[] { slOrder });
+						QueueAccountOperation(AccountOperationType.Submit, new[] { slOrder }, "swing stop submit");
 					Print(string.Format("[KatTradeManager] Submitted Swing Stop Loss @ {0}", targetPrice));
 				}
 			}

@@ -23,6 +23,19 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v0.82] — 2026-07-28
+- **Serialized account-operation gate**:
+  - Added FIFO `Submit` / `Change` / `Cancel` queue with one active account mutation at a time.
+  - Dispatcher-safe pump retries pending platform states and releases operations after state settlement.
+  - Overlapping order/OCO requests coalesce or defer instead of mutating the same order concurrently.
+  - Added operation diagnostics with type, reason, order ID, OCO, and quantity.
+- **Close/flatten sequencing**:
+  - Close now queues cancellation first, then creates/submits fresh close order only after cancellation settles.
+  - Duplicate Close/Revert attempts remain blocked while cancellation or close submission is queued.
+- **Mutation path coverage**:
+  - ATM MERGE, scale-in resize, BE, Freeze Trail, Swing SL, native/ATM entries, manual SL submits, and daily-risk flatten now use gate.
+- **Validation**: 188/188 tests passing; CompileCheck succeeded with 0 errors (132 existing warnings).
+- **Graphify entity mapping**: `KatTradeManager.QueueAccountOperation`, `KatTradeManager.PumpAccountOperationQueue`, `KatTradeManager.CompleteAccountOperation`, `KatTradeManager.SubmitQueuedClose`, `KatTradeManager.OnAccountOrderUpdate`, `KatTradeManagerUI.OnPanelWatchdogTick`.
 ### [v0.81] — 2026-07-28
 - **Freeze Trail StopLimit synchronization**:
   - Added `KatTradeCalculator.CalculateFrozenStopLimitPrice` to preserve existing Stop-to-Limit offset when restoring a frozen protective StopLimit.

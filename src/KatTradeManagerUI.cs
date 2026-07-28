@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.81 (2026-07-28) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.82 (2026-07-28) */
 
 using System;
 using System.Collections.Generic;
@@ -86,6 +86,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 					Print(string.Format("[KatTradeManager] Account auto-recovered by watchdog: {0}", account.Name));
 			}
 			EnsureAccountEventSubscription();
+			// Pump serialized account mutations; pending broker states are revisited on each watchdog tick.
+			ScheduleAccountOperationPump();
 
 			AttachHotkeyHandler();
 
