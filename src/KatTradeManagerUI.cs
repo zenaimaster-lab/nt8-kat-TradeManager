@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.79 (2026-07-28) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.80 (2026-07-28) */
 
 using System;
 using System.Collections.Generic;
@@ -35,8 +35,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private double hudDragStartLeft;
 		private double hudDragStartTop;
 		private IInputElement hudDragCoordinateHost;
+		private UIElement hudDragEventHost;
 		private bool isHudDragging;
-		private const double DefaultHudLeft = 50;
+		private const double DefaultHudLeft = 10;
 
 		private void StartPanelWatchdog()
 		{
@@ -48,6 +49,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 			};
 			panelWatchdog.Tick += OnPanelWatchdogTick;
 			panelWatchdog.Start();
+		}
+
+		private double GetHudLeftInset()
+		{
+			return Math.Max(0, cachedHudLeftInset);
 		}
 
 		private void StopPanelWatchdog()
@@ -119,6 +125,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 			cachedBufferTicks = DefaultBufferTicks;
 			cachedDistanceTicks = DefaultDistanceTicks;
 			cachedPartialPercent = DefaultPartialCandlePercent > 0 ? DefaultPartialCandlePercent : 30;
+			cachedHudLeftInset = Math.Max(0, HudLeftInset);
+			bool wasHudDragEnabled = cachedHudDragEnabled;
+			cachedHudDragEnabled = HudDragEnabled;
+			if (wasHudDragEnabled && !cachedHudDragEnabled && isHudDragging)
+				StopHudDrag();
 		}
 
 		// ponytail: uses visual tree type name matching for ChartTraderControl; fallback to chart grid if hidden
@@ -307,7 +318,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private void OnHudPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
 		{
-			if (isHudDragging) return;
+			if (!cachedHudDragEnabled || isHudDragging) return;
 
 			DependencyObject source = e.OriginalSource as DependencyObject ?? e.Source as DependencyObject;
 			if (!IsHudDragSource(source)) return;
@@ -349,7 +360,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private void OnHudPreviewMouseMove(object sender, MouseEventArgs e)
 		{
-			if (!isHudDragging || panelBorder == null) return;
+			if (!cachedHudDragEnabled || !isHudDragging || panelBorder == null) return;
 			if (e.LeftButton != MouseButtonState.Pressed)
 			{
 				StopHudDrag();
@@ -394,7 +405,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private void OnHudPreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
 		{
-			if (!isHudDragging) return;
+			if (!cachedHudDragEnabled || !isHudDragging) return;
 			StopHudDrag();
 			e.Handled = true;
 		}
@@ -411,6 +422,50 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			isHudDragging = false;
 			hudDragCoordinateHost = null;
+		}
+
+		private void AttachHudDragHandlers(UIElement eventHost)
+		{
+			if (panelBorder == null) return;
+
+			MouseButtonEventHandler down = OnHudPreviewMouseLeftButtonDown;
+			MouseEventHandler move = OnHudPreviewMouseMove;
+			MouseButtonEventHandler up = OnHudPreviewMouseLeftButtonUp;
+
+			panelBorder.AddHandler(UIElement.PreviewMouseLeftButtonDownEvent, down, true);
+			panelBorder.AddHandler(UIElement.PreviewMouseMoveEvent, move, true);
+			panelBorder.AddHandler(UIElement.PreviewMouseLeftButtonUpEvent, up, true);
+			panelBorder.LostMouseCapture += OnHudLostMouseCapture;
+
+			if (eventHost != null && !ReferenceEquals(eventHost, panelBorder))
+			{
+				eventHost.AddHandler(UIElement.PreviewMouseLeftButtonDownEvent, down, true);
+				eventHost.AddHandler(UIElement.PreviewMouseMoveEvent, move, true);
+				eventHost.AddHandler(UIElement.PreviewMouseLeftButtonUpEvent, up, true);
+				hudDragEventHost = eventHost;
+			}
+		}
+
+		private void DetachHudDragHandlers()
+		{
+			if (panelBorder == null) return;
+
+			MouseButtonEventHandler down = OnHudPreviewMouseLeftButtonDown;
+			MouseEventHandler move = OnHudPreviewMouseMove;
+			MouseButtonEventHandler up = OnHudPreviewMouseLeftButtonUp;
+
+			panelBorder.RemoveHandler(UIElement.PreviewMouseLeftButtonDownEvent, down);
+			panelBorder.RemoveHandler(UIElement.PreviewMouseMoveEvent, move);
+			panelBorder.RemoveHandler(UIElement.PreviewMouseLeftButtonUpEvent, up);
+			panelBorder.LostMouseCapture -= OnHudLostMouseCapture;
+
+			if (hudDragEventHost != null)
+			{
+				hudDragEventHost.RemoveHandler(UIElement.PreviewMouseLeftButtonDownEvent, down);
+				hudDragEventHost.RemoveHandler(UIElement.PreviewMouseMoveEvent, move);
+				hudDragEventHost.RemoveHandler(UIElement.PreviewMouseLeftButtonUpEvent, up);
+				hudDragEventHost = null;
+			}
 		}
 
 		private bool IsPanelAttached()
@@ -465,8 +520,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 					panelBorder.VerticalAlignment = hasHudDragPosition ? VerticalAlignment.Top : VerticalAlignment.Bottom;
 					panelBorder.Margin = hasHudDragPosition
 						? new Thickness(hudDragLeft, hudDragTop, 0, 0)
-						: new Thickness(0, 0, 0, 0);
-					panelBorder.Cursor = Cursors.SizeAll;
+						: new Thickness(GetHudLeftInset(), 0, 0, 0);
+					panelBorder.Cursor = cachedHudDragEnabled ? Cursors.SizeAll : Cursors.Arrow;
 					System.Windows.Controls.Panel.SetZIndex(panelBorder, 99999);
 
 					if (ctControl is FrameworkElement ctFe)
@@ -504,9 +559,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 				panelBorder.VerticalAlignment = VerticalAlignment.Top;
 				panelBorder.Margin = new Thickness(0);
 
-				panelBorder.Cursor = Cursors.SizeAll;
+				panelBorder.Cursor = cachedHudDragEnabled ? Cursors.SizeAll : Cursors.Arrow;
 				hudCanvas.Children.Add(panelBorder);
-				double dragStartLeft = hasHudDragPosition ? hudDragLeft : DefaultHudLeft;
+				double dragStartLeft = hasHudDragPosition ? hudDragLeft : GetHudLeftInset();
 				double dragStartTop = hasHudDragPosition ? hudDragTop : 10;
 				Canvas.SetLeft(panelBorder, dragStartLeft);
 				Canvas.SetTop(panelBorder, hasHudDragPosition
@@ -521,15 +576,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			}
 
-			// Attach once to Border for both InChart and ChartTrader. Capturing Border
-			// avoids losing move/up events when WPF routes through nested controls.
-			panelBorder.AddHandler(UIElement.PreviewMouseLeftButtonDownEvent,
-				new MouseButtonEventHandler(OnHudPreviewMouseLeftButtonDown), true);
-			panelBorder.AddHandler(UIElement.PreviewMouseMoveEvent,
-				new MouseEventHandler(OnHudPreviewMouseMove), true);
-			panelBorder.AddHandler(UIElement.PreviewMouseLeftButtonUpEvent,
-				new MouseButtonEventHandler(OnHudPreviewMouseLeftButtonUp), true);
-			panelBorder.LostMouseCapture += OnHudLostMouseCapture;
+			// Register on Border and its actual host. ChartTrader can route input through
+			// a host grid instead of the panel Border; handledEventsToo keeps controls clickable.
+			AttachHudDragHandlers(
+				hudCanvas as UIElement
+				?? panelBorder.Parent as UIElement
+				?? chartGrid as UIElement);
 			mainPanel = new StackPanel();
 
 			// --- SECTION 1: Parameters & ATM Selection ---
@@ -1107,6 +1159,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			if (panelBorder != null)
 			{
+				DetachHudDragHandlers();
 				DetachFromParent(panelBorder);
 				panelBorder = null;
 			}

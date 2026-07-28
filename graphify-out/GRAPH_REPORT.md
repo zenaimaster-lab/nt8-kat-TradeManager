@@ -1,16 +1,16 @@
 # Graph Report - nt8-kat-TradeManager  (2026-07-28)
 
 ## Corpus Check
-- 26 files · ~32,638 words
+- 26 files · ~33,001 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 380 nodes · 583 edges · 26 communities (11 shown, 15 thin omitted)
+- 384 nodes · 591 edges · 26 communities (11 shown, 15 thin omitted)
 - Extraction: 89% EXTRACTED · 11% INFERRED · 0% AMBIGUOUS · INFERRED: 66 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `2a97204c`
+- Built from commit: `231122c5`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -38,8 +38,8 @@
 ## God Nodes (most connected - your core abstractions)
 1. `KatTradeManager` - 55 edges
 2. `KatTradeManager` - 49 edges
-3. `KatCalculatorGapTests` - 44 edges
-4. `KatTradeManager` - 40 edges
+3. `KatTradeManager` - 44 edges
+4. `KatCalculatorGapTests` - 44 edges
 5. `KatTradeCalculator` - 25 edges
 6. `KatOrderLifecycleTests` - 22 edges
 7. `KatAccountFilterSwingSessionTests` - 20 edges
@@ -48,11 +48,11 @@
 10. `StressAndEdgeCaseTests` - 12 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `KatTradeManager` --references--> `string`  [EXTRACTED]
+  KatTradeManager.cs → src/KatTradeManagerUI.cs
 - `KatTradeManager` --references--> `DispatcherTimer`  [EXTRACTED]
   KatTradeManager.cs → src/KatTradeManagerUI.cs
 - `KatTradeManager` --references--> `bool`  [EXTRACTED]
-  KatTradeManager.cs → src/KatTradeManagerUI.cs
-- `KatTradeManager` --references--> `string`  [EXTRACTED]
   KatTradeManager.cs → src/KatTradeManagerUI.cs
 - `KatTradeManager` --references--> `DateTime`  [EXTRACTED]
   KatTradeManager.cs → src/KatTradeManager.OrderOps.cs
@@ -62,12 +62,12 @@
 ## Communities (26 total, 15 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.09
-Nodes (18): Account, AtmLevels, Border, ComboBox, DateTime, double, Grid, Indicator (+10 more)
+Cohesion: 0.08
+Nodes (20): Account, AtmLevels, bool, Border, ComboBox, DateTime, DispatcherTimer, double (+12 more)
 
 ### Community 3 - "Community 3"
 Cohesion: 0.08
-Nodes (11): bool, Brush, Canvas, DispatcherTimer, EMA, IInputElement, Point, KatTradeManager (+3 more)
+Nodes (10): Brush, Canvas, EMA, IInputElement, Point, KatTradeManager, NinjaTrader.NinjaScript.Indicators, TextBlock (+2 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.09
@@ -78,7 +78,7 @@ Cohesion: 0.38
 Nodes (3): AtmTemplateData, KatAtmXmlParser, NinjaTrader.NinjaScript.Indicators
 
 ## Knowledge Gaps
-- **35 isolated node(s):** `NinjaTrader.NinjaScript.Indicators`, `Account`, `Grid`, `Border`, `StackPanel` (+30 more)
+- **36 isolated node(s):** `NinjaTrader.NinjaScript.Indicators`, `Account`, `Grid`, `Border`, `StackPanel` (+31 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **15 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -90,12 +90,12 @@ _Questions this graph is uniquely positioned to answer:_
 - **Why does `KatTradeManager` connect `Community 0` to `Community 3`, `Community 4`?**
   _High betweenness centrality (0.062) - this node is a cross-community bridge._
 - **Why does `string` connect `Community 4` to `Community 0`, `Community 1`, `Community 3`?**
-  _High betweenness centrality (0.060) - this node is a cross-community bridge._
+  _High betweenness centrality (0.061) - this node is a cross-community bridge._
 - **What connects `NinjaTrader.NinjaScript.Indicators`, `Account`, `Grid` to the rest of the system?**
-  _35 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _36 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.09 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.1 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.11 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
   _Cohesion score 0.04 - nodes in this community are weakly interconnected._

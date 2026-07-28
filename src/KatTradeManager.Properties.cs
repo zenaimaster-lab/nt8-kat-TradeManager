@@ -1,4 +1,4 @@
-/* KatTradeManager.Properties.cs - NinjaScript property definitions (partial class) v0.79 (2026-07-28) */
+/* KatTradeManager.Properties.cs - NinjaScript property definitions (partial class) v0.80 (2026-07-28) */
 
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -17,6 +17,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[NinjaScriptProperty]
 		[Display(Name="HUD Location", Order=0, GroupName="Parameters", Description="Select where to display HUD: ChartTrader (right-side panel) or InChart (chart overlay)")]
 		public KatHudLocation PanelLocation { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0, 2000)]
+		[Display(Name="HUD Left Inset (px)", Order=0, GroupName="HUD", Description="Default left inset for a fresh HUD position. Dragged positions are preserved.")]
+		public int HudLeftInset { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="HUD Drag Enabled", Order=1, GroupName="HUD", Description="Allow dragging HUD background. Controls remain clickable.")]
+		public bool HudDragEnabled { get; set; }
 
 		[NinjaScriptProperty]
 		[Range(1, 100)]

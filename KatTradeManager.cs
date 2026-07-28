@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 0.79 (2026-07-28)
+ * Version: 0.80 (2026-07-28)
  * NinjaTrader 8 TradeManager Indicator
  */
 
@@ -69,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "0.79";
+		public const string VERSION = "0.80";
 		public const string RELEASE_DATE = "2026-07-28";
 
 		private volatile Account account;
@@ -138,6 +138,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private volatile int cachedBufferTicks;
 		private volatile int cachedDistanceTicks;
 		private volatile string cachedAtmTemplate = "";
+		private volatile int cachedHudLeftInset = 10;
+		private volatile bool cachedHudDragEnabled = true;
 
 		private volatile Order entryOrder = null;
 		private volatile Order pendingDrawOrder = null;
@@ -270,6 +272,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				// Default Settings
 				IsPanelVisible						= true;
 				PanelLocation							= KatHudLocation.InChart;
+				HudLeftInset                            = 10;
+				HudDragEnabled                         = true;
 				DefaultQuantity						= 1;
 				AccountName							= "Sim101";
 				AccountFilter						= "";
@@ -350,6 +354,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				cachedBufferTicks = DefaultBufferTicks;
 				cachedDistanceTicks = DefaultDistanceTicks;
 				cachedAtmTemplate = DefaultAtmTemplate;
+				cachedHudLeftInset = Math.Max(0, HudLeftInset);
+				cachedHudDragEnabled = HudDragEnabled;
 				cachedIsDailyMaxDD = DailyMaxDDEnabled;
 				cachedDailyMaxDD = DailyMaxDD;
 				cachedIsDailyMaxProfit = DailyMaxProfitEnabled;

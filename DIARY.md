@@ -23,6 +23,16 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v0.80] — 2026-07-28
+- **Configurable HUD layout**:
+  - Added persisted `HUD Left Inset (px)` setting, default 10px, applied only when no dragged position exists.
+  - Added persisted `HUD Drag Enabled` setting, default ON; fixed mode uses arrow cursor, blocks capture, and releases active capture when disabled.
+- **HUD drag runtime fix**:
+  - Routed preview handlers now attach to both `panelBorder` and its actual InChart/ChartTrader host, covering visual-tree routes that bypass the Border while preserving interactive controls.
+  - Handler lifetime is explicitly detached during watchdog recreation/termination to prevent stale host subscriptions.
+  - ChartTrader and InChart fresh placement both honor configured left inset; dragged coordinates remain authoritative.
+- **Validation**: 183/183 tests passing; CompileCheck succeeded with 0 errors (131 existing warnings).
+- **Graphify entity mapping**: `KatTradeManager.HudLeftInset`, `KatTradeManager.HudDragEnabled`, `KatTradeManagerUI.SyncCachedValues`, `KatTradeManagerUI.AttachHudDragHandlers`, `KatTradeManagerUI.DetachHudDragHandlers`, `KatTradeManagerUI.CreateWpfControls`.
 ### [v0.79] — 2026-07-28
 - **Revert quantity fix**:
   - Revert now captures live position quantity before close and carries that quantity through asynchronous close-fill retry.

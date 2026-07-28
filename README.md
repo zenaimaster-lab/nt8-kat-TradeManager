@@ -1,13 +1,13 @@
 # NT8 Kat TradeManager
 
-**Current Version**: `v0.79` (Released: `2026-07-28`)
+**Current Version**: `v0.80` (Released: `2026-07-28`)
 
 An advanced TradeManager Indicator for **NinjaTrader 8 (NT8)** designed for fast execution, candle-based pending stop orders, and dynamic risk management.
 
 ## 🚀 Features
 
 - **On-Chart WPF Control Panel**: Interactive buttons with SELL on left / BUY on right and dropdown selectors directly on your NinjaTrader 8 charts.
-- **Draggable HUD (default InChart / optional ChartTrader)**: Captures drag on the HUD border itself in both modes, keeps at least 40px visible, starts 50px from chart left edge, and preserves user position across watchdog re-attachment.
+- **Configurable HUD (default InChart / optional ChartTrader)**: `HUD Left Inset (px)` defaults to 10px for fresh placement; `HUD Drag Enabled` defaults ON and can lock HUD in place. Background drag works in both modes, keeps at least 40px visible, preserves user position across watchdog re-attachment, and leaves buttons/text controls clickable.
 - **Freeze Trail Control (`Freeze Trail: OFF` / `⚡ Freeze Trail: ON`)**: Full-width dark gray HUD button positioned directly above Close/flatten to freeze active trailing Stop Loss in place while preserving working SL and TP orders.
 - **Pending Stop-Limit Control (`Stop-Limit: OFF` / `Stop-Limit: ON`)**: Full-width Freeze Trail-style button below Freeze Trail; converts valid candle and fixed-distance pending StopMarket entries to one-tick StopLimit entries when enabled.
 - **ATM Bracket Control (`ATM Bracket: MERGE` / `ATM Bracket: SPLIT`)**: Button below Stop-Limit; MERGE reconciles all scale-in and scale-out activity to one canonical SL plus one TP at live position quantity, while SPLIT preserves independent bracket sets per entry.
