@@ -23,6 +23,16 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v0.83] — 2026-07-28
+- **Close/flatten queue recovery**:
+  - ATM `StartAtmStrategy` requests now release serialized queue ownership after the API call returns instead of waiting for ATM-managed entry states that can remain `Initialized`/`Submitted`.
+  - This prevents first-entry ATM lifecycle state from blocking later cancellation and `KAT_CLOSE` submission.
+- **First-entry ATM bracket protection**:
+  - MERGE flat cleanup now defers while tracked first ATM entry startup remains non-terminal.
+  - Startup tracking clears on terminal entry updates, confirmed non-flat position, account detach, or submit failure.
+  - Initial ATM SL/TP orders remain intact during position-confirmation timing; stale flat cleanup remains active after startup resolves.
+- **Regression coverage**: Added pure startup/flat-cleanup gate tests. Suite: 190/190 passing; CompileCheck: 0 errors (133 existing warnings).
+- **Graphify entity mapping**: `KatTradeManager.IsAccountOperationSettled`, `KatTradeManager.TrackAtmStartup`, `KatTradeManager.IsAtmStartupPending`, `KatTradeManager.MergeAtmBrackets`, `KatTradeManager.OnAccountOrderUpdate`, `KatTradeCalculator.ShouldDeferAtmFlatCleanup`.
 ### [v0.82] — 2026-07-28
 - **Serialized account-operation gate**:
   - Added FIFO `Submit` / `Change` / `Cancel` queue with one active account mutation at a time.

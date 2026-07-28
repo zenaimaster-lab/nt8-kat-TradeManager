@@ -1,4 +1,4 @@
-/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.82 (2026-07-28) */
+/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.83 (2026-07-28) */
 
 using System;
 using System.Collections.Generic;
@@ -32,6 +32,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private AccountOperationRequest activeAccountOperation;
 		private int accountOperationPumpScheduled;
 		private int closeOperationQueued;
+		private Order atmStartupOrder;
 
 		private static bool IsAccountOperationPending(OrderState state)
 		{
@@ -178,6 +179,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			if (request == null || !request.CallReturned || request.Orders == null || request.Orders.Length == 0)
 				return false;
+			// ponytail: StartAtmStrategy owns subsequent order-state transitions; queue ceiling = serialize
+			// the API call, not wait for ATM-managed entry lifecycle events that may never target this order.
+			if (request.ExecuteOverride != null)
+				return true;
 
 			foreach (Order order in request.Orders)
 			{
@@ -325,6 +330,42 @@ namespace NinjaTrader.NinjaScript.Indicators
 			System.Threading.Interlocked.Exchange(ref accountOperationPumpScheduled, 0);
 			System.Threading.Interlocked.Exchange(ref closeOperationQueued, 0);
 		}
+
+		private void TrackAtmStartup(Order order)
+		{
+			if (order == null) return;
+			lock (atmScaleInLock)
+				atmStartupOrder = order;
+		}
+
+		private void ClearAtmStartup(Order expected = null)
+		{
+			lock (atmScaleInLock)
+			{
+				if (expected == null || SameOrder(atmStartupOrder, expected))
+					atmStartupOrder = null;
+			}
+		}
+
+		private bool IsAtmStartupPending()
+		{
+			Order startup;
+			lock (atmScaleInLock)
+				startup = atmStartupOrder;
+			if (startup == null) return false;
+			if (IsTerminalOrderState(startup.OrderState))
+			{
+				ClearAtmStartup(startup);
+				return false;
+			}
+			return true;
+		}
+
+		private void ProcessAtmStartupUpdate(Order observed)
+		{
+			if (observed == null || !IsTerminalOrderState(observed.OrderState)) return;
+			ClearAtmStartup(observed);
+		}
 		private static KatOrderAction ToKatAction(OrderAction action) => action == OrderAction.Buy ? KatOrderAction.Buy : KatOrderAction.Sell;
 		private static OrderType ToNtOrderType(KatOrderType type) => type == KatOrderType.StopMarket ? OrderType.StopMarket : OrderType.Limit;
 		private bool HasAtmTemplate(string templateName)
@@ -358,6 +399,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 							order.Name, order.OrderType, order.OrderState));
 						return true;
 					}
+					TrackAtmStartup(order);
 					QueueAccountOperation(
 						AccountOperationType.Submit,
 						new[] { order },
@@ -378,6 +420,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			catch (Exception ex)
 			{
 				UntrackAtmScaleIn(order);
+				ClearAtmStartup(order);
 				Print(string.Format("[KatTradeManager] Order submit failed: {0}", ex.ToString()));
 				return false;
 			}
@@ -503,9 +546,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				Position position = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
 				List<Order> candidates = account.Orders.Where(IsAtmBracketCandidate).ToList();
+				bool positionConfirmed = position != null && position.MarketPosition != MarketPosition.Flat;
+				if (positionConfirmed)
+					ClearAtmStartup();
 
-				if (position == null || position.MarketPosition == MarketPosition.Flat)
+				if (!positionConfirmed)
 				{
+					if (KatTradeCalculator.ShouldDeferAtmFlatCleanup(IsAtmStartupPending(), false))
+					{
+						Print("[KatTradeManager] ATM MERGE flat cleanup deferred: first ATM entry startup pending.");
+						return;
+					}
 					if (candidates.Count > 0)
 					{
 						QueueAccountOperation(AccountOperationType.Cancel, candidates, "ATM MERGE flat cleanup");
@@ -1102,6 +1153,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (subscribedAccount != null)
 				subscribedAccount.OrderUpdate -= OnAccountOrderUpdate;
 			subscribedAccount = null;
+			ClearAtmStartup();
 			ResetAtmScaleInTracking();
 			ResetAccountOperationQueue();
 		}
@@ -1111,6 +1163,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			Order observed = e != null ? e.Order : null;
 			if (observed == null)
 				return;
+			ProcessAtmStartupUpdate(observed);
 			TryCompleteActiveAccountOperation();
 			if (Instrument == null || observed.Instrument != Instrument)
 				return;

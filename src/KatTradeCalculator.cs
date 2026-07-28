@@ -30,6 +30,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return orderSubmitted && orderType != KatOrderType.Market;
 		}
 
+		public static bool ShouldDeferAtmFlatCleanup(bool atmEntryStartupPending, bool positionConfirmed)
+		{
+			return atmEntryStartupPending && !positionConfirmed;
+		}
+
 		/// <summary>Returns total positive quantity for ATM bracket consolidation.</summary>
 		public static int CalculateMergedOrderQuantity(IEnumerable<int> quantities)
 		{

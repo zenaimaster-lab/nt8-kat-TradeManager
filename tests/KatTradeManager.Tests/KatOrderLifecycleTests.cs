@@ -7,6 +7,18 @@ namespace KatTradeManager.Tests
 	public class KatOrderLifecycleTests
 	{
 		[Fact]
+		public void AtmFlatCleanup_PendingStartup_IsDeferred()
+		{
+			Assert.True(KatTradeCalculator.ShouldDeferAtmFlatCleanup(true, false));
+		}
+
+		[Fact]
+		public void AtmFlatCleanup_ConfirmedPosition_IsNotDeferred()
+		{
+			Assert.False(KatTradeCalculator.ShouldDeferAtmFlatCleanup(true, true));
+			Assert.False(KatTradeCalculator.ShouldDeferAtmFlatCleanup(false, false));
+		}
+		[Fact]
 		public void AtmLevels_ZeroTickSize_DefaultsToQuarterTick()
 		{
 			var levels = KatTradeCalculator.CalculateAtmLevels(
