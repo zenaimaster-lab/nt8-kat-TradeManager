@@ -97,6 +97,21 @@ namespace KatTradeManager.Tests
 		}
 
 		[Fact]
+		public void CalculateMergedOrderQuantity_SumsPositiveBracketQuantities()
+		{
+			int merged = KatTradeCalculator.CalculateMergedOrderQuantity(new[] { 1, 1, 2, -1, 0 });
+
+			Assert.Equal(4, merged);
+		}
+
+		[Fact]
+		public void CalculateMergedOrderQuantity_NullOrOverflow_IsSafe()
+		{
+			Assert.Equal(0, KatTradeCalculator.CalculateMergedOrderQuantity(null));
+			Assert.Equal(int.MaxValue, KatTradeCalculator.CalculateMergedOrderQuantity(new[] { int.MaxValue, 1 }));
+		}
+
+		[Fact]
 		public void DetermineOrderType_BuyOrder_AboveMarket_SelectsStopMarket()
 		{
 			// Arrange

@@ -30,6 +30,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return orderSubmitted && orderType != KatOrderType.Market;
 		}
 
+		/// <summary>Returns total positive quantity for ATM bracket consolidation.</summary>
+		public static int CalculateMergedOrderQuantity(IEnumerable<int> quantities)
+		{
+			if (quantities == null) return 0;
+			long total = 0;
+			foreach (int quantity in quantities)
+			{
+				if (quantity > 0) total += quantity;
+				if (total >= int.MaxValue) return int.MaxValue;
+			}
+			return (int)total;
+		}
+
 		public static double ClampHudCoordinate(double proposed, double panelExtent, double chartExtent, double minVisible)
 		{
 			if (minVisible < 0) minVisible = 0;

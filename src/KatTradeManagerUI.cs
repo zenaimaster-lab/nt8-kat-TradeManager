@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.71 (2026-07-28) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.72 (2026-07-28) */
 
 using System;
 using System.Collections.Generic;
@@ -853,6 +853,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 				btnStopLimit.Foreground = cachedIsStopLimit ? Brushes.White : Brushes.LightGray;
 			};
 			sec4Panel.Children.Add(btnStopLimit);
+
+			Button btnAtmMerge = CreateButton(cachedIsAtmMerge ? "ATM Bracket: MERGE" : "ATM Bracket: SPLIT",
+				cachedIsAtmMerge ? freezeOnBg : freezeOffBg, null, 24, 10);
+			btnAtmMerge.Foreground = cachedIsAtmMerge ? Brushes.White : Brushes.LightGray;
+			btnAtmMerge.Margin = new Thickness(0, 0, 0, 4);
+			btnAtmMerge.Click += (s, ev) =>
+			{
+				cachedIsAtmMerge = !cachedIsAtmMerge;
+				btnAtmMerge.Content = cachedIsAtmMerge ? "ATM Bracket: MERGE" : "ATM Bracket: SPLIT";
+				btnAtmMerge.Background = cachedIsAtmMerge ? freezeOnBg : freezeOffBg;
+				btnAtmMerge.Foreground = cachedIsAtmMerge ? Brushes.White : Brushes.LightGray;
+			};
+			sec4Panel.Children.Add(btnAtmMerge);
 
 			SolidColorBrush closeBg = new SolidColorBrush(Color.FromRgb(20, 20, 20)); // Very dark gray (almost black)
 			Button btnClose = CreateButton("Close/flatten", closeBg, (s, ev) => ClosePosition(), 33, 15);

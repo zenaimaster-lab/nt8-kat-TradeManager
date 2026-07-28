@@ -23,6 +23,14 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v0.72] — 2026-07-28
+- **ATM bracket merge/split toggle**:
+  - Added default-on `ATM Bracket: MERGE` button directly below Stop-Limit; `SPLIT` preserves existing separate-bracket behavior.
+  - Because `StartAtmStrategy(template, order)` creates a new ATM instance instead of attaching to active Chart Trader ATM, merge mode consolidates same-price named ATM stop/target orders after account updates by increasing anchor quantity and cancelling duplicates.
+  - BE (`KAT_SL_BE`), swing (`KAT_SL_SWING`), and other manual exits stay excluded by ATM bracket-name filtering.
+  - Added overflow-safe `KatTradeCalculator.CalculateMergedOrderQuantity`.
+  - **Tests**: 183/183 passing. Compile gate: succeeded with 0 errors (existing NT8 reference-conflict/obsolete warnings only).
+  - **Graphify entity mapping**: `KatTradeManager.MergeAtmBrackets`, `KatTradeManager.ScheduleAtmBracketMerge`, `KatTradeManager.IsAtmMergeOrder`, `KatTradeCalculator.CalculateMergedOrderQuantity`, `KatTradeManagerUI.CreateWpfControls`.
 ### [v0.71] — 2026-07-28
 - **Swing Stop Loss back/forward fix**:
   - `ShiftSlToSwing` now sees all active stop states, not only `Working`/`Accepted`; submitted/change-pending stops can be modified instead of silently falling through.
