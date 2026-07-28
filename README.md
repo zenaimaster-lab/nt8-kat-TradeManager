@@ -1,6 +1,6 @@
 # NT8 Kat TradeManager
 
-**Current Version**: `v0.83` (Released: `2026-07-28`)
+**Current Version**: `v0.84` (Released: `2026-07-28`)
 
 An advanced TradeManager Indicator for **NinjaTrader 8 (NT8)** designed for fast execution, candle-based pending stop orders, and dynamic risk management.
 
@@ -14,6 +14,7 @@ An advanced TradeManager Indicator for **NinjaTrader 8 (NT8)** designed for fast
 - **ATM Bracket Control (`ATM Bracket: MERGE` / `ATM Bracket: SPLIT`)**: Button below Stop-Limit; MERGE reconciles all scale-in and scale-out activity to one canonical SL plus one TP at live position quantity, while SPLIT preserves independent bracket sets per entry.
 - **Serialized account operations**: Submit, Change, and Cancel requests run through one state-aware FIFO gate; Close/flatten cancels working orders before submitting its close order.
 - **ATM startup lifecycle hardening**: ATM API calls release queue ownership after return, while MERGE defers flat cleanup until first-entry startup resolves so initial SL/TP brackets are not cancelled prematurely.
+- **Account-wide Close/flatten**: cancels all active account orders, then submits one market close per open position across every instrument; Revert and daily-risk remain instrument-scoped.
 - **Swing Stop Loss Shift Controls (`◀ SL` & `SL ▶`)**: Dynamic gray HUD buttons below Section 2 to shift active Stop Loss orders back to historical Swing Lows (Long) or Swing Highs (Short) step-by-step with full Redo functionality.
 - **Daily Max Drawdown & Daily Max Profit Controls**: Side-by-side HUD toggle buttons (default ON, darker purple background `#3A136B`) with 6:00 PM NY session reset. Replaces entry blocking and auto-flattens positions/orders on breach with instant HUD toggle reactivity.
 - **Configurable Hotkeys**: Assign WPF Hotkeys for all 15 order types directly in Indicator Settings, overriding default NT hotkeys (`e.Handled = true`) with input textbox detection & repeat protection.

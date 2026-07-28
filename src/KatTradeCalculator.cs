@@ -35,6 +35,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return atmEntryStartupPending && !positionConfirmed;
 		}
 
+		/// <summary>Close/flatten has work to do only if the account has working orders or an open position.</summary>
+		public static bool ShouldFlattenAccount(bool hasWorkingOrders, bool hasOpenPosition)
+		{
+			return hasWorkingOrders || hasOpenPosition;
+		}
+
 		/// <summary>Returns total positive quantity for ATM bracket consolidation.</summary>
 		public static int CalculateMergedOrderQuantity(IEnumerable<int> quantities)
 		{

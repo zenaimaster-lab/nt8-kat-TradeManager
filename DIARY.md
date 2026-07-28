@@ -23,6 +23,16 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v0.84] — 2026-07-28
+- **Account-wide Close/flatten**:
+  - Close/flatten button and hotkey now clear the entire selected account, not only chart instrument position.
+  - Cancels all active orders first, including pending/working entry and ATM orders, then submits one market close per non-flat account position across every instrument.
+  - Clicking Close while account is flat but has pending orders now still performs cancellation.
+- **Multi-position safety**:
+  - Tracks every generated `KAT_CLOSE` until all close orders reach terminal state; first filled position cannot unlock duplicate flatten clicks early.
+  - Pending Revert intent is cleared and Revert retries are blocked while any account-wide close remains active.
+- **Regression coverage**: Added account flatten work/no-op predicate tests. Suite: 191/191 passing; CompileCheck: 0 errors (134 existing warnings).
+- **Graphify entity mapping**: `KatTradeManager.FlattenAllPositions`, `KatTradeManager.SubmitQueuedFlattenAll`, `KatTradeManager.CancelAllOrders`, `KatTradeManager.IsAccountCloseInFlight`, `KatTradeManagerUI.CreateWpfControls`, `KatTradeManagerUI.OnChartPreviewKeyDown`, `KatTradeCalculator.ShouldFlattenAccount`.
 ### [v0.83] — 2026-07-28
 - **Close/flatten queue recovery**:
   - ATM `StartAtmStrategy` requests now release serialized queue ownership after the API call returns instead of waiting for ATM-managed entry states that can remain `Initialized`/`Submitted`.

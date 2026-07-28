@@ -18,6 +18,14 @@ namespace KatTradeManager.Tests
 			Assert.False(KatTradeCalculator.ShouldDeferAtmFlatCleanup(true, true));
 			Assert.False(KatTradeCalculator.ShouldDeferAtmFlatCleanup(false, false));
 		}
+
+		[Fact]
+		public void FlattenAccount_WithOrdersOrPositions_HasWork()
+		{
+			Assert.True(KatTradeCalculator.ShouldFlattenAccount(true, false));
+			Assert.True(KatTradeCalculator.ShouldFlattenAccount(false, true));
+			Assert.False(KatTradeCalculator.ShouldFlattenAccount(false, false));
+		}
 		[Fact]
 		public void AtmLevels_ZeroTickSize_DefaultsToQuarterTick()
 		{

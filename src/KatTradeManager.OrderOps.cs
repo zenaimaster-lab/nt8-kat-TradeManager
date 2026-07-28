@@ -1,4 +1,4 @@
-/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.83 (2026-07-28) */
+/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.84 (2026-07-28) */
 
 using System;
 using System.Collections.Generic;
@@ -33,6 +33,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private int accountOperationPumpScheduled;
 		private int closeOperationQueued;
 		private Order atmStartupOrder;
+		private readonly object flattenCloseLock = new object();
+		private readonly List<Order> flattenCloseOrders = new List<Order>();
 
 		private static bool IsAccountOperationPending(OrderState state)
 		{
@@ -188,7 +190,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				if (order == null) continue;
 				if (request.Type == AccountOperationType.Submit
-					&& (order.OrderState == OrderState.Initialized || order.OrderState == OrderState.Submitted))
+					&& (order.OrderState == OrderState.Initialized
+						|| order.OrderState == OrderState.Submitted))
 					return false;
 				if ((request.Type == AccountOperationType.Change || request.Type == AccountOperationType.Cancel)
 					&& IsAccountOperationPending(order.OrderState))
@@ -329,6 +332,25 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			System.Threading.Interlocked.Exchange(ref accountOperationPumpScheduled, 0);
 			System.Threading.Interlocked.Exchange(ref closeOperationQueued, 0);
+			ClearFlattenCloseTracking();
+		}
+
+		private void ClearFlattenCloseTracking()
+		{
+			lock (flattenCloseLock)
+				flattenCloseOrders.Clear();
+		}
+
+		private bool IsAccountCloseInFlight()
+		{
+			try
+			{
+				return account != null && account.Orders.Any(o => o.Name == CloseOrderName && IsActiveOrderState(o.OrderState));
+			}
+			catch
+			{
+				return false;
+			}
 		}
 
 		private void TrackAtmStartup(Order order)
@@ -1200,7 +1222,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			if (observed.Name == CloseOrderName && IsTerminalOrderState(observed.OrderState))
 			{
-				System.Threading.Interlocked.Exchange(ref closeOperationQueued, 0);
+				bool releaseFlatten = false;
+				lock (flattenCloseLock)
+				{
+					if (flattenCloseOrders.Count == 0)
+						releaseFlatten = true;
+					else
+					{
+						flattenCloseOrders.RemoveAll(order => SameOrder(order, observed));
+						releaseFlatten = flattenCloseOrders.Count == 0;
+					}
+				}
+				if (releaseFlatten)
+					System.Threading.Interlocked.Exchange(ref closeOperationQueued, 0);
 				SchedulePendingRevertRetry();
 			}
 			ProcessAtmScaleInUpdate(observed);
@@ -1288,7 +1322,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			try
 			{
-				if (System.Threading.Volatile.Read(ref closeOperationQueued) != 0 || IsCloseInFlight())
+				if (System.Threading.Volatile.Read(ref closeOperationQueued) != 0
+					|| IsCloseInFlight()
+					|| IsAccountCloseInFlight())
 				{
 					Print("[KatTradeManager] Close already in flight — duplicate close ignored");
 					return;
@@ -1307,6 +1343,111 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				System.Threading.Interlocked.Exchange(ref closeOperationQueued, 0);
 				Print(string.Format("[KatTradeManager] Error closing position: {0}", ex.ToString()));
+			}
+		}
+
+		// Close/flatten button + hotkey: clear the ENTIRE account — cancel every working order and
+		// market-close every open position across all instruments. Revert and daily-risk keep the
+		// instrument-scoped ClosePosition path; they must not flatten unrelated positions.
+		private void FlattenAllPositions()
+		{
+			if (account == null)
+			{
+				Print("[KatTradeManager] No account — watchdog auto-recovering. Retry in a moment.");
+				return;
+			}
+			try
+			{
+				if (System.Threading.Volatile.Read(ref closeOperationQueued) != 0
+					|| IsCloseInFlight()
+					|| IsAccountCloseInFlight())
+				{
+					Print("[KatTradeManager] Flatten already in flight — duplicate ignored");
+					return;
+				}
+
+				bool hasWorkingOrders = account.Orders.Any(o => IsActiveOrderState(o.OrderState));
+				bool hasOpenPosition = account.Positions.Any(p => p.MarketPosition != MarketPosition.Flat);
+				if (!KatTradeCalculator.ShouldFlattenAccount(hasWorkingOrders, hasOpenPosition))
+				{
+					Print("[KatTradeManager] Flatten: account already clear — no orders or positions");
+					return;
+				}
+
+				if (System.Threading.Interlocked.CompareExchange(ref closeOperationQueued, 1, 0) != 0)
+					return;
+				System.Threading.Interlocked.Exchange(ref pendingRevertAction, 0);
+				System.Threading.Interlocked.Exchange(ref pendingRevertQuantity, 0);
+				CancelAllOrders(SubmitQueuedFlattenAll);
+				Print("[KatTradeManager] Flatten-all queued: cancel all orders then close all positions");
+			}
+			catch (Exception ex)
+			{
+				System.Threading.Interlocked.Exchange(ref closeOperationQueued, 0);
+				Print(string.Format("[KatTradeManager] Error flattening account: {0}", ex.ToString()));
+			}
+		}
+
+		private void SubmitQueuedFlattenAll()
+		{
+			if (account == null)
+			{
+				System.Threading.Interlocked.Exchange(ref closeOperationQueued, 0);
+				return;
+			}
+
+			try
+			{
+				List<Position> openPositions = account.Positions
+					.Where(p => p.MarketPosition != MarketPosition.Flat)
+					.ToList();
+				if (openPositions.Count == 0)
+				{
+					ClearFlattenCloseTracking();
+					System.Threading.Interlocked.Exchange(ref closeOperationQueued, 0);
+					return;
+				}
+
+				List<Order> closeOrders = new List<Order>();
+				foreach (Position pos in openPositions)
+				{
+					OrderAction action = pos.MarketPosition == MarketPosition.Long ? OrderAction.Sell : OrderAction.BuyToCover;
+					Order closeOrder = account.CreateOrder(pos.Instrument, action, OrderType.Market, OrderEntry.Manual, TimeInForce.Gtc, pos.Quantity, 0, 0, "", CloseOrderName, NinjaTrader.Core.Globals.MaxDate, null);
+					if (closeOrder != null)
+						closeOrders.Add(closeOrder);
+					else
+						Print(string.Format("[KatTradeManager] Flatten: close order creation returned null for {0}",
+							pos.Instrument != null ? pos.Instrument.FullName : "(null)"));
+				}
+
+				if (closeOrders.Count == 0)
+				{
+					ClearFlattenCloseTracking();
+					System.Threading.Interlocked.Exchange(ref closeOperationQueued, 0);
+					return;
+				}
+				lock (flattenCloseLock)
+				{
+					flattenCloseOrders.Clear();
+					flattenCloseOrders.AddRange(closeOrders);
+				}
+
+				QueueAccountOperation(
+					AccountOperationType.Submit,
+					closeOrders,
+					"flatten-all close submit",
+					completion: () =>
+					{
+						if (closeOrders.All(o => IsTerminalOrderState(o.OrderState)))
+							System.Threading.Interlocked.Exchange(ref closeOperationQueued, 0);
+					});
+				Print(string.Format("[KatTradeManager] Flatten-all close submit queued: positions={0}", closeOrders.Count));
+			}
+			catch (Exception ex)
+			{
+				ClearFlattenCloseTracking();
+				System.Threading.Interlocked.Exchange(ref closeOperationQueued, 0);
+				Print(string.Format("[KatTradeManager] Error queuing flatten-all: {0}", ex));
 			}
 		}
 
@@ -1482,7 +1623,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			int requestedAction = System.Threading.Volatile.Read(ref pendingRevertAction);
 			int requestedQuantity = System.Threading.Volatile.Read(ref pendingRevertQuantity);
-			if (requestedAction == 0 || account == null || Instrument == null || IsCloseInFlight()) return;
+			if (requestedAction == 0 || account == null || Instrument == null || IsCloseInFlight() || IsAccountCloseInFlight()) return;
 			if (requestedQuantity <= 0)
 			{
 				System.Threading.Interlocked.Exchange(ref pendingRevertAction, 0);
@@ -1502,7 +1643,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{
 					if (System.Threading.Volatile.Read(ref pendingRevertAction) != requestedAction
 						|| System.Threading.Volatile.Read(ref pendingRevertQuantity) != requestedQuantity
-						|| account == null || Instrument == null || IsCloseInFlight())
+						|| account == null || Instrument == null || IsCloseInFlight() || IsAccountCloseInFlight())
 						return;
 
 					Position current = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);

@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.83 (2026-07-28) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.84 (2026-07-28) */
 
 using System;
 using System.Collections.Generic;
@@ -1036,7 +1036,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			sec4Panel.Children.Add(btnAtmMerge);
 
 			SolidColorBrush closeBg = new SolidColorBrush(Color.FromRgb(20, 20, 20)); // Very dark gray (almost black)
-			Button btnClose = CreateButton("Close/flatten", closeBg, (s, ev) => ClosePosition(), 33, 15);
+			Button btnClose = CreateButton("Close/flatten", closeBg, (s, ev) => FlattenAllPositions(), 33, 15);
 			sec4Panel.Children.Add(btnClose);
 
 
@@ -1299,7 +1299,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			else if (key == HotkeyClose && HotkeyClose != Key.None)
 			{
-				ClosePosition();
+				FlattenAllPositions();
 				handled = true;
 			}
 
