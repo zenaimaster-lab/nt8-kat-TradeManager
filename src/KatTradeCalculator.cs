@@ -118,6 +118,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 				: triggerPrice - tickSize;
 		}
 
+		/// <summary>
+		/// Restores a protective StopLimit's limit price when its stop is moved back to a frozen/target price.
+		/// Preserves the order's existing absolute stop-to-limit offset (falling back to one tick, then 0.01)
+		/// and keeps the protective direction: a Long exit (sell stop) places the limit BELOW the stop so it
+		/// can still fill in a falling market; a Short exit (buy stop) places it ABOVE.
+		/// </summary>
+		public static double CalculateFrozenStopLimitPrice(bool isLongPosition, double newStopPrice, double existingStopPrice, double existingLimitPrice, double tickSize)
+		{
+			double offset = Math.Abs(existingLimitPrice - existingStopPrice);
+			if (double.IsNaN(offset) || double.IsInfinity(offset) || offset <= 0)
+				offset = tickSize > 0 ? tickSize : 0.01;
+			return isLongPosition ? newStopPrice - offset : newStopPrice + offset;
+		}
+
 
 		public static double CalculateHalfCandlePrice(double high, double low, double tickSize)
 		{

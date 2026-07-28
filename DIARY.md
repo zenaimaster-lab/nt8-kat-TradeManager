@@ -23,6 +23,16 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v0.81] — 2026-07-28
+- **Freeze Trail StopLimit synchronization**:
+  - Added `KatTradeCalculator.CalculateFrozenStopLimitPrice` to preserve existing Stop-to-Limit offset when restoring a frozen protective StopLimit.
+  - Long protective exits restore Limit below Stop; Short protective exits restore Limit above Stop.
+  - Invalid/zero offset falls back to instrument tick size, then `0.01`.
+  - `CheckFreezeTrailEnforcement` now sets both `StopPriceChanged` and `LimitPriceChanged` before one `Account.Change` call.
+- **Freeze Trail regression coverage**:
+  - Added Long/Short direction, multi-tick offset, zero-offset tick fallback, and invalid-tick fallback tests.
+- **Validation**: 188/188 tests passing; CompileCheck succeeded with 0 errors (131 existing warnings).
+- **Graphify entity mapping**: `KatTradeCalculator.CalculateFrozenStopLimitPrice`, `KatTradeManager.CheckFreezeTrailEnforcement`, `KatFreezeTrailTests`.
 ### [v0.80] — 2026-07-28
 - **Configurable HUD layout**:
   - Added persisted `HUD Left Inset (px)` setting, default 10px, applied only when no dragged position exists.

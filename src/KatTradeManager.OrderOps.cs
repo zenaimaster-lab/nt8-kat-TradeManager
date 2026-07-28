@@ -1,4 +1,4 @@
-/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.80 (2026-07-28) */
+/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.81 (2026-07-28) */
 
 using System;
 using System.Collections.Generic;
@@ -1195,6 +1195,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 					{
 						lastFreezeEnforceTime = DateTime.Now;
 						stopOrder.StopPriceChanged = frozenStopPrice;
+						// StopLimit must move its limit with the stop, else the trailed limit is left behind
+						// and can invert the stop/limit relationship -> rejected or unsafe protective order.
+						if (stopOrder.OrderType == OrderType.StopLimit)
+						{
+							double tickSize = cachedTickSize > 0 ? cachedTickSize : Instrument.MasterInstrument.TickSize;
+							stopOrder.LimitPriceChanged = KatTradeCalculator.CalculateFrozenStopLimitPrice(
+								pos.MarketPosition == MarketPosition.Long, frozenStopPrice, stopOrder.StopPrice, stopOrder.LimitPrice, tickSize);
+						}
 						account.Change(new[] { stopOrder });
 						Print(string.Format("[KatTradeManager] Trailing movement overridden — SL restored to frozen price {0}", frozenStopPrice));
 					}
