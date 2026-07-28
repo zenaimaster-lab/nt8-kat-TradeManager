@@ -1,6 +1,6 @@
 # NT8 Kat TradeManager
 
-**Current Version**: `v0.73` (Released: `2026-07-28`)
+**Current Version**: `v0.74` (Released: `2026-07-28`)
 
 An advanced TradeManager Indicator for **NinjaTrader 8 (NT8)** designed for fast execution, candle-based pending stop orders, and dynamic risk management.
 
@@ -10,7 +10,7 @@ An advanced TradeManager Indicator for **NinjaTrader 8 (NT8)** designed for fast
 - **Draggable In-Chart HUD (default)**: Opens at bottom-left inside chart, keeps at least 40px visible while dragging, and preserves user position across watchdog re-attachment. ChartTrader docking remains selectable.
 - **Freeze Trail Control (`Freeze Trail: OFF` / `⚡ Freeze Trail: ON`)**: Full-width dark gray HUD button positioned directly above Close/flatten to freeze active trailing Stop Loss in place while preserving working SL and TP orders.
 - **Pending Stop-Limit Control (`Stop-Limit: OFF` / `Stop-Limit: ON`)**: Full-width Freeze Trail-style button below Freeze Trail; converts valid candle and fixed-distance pending StopMarket entries to one-tick StopLimit entries when enabled.
-- **ATM Bracket Control (`ATM Bracket: MERGE` / `ATM Bracket: SPLIT`)**: Button below Stop-Limit; default MERGE consolidates same-price ATM stop/target brackets by quantity, while SPLIT preserves one bracket set per entry.
+- **ATM Bracket Control (`ATM Bracket: MERGE` / `ATM Bracket: SPLIT`)**: Button below Stop-Limit; default MERGE uses the first active ATM stop/target bracket for subsequent scale-in entries and resizes that bracket after fills, while SPLIT starts one ATM bracket set per entry.
 - **Swing Stop Loss Shift Controls (`◀ SL` & `SL ▶`)**: Dynamic gray HUD buttons below Section 2 to shift active Stop Loss orders back to historical Swing Lows (Long) or Swing Highs (Short) step-by-step with full Redo functionality.
 - **Daily Max Drawdown & Daily Max Profit Controls**: Side-by-side HUD toggle buttons (default ON, darker purple background `#3A136B`) with 6:00 PM NY session reset. Replaces entry blocking and auto-flattens positions/orders on breach with instant HUD toggle reactivity.
 - **Configurable Hotkeys**: Assign WPF Hotkeys for all 15 order types directly in Indicator Settings, overriding default NT hotkeys (`e.Handled = true`) with input textbox detection & repeat protection.
@@ -30,7 +30,7 @@ An advanced TradeManager Indicator for **NinjaTrader 8 (NT8)** designed for fast
   - Submits brackets server-side for maximum reliability and protection against network lag.
 - **Visual SL/TP Levels**: Renders dashed horizontal lines on the chart (Red for SL, Green for TP) while pending orders are active.
 - **One-Click Close/Flatten & Order Management**: Full-width Close/Flatten button to close active positions and cancel pending orders.
-- **Runtime feedback**: HUD reports EMA Place/Angle rejection reasons and order submission status; NinjaScript Output logs account order-state transitions.
+- **Runtime feedback**: Permanent black two-line HUD status slot reports EMA Place/Angle rejection reasons and order submission status; NinjaScript Output logs account order-state transitions.
 
 ## 🛠️ Installation in NinjaTrader 8
 

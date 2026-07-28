@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.73 (2026-07-28) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.74 (2026-07-28) */
 
 using System;
 using System.Collections.Generic;
@@ -476,12 +476,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			hudStatusText = new TextBlock
 			{
+				Background = Brushes.Black,
 				Foreground = Brushes.White,
 				FontSize = 10,
 				Margin = new Thickness(0, 0, 0, 6),
 				HorizontalAlignment = HorizontalAlignment.Left,
+				VerticalAlignment = VerticalAlignment.Top,
+				Height = 32,
+				MinHeight = 32,
+				MaxHeight = 32,
 				TextWrapping = TextWrapping.Wrap,
-				Visibility = Visibility.Collapsed
+				Visibility = Visibility.Visible,
+				Text = string.Empty
 			};
 			sec1Panel.Children.Add(hudStatusText);
 
@@ -983,7 +989,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 					hudStatusTimer.Tick += (s, e) =>
 					{
 						if (hudStatusText != null)
-							hudStatusText.Visibility = Visibility.Collapsed;
+						{
+							hudStatusText.Text = string.Empty;
+							hudStatusText.Foreground = Brushes.White;
+						}
 						hudStatusTimer.Stop();
 					};
 				}

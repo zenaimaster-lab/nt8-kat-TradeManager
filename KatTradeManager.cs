@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 0.73 (2026-07-28)
+ * Version: 0.74 (2026-07-28)
  * NinjaTrader 8 TradeManager Indicator
  */
 
@@ -69,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "0.73";
+		public const string VERSION = "0.74";
 		public const string RELEASE_DATE = "2026-07-28";
 
 		private volatile Account account;
@@ -115,7 +115,21 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private volatile bool cachedIsStopLimit = false;
 		// ATM bracket mode (default ON = merge duplicate brackets like active Chart Trader ATM)
 		private volatile bool cachedIsAtmMerge = true;
-		private int atmMergeScheduled;
+
+		// MERGE scale-ins use plain entry orders, then resize first ATM bracket after fills.
+		private sealed class AtmScaleInState
+		{
+			public Order Order;
+			public int AppliedFilled;
+		}
+
+		private readonly object atmScaleInLock = new object();
+		private readonly List<AtmScaleInState> atmScaleInStates = new List<AtmScaleInState>();
+		private Order atmMergeStopAnchor;
+		private Order atmMergeTargetAnchor;
+		private int atmMergeStopQuantity;
+		private int atmMergeTargetQuantity;
+		private MarketPosition atmMergePosition = MarketPosition.Flat;
 
 		// Thread-safe cached values from UI controls (synced by watchdog on UI thread)
 		private volatile int cachedQuantity;

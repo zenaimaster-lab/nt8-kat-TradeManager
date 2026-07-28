@@ -23,6 +23,18 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v0.74] — 2026-07-28
+- **Permanent HUD status slot**:
+  - Added fixed-height black two-line status region at HUD top.
+  - Status timeout now clears text and resets color without collapsing or changing HUD height.
+  - Watchdog recreation preserves same fixed slot contract.
+- **ATM MERGE active-bracket scale-in**:
+  - First entry still starts selected ATM template through `StartAtmStrategy`.
+  - Subsequent same-direction MERGE entries submit through `Account.Submit` instead of creating another ATM instance.
+  - Incremental `Order.Filled` quantities resize first active ATM stop/target anchors through `Account.Change`.
+  - SPLIT retains independent ATM-per-entry behavior; legacy duplicate-bracket cancellation removed.
+- **Validation**: 183/183 tests passing; CompileCheck succeeded with 0 errors.
+- **Graphify entity mapping**: `KatTradeManagerUI.CreateWpfControls`, `KatTradeManagerUI.ShowHudStatus`, `KatTradeManager.SubmitOrder`, `KatTradeManager.TryPrepareAtmScaleIn`, `KatTradeManager.ProcessAtmScaleInUpdate`, `KatTradeManager.ResizeAtmBracketForFill`.
 ### [v0.73] — 2026-07-28
 - **HUD drag reliability fix**:
   - Replaced Border-only mouse capture with routed handlers registered using `handledEventsToo`.
