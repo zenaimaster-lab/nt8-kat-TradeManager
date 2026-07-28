@@ -23,6 +23,16 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v0.77] — 2026-07-28
+- **HUD drag root-cause fix**:
+  - ChartTrader mode previously set `Cursor = Arrow` and attached no drag handlers; InChart mode captured the Canvas, making routed WPF move/up events fragile.
+  - Both modes now attach preview handlers to `panelBorder` and capture `panelBorder` subtree directly.
+  - Hit testing walks visual/logical parents, including `ContentElement`/`Run`, while interactive controls remain excluded so buttons keep normal clicks.
+  - Drag capture is released before watchdog teardown/recreation.
+- **HUD default inset**:
+  - InChart HUD now starts 80px from left edge instead of 10px, reducing overlap with other indicators' left-side S/R labels.
+- **Validation**: 183/183 tests passing; CompileCheck succeeded with 0 errors.
+- **Graphify entity mapping**: `KatTradeManagerUI.IsHudDragSource`, `KatTradeManagerUI.OnHudPreviewMouseLeftButtonDown`, `KatTradeManagerUI.OnHudPreviewMouseMove`, `KatTradeManagerUI.CreateWpfControls`, `KatTradeManagerUI.RemoveWpfControls`.
 ### [v0.76] — 2026-07-28
 - **ATM MERGE scale-in/scale-out reconciliation**:
   - Reconciles every 500 ms and after account order updates while MERGE is enabled.
