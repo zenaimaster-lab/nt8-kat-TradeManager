@@ -113,6 +113,20 @@ namespace KatTradeManager.Tests
 			Assert.Empty(KatTradeCalculator.FindSwingPoints(new double[] { 1, 2, 3 }, true, 20, 2, 0.25));
 			Assert.Empty(KatTradeCalculator.FindSwingPoints(BuildLowSeries(), true, 20, 0, 0.25));
 		}
+
+		[Fact]
+		public void FindNextSwingStopPrice_LongSelectsPreviousLowerSwing()
+		{
+			Assert.Equal(98.0, KatTradeCalculator.FindNextSwingStopPrice(new[] { 98.0, 95.0, 90.0 }, KatOrderAction.Buy, 100.0, 0.25));
+			Assert.Equal(90.0, KatTradeCalculator.FindNextSwingStopPrice(new[] { 95.0, 90.0 }, KatOrderAction.Buy, 95.0, 0.25));
+		}
+
+		[Fact]
+		public void FindNextSwingStopPrice_ShortSelectsPreviousHigherSwing()
+		{
+			Assert.Equal(108.0, KatTradeCalculator.FindNextSwingStopPrice(new[] { 108.0, 110.0, 115.0 }, KatOrderAction.Sell, 105.0, 0.25));
+			Assert.Equal(115.0, KatTradeCalculator.FindNextSwingStopPrice(new[] { 110.0, 115.0 }, KatOrderAction.Sell, 110.0, 0.25));
+		}
 		#endregion
 
 		#region GetNySessionStartUtc

@@ -1,4 +1,4 @@
-/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.70 (2026-07-28) */
+/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.71 (2026-07-28) */
 
 using System;
 using System.Collections.Generic;
@@ -739,7 +739,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				}
 
 				var workingStops = account.Orders.Where(o => o.Instrument == Instrument &&
-					(o.OrderState == OrderState.Working || o.OrderState == OrderState.Accepted) &&
+					IsActiveOrderState(o.OrderState) &&
 					(o.OrderType == OrderType.StopMarket || o.OrderType == OrderType.StopLimit) &&
 					(pos.MarketPosition == MarketPosition.Long ? (o.OrderAction == OrderAction.Sell || o.OrderAction == OrderAction.SellShort) : (o.OrderAction == OrderAction.Buy || o.OrderAction == OrderAction.BuyToCover))).ToList();
 
@@ -776,7 +776,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					return;
 
 				var workingStops = account.Orders.Where(o => o.Instrument == Instrument &&
-					(o.OrderState == OrderState.Working || o.OrderState == OrderState.Accepted) &&
+					IsActiveOrderState(o.OrderState) &&
 					(o.OrderType == OrderType.StopMarket || o.OrderType == OrderType.StopLimit) &&
 					(pos.MarketPosition == MarketPosition.Long ? (o.OrderAction == OrderAction.Sell || o.OrderAction == OrderAction.SellShort) : (o.OrderAction == OrderAction.Buy || o.OrderAction == OrderAction.BuyToCover))).ToList();
 
@@ -834,6 +834,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return KatTradeCalculator.FindSwingPoints(series, findLows, maxSwings, strength, tickSize);
 		}
 
+		private double GetSwingValidationPrice()
+		{
+			lock (priceLock)
+			{
+				if (cachedCurrentPrice > 0) return cachedCurrentPrice;
+				if (cachedCurrentClose[0] > 0) return cachedCurrentClose[0];
+				if (cachedCurrentHigh[0] > 0 && cachedCurrentLow[0] > 0)
+					return (cachedCurrentHigh[0] + cachedCurrentLow[0]) / 2.0;
+				return 0;
+			}
+		}
+
 		private void ShiftSlToSwing(bool isRedo)
 		{
 			if (account == null || Instrument == null)
@@ -859,9 +871,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 				}
 
 				var workingStops = account.Orders.Where(o => o.Instrument == Instrument &&
-					(o.OrderState == OrderState.Working || o.OrderState == OrderState.Accepted) &&
+					IsActiveOrderState(o.OrderState) &&
 					(o.OrderType == OrderType.StopMarket || o.OrderType == OrderType.StopLimit) &&
 					(pos.MarketPosition == MarketPosition.Long ? (o.OrderAction == OrderAction.Sell || o.OrderAction == OrderAction.SellShort) : (o.OrderAction == OrderAction.Buy || o.OrderAction == OrderAction.BuyToCover))).ToList();
+				double livePrice = GetSwingValidationPrice();
 
 				if (slMoveHistory.Count == 0)
 				{
@@ -906,30 +919,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 						List<double> swings = GetSwingPoints(pos.MarketPosition, 20, 3);
 						double refPrice = slMoveHistory[currentSlHistoryIndex];
 						double tickSize = cachedTickSize > 0 ? cachedTickSize : Instrument.MasterInstrument.TickSize;
-
-						double nextSwing = 0;
-						foreach (double s in swings)
-						{
-							if (pos.MarketPosition == MarketPosition.Long && s < refPrice - tickSize * 0.5)
-							{
-								nextSwing = s;
-								break;
-							}
-							else if (pos.MarketPosition == MarketPosition.Short && s > refPrice + tickSize * 0.5)
-							{
-								nextSwing = s;
-								break;
-							}
-						}
+						double nextSwing = KatTradeCalculator.FindNextSwingStopPrice(
+							swings,
+							pos.MarketPosition == MarketPosition.Long ? KatOrderAction.Buy : KatOrderAction.Sell,
+							refPrice,
+							tickSize);
 
 						// ponytail: no fallback to "any differing swing" — it moved the SL in the WRONG
 						// direction (tightened on the loosen button). No swing in the intended direction = stop.
 						if (nextSwing > 0)
 						{
 							// Validate BEFORE recording — an invalid-side swing must never enter history
-							if (!KatTradeCalculator.IsStopOnValidSide(pos.MarketPosition == MarketPosition.Long, nextSwing, cachedCurrentPrice))
+							if (livePrice > 0 && !KatTradeCalculator.IsStopOnValidSide(pos.MarketPosition == MarketPosition.Long, nextSwing, livePrice))
 							{
-								Print(string.Format("[KatTradeManager] Swing SL skipped: {0} invalid vs current market {1}.", nextSwing, cachedCurrentPrice));
+								Print(string.Format("[KatTradeManager] Swing SL skipped: {0} invalid vs current market {1}.", nextSwing, livePrice));
 								return;
 							}
 							slMoveHistory.Add(nextSwing);
@@ -946,9 +949,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 				// Historical swing can sit on the wrong side of current market (price already moved past it)
 				// -> changing the stop there would be rejected by the broker.
-				if (!KatTradeCalculator.IsStopOnValidSide(pos.MarketPosition == MarketPosition.Long, targetPrice, cachedCurrentPrice))
+				if (livePrice > 0 && !KatTradeCalculator.IsStopOnValidSide(pos.MarketPosition == MarketPosition.Long, targetPrice, livePrice))
 				{
-					Print(string.Format("[KatTradeManager] Swing SL skipped: {0} invalid vs current market {1}.", targetPrice, cachedCurrentPrice));
+					Print(string.Format("[KatTradeManager] Swing SL skipped: {0} invalid vs current market {1}.", targetPrice, livePrice));
 					return;
 				}
 
@@ -956,7 +959,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{
 					foreach (Order stopOrder in workingStops)
 					{
+						double limitOffset = stopOrder.OrderType == OrderType.StopLimit
+							? Math.Abs(stopOrder.LimitPrice - stopOrder.StopPrice)
+							: 0;
 						stopOrder.StopPrice = targetPrice;
+						if (stopOrder.OrderType == OrderType.StopLimit)
+						{
+							if (limitOffset <= 0)
+								limitOffset = cachedTickSize > 0 ? cachedTickSize : Instrument.MasterInstrument.TickSize;
+							if (limitOffset <= 0) limitOffset = 0.01;
+							stopOrder.LimitPrice = pos.MarketPosition == MarketPosition.Long
+								? targetPrice - limitOffset
+								: targetPrice + limitOffset;
+						}
 						account.Change(new[] { stopOrder });
 					}
 					Print(string.Format("[KatTradeManager] Shifted Stop Loss to Swing @ {0} (Step {1}/{2})", targetPrice, currentSlHistoryIndex, slMoveHistory.Count - 1));

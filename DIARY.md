@@ -23,6 +23,14 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v0.71] — 2026-07-28
+- **Swing Stop Loss back/forward fix**:
+  - `ShiftSlToSwing` now sees all active stop states, not only `Working`/`Accepted`; submitted/change-pending stops can be modified instead of silently falling through.
+  - Added chart-price fallback from cached close/high/low when live price cache is empty, preventing valid swing targets from being rejected as zero-price stops.
+  - StopLimit protective orders now move both stop and limit prices together, preserving one-tick direction offset.
+  - Centralized previous swing H/L selection for Long/Short and preserved history-based back/forward behavior.
+  - **Tests**: 181/181 passing. Compile gate: succeeded (existing NT8 reference-conflict warnings only).
+  - **Graphify entity mapping**: `KatTradeManager.ShiftSlToSwing`, `KatTradeManager.GetSwingValidationPrice`, `KatTradeCalculator.FindNextSwingStopPrice`, `KatTradeManager.GetSwingPoints`.
 ### [v0.70] — 2026-07-28
 - **Runtime BE, EMA scope, Stop-Limit, and HUD drag fixes**:
   - Hardened BE action against missing live-price cache, transient active stop states, invalid stop side, and null stop creation; successful moves/submissions now show HUD feedback.

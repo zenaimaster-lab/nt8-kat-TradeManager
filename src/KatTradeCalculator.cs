@@ -378,6 +378,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return swings;
 		}
 
+		public static double FindNextSwingStopPrice(IEnumerable<double> swingPrices, KatOrderAction action, double referencePrice, double tickSize)
+		{
+			if (swingPrices == null) return 0;
+			double threshold = Math.Max(0, tickSize) * 0.5;
+			foreach (double swingPrice in swingPrices)
+			{
+				if (action == KatOrderAction.Buy && swingPrice < referencePrice - threshold)
+					return swingPrice;
+				if (action == KatOrderAction.Sell && swingPrice > referencePrice + threshold)
+					return swingPrice;
+			}
+			return 0;
+		}
+
 		/// <summary>
 		/// Calculates UTC timestamp corresponding to 6:00 PM NY time (Eastern Time) of active trading session.
 		/// </summary>
