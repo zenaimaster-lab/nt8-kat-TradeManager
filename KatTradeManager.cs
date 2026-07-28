@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 0.65 (2026-07-26)
+ * Version: 0.66 (2026-07-28)
  * NinjaTrader 8 TradeManager Indicator
  */
 
@@ -69,8 +69,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "0.65";
-		public const string RELEASE_DATE = "2026-07-26";
+		public const string VERSION = "0.66";
+		public const string RELEASE_DATE = "2026-07-28";
 
 		private volatile Account account;
 		private Grid chartGrid;
@@ -179,6 +179,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private bool IsAccountAllowed(string accName)
 		{
 			return KatTradeCalculator.IsAccountAllowed(accName, AccountFilter);
+		}
+
+		// Shared account-selection chain — used in DataLoaded and in the watchdog auto-recovery.
+		// Returns null only when Account.All is empty (accounts not connected yet).
+		private Account SelectAccount()
+		{
+			if (Account.All == null || Account.All.Count == 0) return null;
+			var allowed = Account.All.Where(a => IsAccountAllowed(a.Name)).ToList();
+			if (allowed.Count == 0) allowed = Account.All.ToList();
+			return allowed.FirstOrDefault(a => a.Name.Equals(AccountName, StringComparison.OrdinalIgnoreCase))
+			       ?? allowed.FirstOrDefault(a => a.Name == "Sim101")
+			       ?? allowed.FirstOrDefault(a => a.Name == "Sim301")
+			       ?? allowed.FirstOrDefault(a => a.Connection != null)
+			       ?? allowed.FirstOrDefault();
 		}
 
 		protected override void OnStateChange()
@@ -353,19 +367,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 						Print(string.Format("  - {0} ({1})", acc.Name, acc.Connection != null ? "Connected" : "Disconnected"));
 					}
 
-					var allowedAccs = Account.All.Where(a => IsAccountAllowed(a.Name)).ToList();
-					if (allowedAccs.Count == 0) allowedAccs = Account.All.ToList();
-
-					account = allowedAccs.FirstOrDefault(a => a.Name.Equals(AccountName, StringComparison.OrdinalIgnoreCase))
-					          ?? allowedAccs.FirstOrDefault(a => a.Name == "Sim101")
-					          ?? allowedAccs.FirstOrDefault(a => a.Name == "Sim301")
-					          ?? allowedAccs.FirstOrDefault(a => a.Connection != null)
-					          ?? allowedAccs.FirstOrDefault();
+					account = SelectAccount();
 
 					if (account != null)
 					{
 						Print(string.Format("[KatTradeManager] Selected Account: {0}", account.Name));
 					}
+					else
+					{
+						Print("[KatTradeManager] WARNING: No account selected — buttons disabled until accounts connect.");
+					}
+				}
+				else
+				{
+					Print("[KatTradeManager] WARNING: Account.All empty at load — watchdog will auto-recover when accounts connect.");
 				}
 
 				if (ChartControl != null)

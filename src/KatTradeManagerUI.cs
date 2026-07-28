@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.65 (2026-07-26) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.66 (2026-07-28) */
 
 using System;
 using System.Collections.Generic;
@@ -57,6 +57,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			chartGrid = ChartControl.Parent as Grid;
 			if (chartGrid == null) return;
+
+			// Auto-recover account if DataLoaded ran before accounts connected (root cause of "buttons don't work")
+			if (account == null)
+			{
+				account = SelectAccount();
+				if (account != null)
+					Print(string.Format("[KatTradeManager] Account auto-recovered by watchdog: {0}", account.Name));
+			}
 
 			AttachHotkeyHandler();
 
@@ -389,8 +397,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				var allowedAccs = Account.All.Where(a => IsAccountAllowed(a.Name)).ToList();
 				foreach (var acc in allowedAccs) accSelector.Items.Add(acc.Name);
-				if (account != null && accSelector.Items.Contains(account.Name)) accSelector.SelectedItem = account.Name;
-				else if (accSelector.Items.Count > 0) accSelector.SelectedIndex = 0;
+				if (account != null && accSelector.Items.Contains(account.Name))
+				{
+					accSelector.SelectedItem = account.Name;
+				}
+				else if (allowedAccs.Count > 0)
+				{
+					accSelector.SelectedIndex = 0;
+					account = allowedAccs[0]; // assign directly — SelectionChanged handler isn't attached yet
+					Print(string.Format("[KatTradeManager] Defaulted account to first allowed: {0}", account.Name));
+				}
 			}
 			accSelector.SelectionChanged += (s, ev) =>
 			{

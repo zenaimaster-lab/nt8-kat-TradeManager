@@ -1,4 +1,4 @@
-/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.65 (2026-07-26) */
+/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.66 (2026-07-28) */
 
 using System;
 using System.Collections.Generic;
@@ -56,7 +56,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private void PlaceOrder(OrderAction action, bool isCurrentCandle)
 		{
-			if (account == null || Instrument == null) return;
+			if (account == null || Instrument == null)
+			{
+				if (account == null) Print("[KatTradeManager] No account — watchdog auto-recovering. Retry in a moment.");
+				return;
+			}
 
 			try
 			{
@@ -94,7 +98,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private void PlaceFixedDistanceOrder(OrderAction action)
 		{
-			if (account == null || Instrument == null) return;
+			if (account == null || Instrument == null)
+			{
+				if (account == null) Print("[KatTradeManager] No account — watchdog auto-recovering. Retry in a moment.");
+				return;
+			}
 
 			try
 			{
@@ -129,7 +137,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private void PlaceEmaOrder(OrderAction action, int emaPeriod)
 		{
-			if (account == null || Instrument == null) return;
+			if (account == null || Instrument == null)
+			{
+				if (account == null) Print("[KatTradeManager] No account — watchdog auto-recovering. Retry in a moment.");
+				return;
+			}
 
 			try
 			{
@@ -190,7 +202,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private void PlaceOrderInternal(OrderAction action, double triggerPrice, OrderType orderType, double limitPrice, double stopPrice, string errorContext)
 		{
-			if (account == null || Instrument == null) return;
+			if (account == null || Instrument == null)
+			{
+				if (account == null) Print("[KatTradeManager] No account — watchdog auto-recovering. Retry in a moment.");
+				return;
+			}
 
 			if (IsDailyRiskBreached(out string breachReason))
 			{
@@ -336,7 +352,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private void ClosePosition()
 		{
-			if (account == null || Instrument == null) return;
+			if (account == null || Instrument == null)
+			{
+				if (account == null) Print("[KatTradeManager] No account — watchdog auto-recovering. Retry in a moment.");
+				return;
+			}
 			try
 			{
 				CancelAllOrders();
@@ -364,7 +384,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private void PlaceMarketOrder(OrderAction action)
 		{
-			if (account == null || Instrument == null) return;
+			if (account == null || Instrument == null)
+			{
+				if (account == null) Print("[KatTradeManager] No account — watchdog auto-recovering. Retry in a moment.");
+				return;
+			}
 
 			if (IsDailyRiskBreached(out string breachReason))
 			{
@@ -398,7 +422,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private void SetBreakeven()
 		{
-			if (account == null || Instrument == null) return;
+			if (account == null || Instrument == null)
+			{
+				if (account == null) Print("[KatTradeManager] No account — watchdog auto-recovering. Retry in a moment.");
+				return;
+			}
 			try
 			{
 				Position pos = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
@@ -452,7 +480,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private void RevertPosition()
 		{
-			if (account == null || Instrument == null) return;
+			if (account == null || Instrument == null)
+			{
+				if (account == null) Print("[KatTradeManager] No account — watchdog auto-recovering. Retry in a moment.");
+				return;
+			}
 			try
 			{
 				if (IsCloseInFlight())
@@ -483,7 +515,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private void FreezeCurrentStopLoss()
 		{
-			if (account == null || Instrument == null) return;
+			if (account == null || Instrument == null)
+			{
+				if (account == null) Print("[KatTradeManager] No account — watchdog auto-recovering. Retry in a moment.");
+				return;
+			}
 			frozenStopPrice = 0; // clear stale value from a previous freeze episode — enforcement re-captures fresh
 			try
 			{
@@ -586,7 +622,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private void ShiftSlToSwing(bool isRedo)
 		{
-			if (account == null || Instrument == null) return;
+			if (account == null || Instrument == null)
+			{
+				if (account == null) Print("[KatTradeManager] No account — watchdog auto-recovering. Retry in a moment.");
+				return;
+			}
 			try
 			{
 				Position pos = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);

@@ -24,6 +24,16 @@ graph TD
 
 ## 📜 Version History & Change Log
 
+### [v0.66] — 2026-07-28
+- **CRITICAL FIX: "No button works — no order created"**:
+  - **Root cause**: `DataLoaded` selected `account` only if `Account.All.Count > 0` at the moment the chart opened. If the chart was opened BEFORE NT8 finished connecting accounts (common on startup), `Account.All` was empty → `account` stayed **null forever** — no retry existed. Every button click hit `if (account == null || Instrument == null) return;` and returned **silently** (no Print, no order, no error). The user saw a panel with buttons but nothing happened.
+  - **Fix 1 (root cause)**: New `SelectAccount()` helper (DRY) extracted from DataLoaded. The 500 ms UI watchdog now auto-recovers: `if (account == null) account = SelectAccount()`. As soon as NT8 connects accounts after chart open, the watchdog assigns one within 500 ms — buttons work immediately. Printed: `Account auto-recovered by watchdog: <name>`.
+  - **Fix 2**: accSelector fallback (`SelectedIndex = 0`) now assigns `account = allowedAccs[0]` directly, instead of only setting the visual selection (the SelectionChanged handler wasn't attached yet at that point).
+  - **Fix 3 (diagnostic)**: All 10 order-method guards now Print `No account — watchdog auto-recovering. Retry in a moment.` instead of returning silently. The user sees EXACTLY why buttons don't fire instead of guessing.
+  - **Fix 4**: DataLoaded now prints `WARNING: Account.All empty at load` or `WARNING: No account selected` when the initial selection fails, so the NinjaScript Output window (Ctrl+Alt+Shift+O) shows the full status chain.
+  - **Tests**: 170/170 passing (fix is NT8-runtime state, not pure logic). Compile gate: **succeeded**.
+  - **Graphify entity mapping**: `KatTradeManager.SelectAccount` (new helper), `KatTradeManager.OnPanelWatchdogTick` (auto-recovery), `KatTradeManagerUI.CreateWpfControls` (accSelector fallback fix).
+
 ### [v0.65] — 2026-07-26
 - **Final Audit Round 10: Contract Clamp, Deploy-Sync Verification, Scope Documentation**:
   - **Bug fix (contract)**: `GetLineStartBar(currentBar, maxBarsAgo)` violated its own "never negative" contract for negative `maxBarsAgo` (returned it verbatim → future-bar anchor). Now clamps to 0. +1 test.
