@@ -1,6 +1,6 @@
 # NT8 Kat TradeManager
 
-**Current Version**: `v0.69` (Released: `2026-07-28`)
+**Current Version**: `v0.70` (Released: `2026-07-28`)
 
 An advanced TradeManager Indicator for **NinjaTrader 8 (NT8)** designed for fast execution, candle-based pending stop orders, and dynamic risk management.
 
@@ -9,10 +9,11 @@ An advanced TradeManager Indicator for **NinjaTrader 8 (NT8)** designed for fast
 - **On-Chart WPF Control Panel**: Interactive buttons with SELL on left / BUY on right and dropdown selectors directly on your NinjaTrader 8 charts.
 - **Draggable In-Chart HUD (default)**: Opens at bottom-left inside chart, keeps at least 40px visible while dragging, and preserves user position across watchdog re-attachment. ChartTrader docking remains selectable.
 - **Freeze Trail Control (`Freeze Trail: OFF` / `⚡ Freeze Trail: ON`)**: Full-width dark gray HUD button positioned directly above Close/flatten to freeze active trailing Stop Loss in place while preserving working SL and TP orders.
+- **Pending Stop-Limit Control (`Stop-Limit: OFF` / `Stop-Limit: ON`)**: Full-width Freeze Trail-style button below Freeze Trail; converts valid candle and fixed-distance pending StopMarket entries to one-tick StopLimit entries when enabled.
 - **Swing Stop Loss Shift Controls (`◀ SL` & `SL ▶`)**: Dynamic gray HUD buttons below Section 2 to shift active Stop Loss orders back to historical Swing Lows (Long) or Swing Highs (Short) step-by-step with full Redo functionality.
 - **Daily Max Drawdown & Daily Max Profit Controls**: Side-by-side HUD toggle buttons (default ON, darker purple background `#3A136B`) with 6:00 PM NY session reset. Replaces entry blocking and auto-flattens positions/orders on breach with instant HUD toggle reactivity.
 - **Configurable Hotkeys**: Assign WPF Hotkeys for all 15 order types directly in Indicator Settings, overriding default NT hotkeys (`e.Handled = true`) with input textbox detection & repeat protection.
-- **EMA Place & EMA Angle Filters**: Side-by-side HUD toggle buttons (default ON, very dark blue background) enforcing 5m multi-EMA position rules and slope angle degree thresholds before order placement.
+- **EMA Place & EMA Angle Filters**: Side-by-side HUD toggle buttons (default OFF, very dark blue background) enforcing 5m multi-EMA position rules only for direct candle/fixed-distance Buy/Sell entry buttons when enabled.
 - **EMA 34 & EMA 89 Touch/Cross Orders**: Place Buy/Sell orders based on the most recent candle touching or crossing EMA 34 or EMA 89 lines.
 
 

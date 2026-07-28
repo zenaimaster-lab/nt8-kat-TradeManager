@@ -146,6 +146,24 @@ namespace KatTradeManager.Tests
 		}
 
 		[Fact]
+		public void CalculateStopLimitPrices_BuyUsesOneTickAboveTrigger()
+		{
+			KatTradeCalculator.CalculateStopLimitPrices(KatOrderAction.Buy, 1000.0, 0.25, out double limitPrice, out double stopPrice);
+
+			Assert.Equal(1000.25, limitPrice, 4);
+			Assert.Equal(1000.0, stopPrice, 4);
+		}
+
+		[Fact]
+		public void CalculateStopLimitPrices_SellUsesOneTickBelowTrigger()
+		{
+			KatTradeCalculator.CalculateStopLimitPrices(KatOrderAction.Sell, 1000.0, 0.25, out double limitPrice, out double stopPrice);
+
+			Assert.Equal(999.75, limitPrice, 4);
+			Assert.Equal(1000.0, stopPrice, 4);
+		}
+
+		[Fact]
 		public void DetermineOrderType_SellBelowMarket_OneTickBelow_ReturnsStopMarket()
 		{
 			double triggerPrice = 999.75;

@@ -1,4 +1,4 @@
-/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.69 (2026-07-28) */
+/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.70 (2026-07-28) */
 
 using System;
 using System.Collections.Generic;
@@ -111,7 +111,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				KatOrderType katOrderType = KatTradeCalculator.DetermineOrderType(katAction, triggerPrice, currentPx, cachedTickSize, out double limitPrice, out double stopPrice);
 				OrderType orderType = ToNtOrderType(katOrderType);
 
-				PlaceOrderInternal(action, triggerPrice, orderType, limitPrice, stopPrice, "placing order");
+				PlaceOrderInternal(action, triggerPrice, orderType, limitPrice, stopPrice, "placing order", true);
 			}
 			catch (Exception ex)
 			{
@@ -150,7 +150,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				KatOrderType katOrderType = KatTradeCalculator.DetermineOrderType(katAction, triggerPrice, currentPx, cachedTickSize, out double limitPrice, out double stopPrice);
 				OrderType orderType = ToNtOrderType(katOrderType);
 
-				PlaceOrderInternal(action, triggerPrice, orderType, limitPrice, stopPrice, "placing fixed distance order");
+				PlaceOrderInternal(action, triggerPrice, orderType, limitPrice, stopPrice, "placing fixed distance order", true);
 			}
 			catch (Exception ex)
 			{
@@ -221,7 +221,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				KatOrderType katOrderType = KatTradeCalculator.DetermineOrderType(katAction, triggerPrice, currentPx, cachedTickSize, out double limitPrice, out double stopPrice);
 				OrderType orderType = ToNtOrderType(katOrderType);
 
-				PlaceOrderInternal(action, triggerPrice, orderType, limitPrice, stopPrice, string.Format("placing EMA {0} order", emaPeriod));
+				PlaceOrderInternal(action, triggerPrice, orderType, limitPrice, stopPrice, string.Format("placing EMA {0} order", emaPeriod), false);
 			}
 			catch (Exception ex)
 			{
@@ -230,7 +230,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		}
 
 
-		private void PlaceOrderInternal(OrderAction action, double triggerPrice, OrderType orderType, double limitPrice, double stopPrice, string errorContext)
+		private void PlaceOrderInternal(OrderAction action, double triggerPrice, OrderType orderType, double limitPrice, double stopPrice, string errorContext, bool applyEmaFilters)
 		{
 			if (account == null || Instrument == null)
 			{
@@ -259,7 +259,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				lock (priceLock)
 				{
 					// Validation 1: EMA Place Check
-					if (cachedIsEmaPlace)
+					if (applyEmaFilters && cachedIsEmaPlace)
 					{
 						double[] emaVals = new double[3];
 						int valCount = 0;
@@ -276,7 +276,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					}
 
 					// Validation 2: EMA Angle Check
-					if (cachedIsEmaAngle)
+					if (applyEmaFilters && cachedIsEmaAngle)
 					{
 						double[] currEmas = new double[3];
 						double[] prevEmas = new double[3];
@@ -320,6 +320,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 				KatOrderType liveKatType = KatTradeCalculator.DetermineOrderType(
 					katAction, triggerPrice, liveCurrent, cachedTickSize, out double liveLimitPrice, out double liveStopPrice);
 				OrderType liveOrderType = ToNtOrderType(liveKatType);
+
+				if (cachedIsStopLimit && liveOrderType == OrderType.StopMarket)
+				{
+					double stopLimitOffset = cachedTickSize > 0 ? cachedTickSize : Instrument.MasterInstrument.TickSize;
+					if (stopLimitOffset <= 0) stopLimitOffset = 0.01;
+					KatTradeCalculator.CalculateStopLimitPrices(katAction, triggerPrice, stopLimitOffset, out liveLimitPrice, out liveStopPrice);
+					liveOrderType = OrderType.StopLimit;
+					Print(string.Format("[KatTradeManager] Pending stop mode: StopLimit stop={0} limit={1}",
+						liveStopPrice, liveLimitPrice));
+				}
 
 				if (liveOrderType != orderType)
 				{
@@ -582,16 +592,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 				KatOrderAction katAction = pos.MarketPosition == MarketPosition.Long ? KatOrderAction.Buy : KatOrderAction.Sell;
 
 				double bePrice = KatTradeCalculator.CalculateBreakevenPrice(katAction, pos.AveragePrice, bufferTicks, tickSize);
+				double livePrice;
+				lock (priceLock)
+					livePrice = cachedCurrentPrice;
 
 				// Underwater position: BE stop would sit on the wrong side of market -> broker rejection
-				if (!KatTradeCalculator.IsStopOnValidSide(pos.MarketPosition == MarketPosition.Long, bePrice, cachedCurrentPrice))
+				if (livePrice > 0 && !KatTradeCalculator.IsStopOnValidSide(pos.MarketPosition == MarketPosition.Long, bePrice, livePrice))
 				{
-					Print(string.Format("[KatTradeManager] BE skipped: stop {0} invalid vs current market {1} (position underwater or price unavailable).", bePrice, cachedCurrentPrice));
+					Print(string.Format("[KatTradeManager] BE skipped: stop {0} invalid vs current market {1}.", bePrice, livePrice));
 					return;
 				}
 
 				var workingStops = account.Orders.Where(o => o.Instrument == Instrument &&
-					(o.OrderState == OrderState.Working || o.OrderState == OrderState.Accepted) &&
+					IsActiveOrderState(o.OrderState) &&
 					(o.OrderType == OrderType.StopMarket || o.OrderType == OrderType.StopLimit) &&
 					(pos.MarketPosition == MarketPosition.Long ? (o.OrderAction == OrderAction.Sell || o.OrderAction == OrderAction.SellShort) : (o.OrderAction == OrderAction.Buy || o.OrderAction == OrderAction.BuyToCover))).ToList();
 
@@ -603,14 +616,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 						account.Change(new[] { stopOrder });
 					}
 					Print(string.Format("[KatTradeManager] Moved {0} Stop Loss order(s) to Breakeven @ {1} (Buffer: {2} ticks)", workingStops.Count, bePrice, bufferTicks));
+					ShowHudStatus(string.Format("BE stop moved @ {0}", bePrice), System.Windows.Media.Brushes.LightGreen);
 				}
 				else
 				{
 					OrderAction slAction = pos.MarketPosition == MarketPosition.Long ? OrderAction.Sell : OrderAction.BuyToCover;
 					Order slOrder = account.CreateOrder(Instrument, slAction, OrderType.StopMarket, OrderEntry.Manual, TimeInForce.Gtc, pos.Quantity, 0, bePrice, "", "KAT_SL_BE", NinjaTrader.Core.Globals.MaxDate, null);
 					if (slOrder != null)
+					{
 						account.Submit(new[] { slOrder });
-					Print(string.Format("[KatTradeManager] Submitted Breakeven Stop Loss @ {0} (Buffer: {1} ticks)", bePrice, bufferTicks));
+						Print(string.Format("[KatTradeManager] Submitted Breakeven Stop Loss @ {0} (Buffer: {1} ticks)", bePrice, bufferTicks));
+						ShowHudStatus(string.Format("BE stop submitted @ {0}", bePrice), System.Windows.Media.Brushes.LightGreen);
+					}
+					else
+						Print(string.Format("[KatTradeManager] BE order creation returned null: action={0} qty={1} stop={2}", slAction, pos.Quantity, bePrice));
 				}
 			}
 			catch (Exception ex)

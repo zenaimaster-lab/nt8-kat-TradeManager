@@ -96,6 +96,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return Math.Round(rounded, 8);
 		}
 
+		public static void CalculateStopLimitPrices(KatOrderAction action, double triggerPrice, double tickSize, out double limitPrice, out double stopPrice)
+		{
+			if (tickSize <= 0) tickSize = 0.01;
+			stopPrice = triggerPrice;
+			limitPrice = action == KatOrderAction.Buy
+				? triggerPrice + tickSize
+				: triggerPrice - tickSize;
+		}
+
 
 		public static double CalculateHalfCandlePrice(double high, double low, double tickSize)
 		{

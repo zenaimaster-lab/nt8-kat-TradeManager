@@ -23,6 +23,14 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v0.70] — 2026-07-28
+- **Runtime BE, EMA scope, Stop-Limit, and HUD drag fixes**:
+  - Hardened BE action against missing live-price cache, transient active stop states, invalid stop side, and null stop creation; successful moves/submissions now show HUD feedback.
+  - EMA Place and EMA Angle checks now run only on direct candle/fixed-distance Buy/Sell entry routes; EMA touch, market, Revert, BE, and Close paths bypass them. Both HUD filter toggles default OFF.
+  - Added Freeze Trail-style `Stop-Limit: OFF/ON` button directly below Freeze Trail. When enabled, valid pending StopMarket entries use StopLimit with a one-tick protective limit offset.
+  - Replaced fixed-bottom InChart margin drag with Canvas absolute coordinates, bounded movement, and watchdog position persistence.
+  - **Tests**: 179/179 passing. Compile gate: succeeded (existing NT8 reference-conflict warnings only).
+  - **Graphify entity mapping**: `KatTradeManager.SetBreakeven`, `KatTradeManager.PlaceOrderInternal`, `KatTradeCalculator.CalculateStopLimitPrices`, `KatTradeManagerUI.CreateWpfControls`, `KatTradeManagerUI.RemoveWpfControls`.
 ### [v0.69] — 2026-07-28
 - **Runtime order/HUD fix round**:
   - Fixed ATM market BUY/SELL orders stuck at `Initialized`: ATM-backed market entries now use NinjaTrader-required order name `Entry`; native submit remains fallback when template file is missing.

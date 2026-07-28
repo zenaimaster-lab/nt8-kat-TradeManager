@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.69 (2026-07-28) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.70 (2026-07-28) */
 
 using System;
 using System.Collections.Generic;
@@ -26,6 +26,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private bool hasHudDragPosition;
 		private double hudDragLeft;
 		private double hudDragTop;
+		private Canvas hudCanvas;
 		private TextBlock hudStatusText;
 		private string pendingHudStatusMessage;
 		private Brush pendingHudStatusBrush;
@@ -272,7 +273,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				}
 			}
 
-			return chartGrid != null && chartGrid.Children.Contains(panelBorder);
+			return hudCanvas != null && hudCanvas.Children.Contains(panelBorder);
 		}
 
 		private void CreateWpfControls()
@@ -282,6 +283,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (chartGrid == null) return;
 
 			DetachFromParent(panelBorder);
+			DetachFromParent(hudCanvas);
 
 			panelBorder = new Border
 			{
@@ -330,37 +332,37 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			if (!isChartTraderAttached)
 			{
-				// InChart mode or Fallback when ChartTrader is closed/hidden
+				// InChart mode or fallback: use absolute Canvas coordinates for drag.
+				hudCanvas = new Canvas
+				{
+					HorizontalAlignment = HorizontalAlignment.Stretch,
+					VerticalAlignment = VerticalAlignment.Stretch,
+					ClipToBounds = false
+				};
+				System.Windows.Controls.Panel.SetZIndex(hudCanvas, 9999);
+				Grid.SetColumnSpan(hudCanvas, 3);
+				chartGrid.Children.Add(hudCanvas);
 				panelBorder.Width = 240;
-
-				if (PanelLocation == KatHudLocation.ChartTrader)
-				{
-					// Fallback when ChartTrader setting is selected but ChartTrader menu is OFF -> Bottom-Left with drag support
-					panelBorder.HorizontalAlignment = HorizontalAlignment.Left;
-					panelBorder.VerticalAlignment = VerticalAlignment.Bottom;
-					panelBorder.Margin = new Thickness(10, 0, 0, 10);
-				}
-				else if (hasHudDragPosition)
-				{
-					// Preserve user position when watchdog recreates the panel.
-					panelBorder.HorizontalAlignment = HorizontalAlignment.Left;
-					panelBorder.VerticalAlignment = VerticalAlignment.Top;
-					panelBorder.Margin = new Thickness(hudDragLeft, hudDragTop, 0, 0);
-				}
-				else
-				{
-					// InChart default: bottom-left, clear of the price scale.
-					panelBorder.HorizontalAlignment = HorizontalAlignment.Left;
-					panelBorder.VerticalAlignment = VerticalAlignment.Bottom;
-					panelBorder.Margin = new Thickness(10, 0, 0, 10);
-				}
+				panelBorder.HorizontalAlignment = HorizontalAlignment.Left;
+				panelBorder.VerticalAlignment = VerticalAlignment.Top;
+				panelBorder.Margin = new Thickness(0);
 
 				panelBorder.Cursor = Cursors.SizeAll;
-				System.Windows.Controls.Panel.SetZIndex(panelBorder, 9999);
-				Grid.SetColumnSpan(panelBorder, 3);
+				hudCanvas.Children.Add(panelBorder);
 
 				Point dragStart = new Point();
+				double dragStartLeft = hasHudDragPosition ? hudDragLeft : 10;
+				double dragStartTop = hasHudDragPosition ? hudDragTop : 10;
 				bool isDragging = false;
+				Canvas.SetLeft(panelBorder, dragStartLeft);
+				Canvas.SetTop(panelBorder, hasHudDragPosition
+					? dragStartTop
+					: Math.Max(0, chartGrid.ActualHeight - panelBorder.ActualHeight - 10));
+				panelBorder.Loaded += (s, ev) =>
+				{
+					if (!hasHudDragPosition)
+						Canvas.SetTop(panelBorder, Math.Max(0, hudCanvas.ActualHeight - panelBorder.ActualHeight - 10));
+				};
 
 				// Use PREVIEW (tunneling) so we can bail BEFORE the event reaches buttons.
 				// MouseLeftButtonDown (bubbling) was sometimes too late and could interfere with Button internal state.
@@ -372,14 +374,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 					if (IsInteractiveVisual(src))
 						return;
 
-					dragStart = ev.GetPosition(chartGrid);
-					// Normalize to Left/Top alignment with an absolute margin BEFORE dragging.
-					// Fallback mode uses VerticalAlignment.Bottom, where Margin.Top is ignored —
-					// without this, vertical dragging silently does nothing in fallback mode.
-					Point pos = panelBorder.TranslatePoint(new Point(0, 0), chartGrid);
-					panelBorder.HorizontalAlignment = HorizontalAlignment.Left;
-					panelBorder.VerticalAlignment = VerticalAlignment.Top;
-					panelBorder.Margin = new Thickness(Math.Max(0, pos.X), Math.Max(0, pos.Y), 0, 0);
+					dragStart = ev.GetPosition(hudCanvas);
+					dragStartLeft = Canvas.GetLeft(panelBorder);
+					dragStartTop = Canvas.GetTop(panelBorder);
+					if (double.IsNaN(dragStartLeft)) dragStartLeft = 10;
+					if (double.IsNaN(dragStartTop)) dragStartTop = 10;
 
 					panelBorder.CaptureMouse();
 					isDragging = true;
@@ -390,23 +389,24 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{
 					if (isDragging)
 					{
-						Point current = ev.GetPosition(chartGrid);
-						Thickness m = panelBorder.Margin;
-						double newLeft = m.Left + (current.X - dragStart.X);
-						double newTop = m.Top + (current.Y - dragStart.Y);
+						Point current = ev.GetPosition(hudCanvas);
+						double newLeft = dragStartLeft + (current.X - dragStart.X);
+						double newTop = dragStartTop + (current.Y - dragStart.Y);
 
 						// Clamp: keep at least 40px of the panel reachable inside the chart
 						const double minVisible = 40;
-						newLeft = KatTradeCalculator.ClampHudCoordinate(newLeft, panelBorder.ActualWidth, chartGrid.ActualWidth, minVisible);
-						newTop = KatTradeCalculator.ClampHudCoordinate(newTop, panelBorder.ActualHeight, chartGrid.ActualHeight, minVisible);
+						double canvasWidth = hudCanvas.ActualWidth > 0 ? hudCanvas.ActualWidth : chartGrid.ActualWidth;
+						double canvasHeight = hudCanvas.ActualHeight > 0 ? hudCanvas.ActualHeight : chartGrid.ActualHeight;
+						double panelWidth = panelBorder.ActualWidth > 0 ? panelBorder.ActualWidth : panelBorder.Width;
+						double panelHeight = panelBorder.ActualHeight > 0 ? panelBorder.ActualHeight : 40;
+						newLeft = KatTradeCalculator.ClampHudCoordinate(newLeft, panelWidth, canvasWidth, minVisible);
+						newTop = KatTradeCalculator.ClampHudCoordinate(newTop, panelHeight, canvasHeight, minVisible);
 
-						panelBorder.Margin = new Thickness(newLeft, newTop, 0, 0);
-						panelBorder.HorizontalAlignment = HorizontalAlignment.Left;
-						panelBorder.VerticalAlignment = VerticalAlignment.Top;
+						Canvas.SetLeft(panelBorder, newLeft);
+						Canvas.SetTop(panelBorder, newTop);
 						hasHudDragPosition = true;
 						hudDragLeft = newLeft;
 						hudDragTop = newTop;
-						dragStart = current;
 					}
 				};
 
@@ -422,7 +422,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 					}
 				};
 
-				chartGrid.Children.Add(panelBorder);
 			}
 
 			mainPanel = new StackPanel();
@@ -842,6 +841,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 			};
 			sec4Panel.Children.Add(btnFreezeTrail);
 
+			Button btnStopLimit = CreateButton(cachedIsStopLimit ? "Stop-Limit: ON" : "Stop-Limit: OFF",
+				cachedIsStopLimit ? freezeOnBg : freezeOffBg, null, 24, 10);
+			btnStopLimit.Foreground = cachedIsStopLimit ? Brushes.White : Brushes.LightGray;
+			btnStopLimit.Margin = new Thickness(0, 0, 0, 4);
+			btnStopLimit.Click += (s, ev) =>
+			{
+				cachedIsStopLimit = !cachedIsStopLimit;
+				btnStopLimit.Content = cachedIsStopLimit ? "Stop-Limit: ON" : "Stop-Limit: OFF";
+				btnStopLimit.Background = cachedIsStopLimit ? freezeOnBg : freezeOffBg;
+				btnStopLimit.Foreground = cachedIsStopLimit ? Brushes.White : Brushes.LightGray;
+			};
+			sec4Panel.Children.Add(btnStopLimit);
+
 			SolidColorBrush closeBg = new SolidColorBrush(Color.FromRgb(20, 20, 20)); // Very dark gray (almost black)
 			Button btnClose = CreateButton("Close/flatten", closeBg, (s, ev) => ClosePosition(), 33, 15);
 			sec4Panel.Children.Add(btnClose);
@@ -966,6 +978,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				DetachFromParent(panelBorder);
 				panelBorder = null;
+			}
+			if (hudCanvas != null)
+			{
+				DetachFromParent(hudCanvas);
+				hudCanvas = null;
 			}
 			hudStatusText = null;
 		}
