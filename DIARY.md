@@ -23,6 +23,15 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v0.69] — 2026-07-28
+- **Runtime order/HUD fix round**:
+  - Fixed ATM market BUY/SELL orders stuck at `Initialized`: ATM-backed market entries now use NinjaTrader-required order name `Entry`; native submit remains fallback when template file is missing.
+  - Added account `OrderUpdate` diagnostics for tracked entries/close orders, including state transitions and close-submit details.
+  - Revert now retries opposite market entry from watchdog and close-order terminal events, preserves pending action until submit succeeds, and guards against duplicate flip submissions. Short close uses `BuyToCover`.
+  - Hardened InChart drag routing with preview move/up events, mouse capture, lost-capture cleanup, and interactive-child filtering.
+  - Added dispatcher-safe, auto-clearing HUD status for EMA Place/Angle rejection reasons and successful market submission.
+  - **Tests**: 177/177 passing. Compile gate: succeeded (existing NT8 reference-conflict warnings only).
+  - **Graphify entity mapping**: `KatTradeManager.SubmitOrder`, `KatTradeManager.PlaceMarketOrder`, `KatTradeManager.OnAccountOrderUpdate`, `KatTradeManager.TrySubmitPendingRevert`, `KatTradeManager.ClosePosition`, `KatTradeManagerUI.CreateWpfControls`, `KatTradeManagerUI.ShowHudStatus`.
 ### [v0.68] — 2026-07-28
 - **Full click-path reaudit and HUD interaction fix**:
   - HUD now defaults to `InChart`, first renders bottom-left, supports bounded drag, and preserves user position when watchdog reattaches the panel.

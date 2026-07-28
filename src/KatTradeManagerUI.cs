@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.68 (2026-07-28) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.69 (2026-07-28) */
 
 using System;
 using System.Collections.Generic;
@@ -26,6 +26,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private bool hasHudDragPosition;
 		private double hudDragLeft;
 		private double hudDragTop;
+		private TextBlock hudStatusText;
+		private string pendingHudStatusMessage;
+		private Brush pendingHudStatusBrush;
+		private System.Windows.Threading.DispatcherTimer hudStatusTimer;
 
 		private void StartPanelWatchdog()
 		{
@@ -68,11 +72,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (account != null)
 					Print(string.Format("[KatTradeManager] Account auto-recovered by watchdog: {0}", account.Name));
 			}
+			EnsureAccountEventSubscription();
 
 			AttachHotkeyHandler();
 
 			// Evaluate real-time daily risk protection limits
 			EvaluateDailyRiskLimits();
+			TrySubmitPendingRevert();
 
 			// Enforce Freeze Trail if active
 			CheckFreezeTrailEnforcement();
@@ -239,7 +245,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 					|| src is System.Windows.Controls.Primitives.Selector
 					|| src is System.Windows.Controls.Primitives.Thumb)
 					return true;
-				src = VisualTreeHelper.GetParent(src);
+				try
+				{
+					src = VisualTreeHelper.GetParent(src);
+				}
+				catch
+				{
+					src = LogicalTreeHelper.GetParent(src);
+				}
 			}
 			return false;
 		}
@@ -373,7 +386,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					ev.Handled = true;
 				};
 
-				panelBorder.MouseMove += (s, ev) =>
+				panelBorder.PreviewMouseMove += (s, ev) =>
 				{
 					if (isDragging)
 					{
@@ -397,12 +410,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 					}
 				};
 
-				panelBorder.MouseLeftButtonUp += (s, ev) =>
+				panelBorder.LostMouseCapture += (s, ev) => isDragging = false;
+
+				panelBorder.PreviewMouseLeftButtonUp += (s, ev) =>
 				{
 					if (isDragging)
 					{
 						panelBorder.ReleaseMouseCapture();
 						isDragging = false;
+						ev.Handled = true;
 					}
 				};
 
@@ -414,7 +430,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			// --- SECTION 1: Parameters & ATM Selection ---
 			StackPanel sec1Panel = new StackPanel();
 
-			sec1Panel.Children.Add(new TextBlock
+			TextBlock hudHeader = new TextBlock
 			{
 				Text = string.Format("⚡ KAT TradeManager v{0}", VERSION),
 				Foreground = new SolidColorBrush(Color.FromRgb(70, 130, 160)),
@@ -422,7 +438,28 @@ namespace NinjaTrader.NinjaScript.Indicators
 				FontSize = 12,
 				Margin = new Thickness(0, 0, 0, 6),
 				HorizontalAlignment = HorizontalAlignment.Left
-			});
+			};
+			sec1Panel.Children.Add(hudHeader);
+
+			hudStatusText = new TextBlock
+			{
+				Foreground = Brushes.White,
+				FontSize = 10,
+				Margin = new Thickness(0, 0, 0, 6),
+				HorizontalAlignment = HorizontalAlignment.Left,
+				TextWrapping = TextWrapping.Wrap,
+				Visibility = Visibility.Collapsed
+			};
+			sec1Panel.Children.Add(hudStatusText);
+
+			if (!string.IsNullOrEmpty(pendingHudStatusMessage))
+			{
+				hudStatusText.Text = pendingHudStatusMessage;
+				hudStatusText.Foreground = pendingHudStatusBrush ?? Brushes.White;
+				hudStatusText.Visibility = Visibility.Visible;
+				pendingHudStatusMessage = null;
+				pendingHudStatusBrush = null;
+			}
 
 			Grid paramGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
 			paramGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(85) });
@@ -441,6 +478,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{
 					accSelector.SelectedIndex = 0;
 					account = allowedAccs[0]; // assign directly — SelectionChanged handler isn't attached yet
+					EnsureAccountEventSubscription();
 					Print(string.Format("[KatTradeManager] Defaulted account to first allowed: {0}", account.Name));
 				}
 			}
@@ -450,6 +488,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{
 					string selectedName = accSelector.SelectedItem.ToString();
 					account = Account.All.FirstOrDefault(a => a.Name == selectedName);
+					EnsureAccountEventSubscription();
 
 					// Reset per-account state — otherwise the OLD account's realized PnL stays as the
 					// session baseline (phantom daily PnL -> false/missed risk breach), and a stale
@@ -858,6 +897,48 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return btn;
 		}
 
+		private void ShowHudStatus(string message, Brush foreground)
+		{
+			if (ChartControl == null || ChartControl.Dispatcher == null) return;
+
+			Action update = () =>
+			{
+				if (hudStatusText == null)
+				{
+					pendingHudStatusMessage = message;
+					pendingHudStatusBrush = foreground;
+					return;
+				}
+
+				hudStatusText.Text = message;
+				hudStatusText.Foreground = foreground ?? Brushes.White;
+				hudStatusText.TextWrapping = TextWrapping.Wrap;
+				hudStatusText.Visibility = Visibility.Visible;
+
+				if (hudStatusTimer == null)
+				{
+					hudStatusTimer = new System.Windows.Threading.DispatcherTimer
+					{
+						Interval = TimeSpan.FromSeconds(5)
+					};
+					hudStatusTimer.Tick += (s, e) =>
+					{
+						if (hudStatusText != null)
+							hudStatusText.Visibility = Visibility.Collapsed;
+						hudStatusTimer.Stop();
+					};
+				}
+
+				hudStatusTimer.Stop();
+				hudStatusTimer.Start();
+			};
+
+			if (ChartControl.Dispatcher.CheckAccess())
+				update();
+			else
+				ChartControl.Dispatcher.BeginInvoke(update);
+		}
+
 
 		private Border CreateSectionCard(FrameworkElement child, double bottomMargin = 6)
 		{
@@ -876,11 +957,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private void RemoveWpfControls()
 		{
 			DetachHotkeyHandler();
+			if (hudStatusTimer != null)
+			{
+				hudStatusTimer.Stop();
+				hudStatusTimer = null;
+			}
 			if (panelBorder != null)
 			{
 				DetachFromParent(panelBorder);
 				panelBorder = null;
 			}
+			hudStatusText = null;
 		}
 
 		private void AttachHotkeyHandler()

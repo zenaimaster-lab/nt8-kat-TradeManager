@@ -1,6 +1,6 @@
 # NT8 Kat TradeManager
 
-**Current Version**: `v0.68` (Released: `2026-07-28`)
+**Current Version**: `v0.69` (Released: `2026-07-28`)
 
 An advanced TradeManager Indicator for **NinjaTrader 8 (NT8)** designed for fast execution, candle-based pending stop orders, and dynamic risk management.
 
@@ -17,7 +17,7 @@ An advanced TradeManager Indicator for **NinjaTrader 8 (NT8)** designed for fast
 
 
 - **Partial Candle Mode Toggle**: Configurable pullback percentage (default 30% from High/Low), automatically determining StopMarket vs Limit order types.
-- **BUY / SELL Market Orders**: Instantly execute Market orders with selected ATM Strategy.
+- **BUY / SELL Market Orders**: Instantly execute Market orders with selected ATM Strategy; ATM entries use required `Entry` signal name.
 - **Breakeven (BE) & Revert Position Controls**: Move active Stop Loss to Breakeven (+buffer ticks) or instantly reverse open position.
 - **Candle-Based Pending Stops**:
   - Place **Buy Stop** / **Sell Stop** at High/Low of **Current Candle** or **Previous Candle**.
@@ -28,6 +28,7 @@ An advanced TradeManager Indicator for **NinjaTrader 8 (NT8)** designed for fast
   - Submits brackets server-side for maximum reliability and protection against network lag.
 - **Visual SL/TP Levels**: Renders dashed horizontal lines on the chart (Red for SL, Green for TP) while pending orders are active.
 - **One-Click Close/Flatten & Order Management**: Full-width Close/Flatten button to close active positions and cancel pending orders.
+- **Runtime feedback**: HUD reports EMA Place/Angle rejection reasons and order submission status; NinjaScript Output logs account order-state transitions.
 
 ## 🛠️ Installation in NinjaTrader 8
 

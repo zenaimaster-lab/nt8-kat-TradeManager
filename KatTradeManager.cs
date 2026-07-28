@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 0.68 (2026-07-28)
+ * Version: 0.69 (2026-07-28)
  * NinjaTrader 8 TradeManager Indicator
  */
 
@@ -69,10 +69,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "0.68";
+		public const string VERSION = "0.69";
 		public const string RELEASE_DATE = "2026-07-28";
 
 		private volatile Account account;
+		private Account subscribedAccount;
 		private Grid chartGrid;
 		private Border panelBorder;
 		private StackPanel mainPanel;
@@ -407,6 +408,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					}
 
 					account = SelectAccount();
+					EnsureAccountEventSubscription();
 
 					if (account != null)
 					{
@@ -428,6 +430,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			else if (State == State.Terminated)
 			{
 				isTerminated = true;
+				RemoveAccountEventSubscription();
 
 				if (ChartControl != null)
 				{

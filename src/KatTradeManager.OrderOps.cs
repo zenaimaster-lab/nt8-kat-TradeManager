@@ -1,4 +1,4 @@
-/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.68 (2026-07-28) */
+/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.69 (2026-07-28) */
 
 using System;
 using System.Collections.Generic;
@@ -12,27 +12,34 @@ namespace NinjaTrader.NinjaScript.Indicators
 		#region Order Execution & Trading Operations
 		private static KatOrderAction ToKatAction(OrderAction action) => action == OrderAction.Buy ? KatOrderAction.Buy : KatOrderAction.Sell;
 		private static OrderType ToNtOrderType(KatOrderType type) => type == KatOrderType.StopMarket ? OrderType.StopMarket : OrderType.Limit;
+		private bool HasAtmTemplate(string templateName)
+		{
+			if (string.IsNullOrEmpty(templateName)) return false;
+			string path = System.IO.Path.Combine(NinjaTrader.Core.Globals.UserDataDir, "templates", "AtmStrategy", templateName + ".xml");
+			return System.IO.File.Exists(path);
+		}
 
 		// Submits via ATM template when it exists on disk; falls back to plain submit otherwise.
-		// StartAtmStrategy with a missing template fails silently -> created order never submitted (orphaned).
+		// StartAtmStrategy requires the entry order name "Entry"; callers must preserve that contract.
 		private bool SubmitOrder(Order order)
 		{
 			if (account == null || order == null) return false;
 			string tpl = cachedAtmTemplate;
 			try
 			{
-				if (!string.IsNullOrEmpty(tpl))
+				if (HasAtmTemplate(tpl))
 				{
-					string path = System.IO.Path.Combine(NinjaTrader.Core.Globals.UserDataDir, "templates", "AtmStrategy", tpl + ".xml");
-					if (System.IO.File.Exists(path))
-					{
-						NinjaTrader.NinjaScript.AtmStrategy.StartAtmStrategy(tpl, order);
-						return true;
-					}
-					Print(string.Format("[KatTradeManager] ATM template '{0}' not found — submitting order WITHOUT ATM strategy", tpl));
+					NinjaTrader.NinjaScript.AtmStrategy.StartAtmStrategy(tpl, order);
+					Print(string.Format("[KatTradeManager] ATM start requested: template={0} name={1} state={2}",
+						tpl, order.Name, order.OrderState));
+					return true;
 				}
+				if (!string.IsNullOrEmpty(tpl))
+					Print(string.Format("[KatTradeManager] ATM template '{0}' not found — submitting order WITHOUT ATM strategy", tpl));
 
 				account.Submit(new[] { order });
+				Print(string.Format("[KatTradeManager] Native submit requested: name={0} type={1} state={2}",
+					order.Name, order.OrderType, order.OrderState));
 				return true;
 			}
 			catch (Exception ex)
@@ -263,6 +270,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 						if (valCount > 0 && !KatTradeCalculator.ValidateEmaPlace(katAction, checkPrice, emaVals.Take(valCount).ToArray(), out string errPlace))
 						{
 							Print(string.Format("[KatTradeManager] Order REJECTED by EMA Place: {0}", errPlace));
+							ShowHudStatus(string.Format("EMA Place blocked: {0}", errPlace), System.Windows.Media.Brushes.OrangeRed);
 							return;
 						}
 					}
@@ -297,6 +305,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 						if (angleCount > 0 && !KatTradeCalculator.ValidateEmaAngle(katAction, currEmas.Take(angleCount).ToArray(), prevEmas.Take(angleCount).ToArray(), minAngles.Take(angleCount).ToArray(), cachedTickSize, out string errAngle))
 						{
 							Print(string.Format("[KatTradeManager] Order REJECTED by EMA Angle: {0}", errAngle));
+							ShowHudStatus(string.Format("EMA Angle blocked: {0}", errAngle), System.Windows.Media.Brushes.OrangeRed);
 							return;
 						}
 					}
@@ -369,9 +378,74 @@ namespace NinjaTrader.NinjaScript.Indicators
 			try
 			{
 				return account.Orders.Any(o => o.Instrument == Instrument && o.Name == CloseOrderName
-					&& (o.OrderState == OrderState.Working || o.OrderState == OrderState.Accepted));
+					&& IsActiveOrderState(o.OrderState));
 			}
 			catch { return false; }
+		}
+
+		private static bool IsActiveOrderState(OrderState state)
+		{
+			return state == OrderState.Initialized
+				|| state == OrderState.Submitted
+				|| state == OrderState.Accepted
+				|| state == OrderState.Working
+				|| state == OrderState.TriggerPending
+				|| state == OrderState.ChangePending
+				|| state == OrderState.ChangeSubmitted
+				|| state == OrderState.CancelPending
+				|| state == OrderState.CancelSubmitted;
+		}
+
+		private static bool IsTerminalOrderState(OrderState state)
+		{
+			return state == OrderState.Filled
+				|| state == OrderState.PartFilled
+				|| state == OrderState.Cancelled
+				|| state == OrderState.Rejected;
+		}
+
+		private void EnsureAccountEventSubscription()
+		{
+			if (ReferenceEquals(subscribedAccount, account)) return;
+			RemoveAccountEventSubscription();
+			subscribedAccount = account;
+			if (subscribedAccount != null)
+				subscribedAccount.OrderUpdate += OnAccountOrderUpdate;
+		}
+
+		private void RemoveAccountEventSubscription()
+		{
+			if (subscribedAccount != null)
+				subscribedAccount.OrderUpdate -= OnAccountOrderUpdate;
+			subscribedAccount = null;
+		}
+
+		private void OnAccountOrderUpdate(object sender, OrderEventArgs e)
+		{
+			Order observed = e != null ? e.Order : null;
+			if (observed == null || Instrument == null || observed.Instrument != Instrument)
+				return;
+
+			bool tracked = observed.Name == CloseOrderName
+				|| observed.Name == "Entry"
+				|| observed.Name == "MarketBuy"
+				|| observed.Name == "MarketSell";
+			if (tracked)
+			{
+				Print(string.Format("[KatTradeManager] Account order update: name={0} action={1} type={2} state={3}",
+					observed.Name, observed.OrderAction, observed.OrderType, observed.OrderState));
+			}
+
+			if (observed.Name == CloseOrderName && IsTerminalOrderState(observed.OrderState))
+				SchedulePendingRevertRetry();
+		}
+
+		private void SchedulePendingRevertRetry()
+		{
+			if (ChartControl != null && ChartControl.Dispatcher != null)
+				ChartControl.Dispatcher.BeginInvoke(new Action(TrySubmitPendingRevert));
+			else
+				TrySubmitPendingRevert();
 		}
 
 		// ponytail: intentionally ACCOUNT-WIDE (no Instrument filter) — matches "Close/flatten" and
@@ -415,10 +489,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Position pos = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
 				if (pos != null && pos.MarketPosition != MarketPosition.Flat)
 				{
-					OrderAction action = pos.MarketPosition == MarketPosition.Long ? OrderAction.Sell : OrderAction.Buy;
+					OrderAction action = pos.MarketPosition == MarketPosition.Long ? OrderAction.Sell : OrderAction.BuyToCover;
 					Order closeOrder = account.CreateOrder(Instrument, action, OrderType.Market, OrderEntry.Manual, TimeInForce.Gtc, pos.Quantity, 0, 0, "", CloseOrderName, NinjaTrader.Core.Globals.MaxDate, null);
 					if (closeOrder != null)
+					{
 						account.Submit(new[] { closeOrder });
+						Print(string.Format("[KatTradeManager] Close submit requested: action={0} qty={1} state={2}",
+							action, pos.Quantity, closeOrder.OrderState));
+					}
+					else
+						Print("[KatTradeManager] Close order creation returned null.");
 				}
 			}
 			catch (Exception ex)
@@ -427,46 +507,58 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 		}
 
-		private void PlaceMarketOrder(OrderAction action)
+		private bool PlaceMarketOrder(OrderAction action)
 		{
 			Print(string.Format("[KatTradeManager] PlaceMarketOrder click: {0}", action));
 			if (account == null || Instrument == null)
 			{
 				if (account == null) Print("[KatTradeManager] No account — watchdog auto-recovering. Retry in a moment.");
-				return;
+				return false;
 			}
 
 			if (IsDailyRiskBreached(out string breachReason))
 			{
 				Print(string.Format("[KatTradeManager] Market Order REJECTED by Daily Risk Protection: {0}", breachReason));
-				return;
+				return false;
 			}
 
 			if (IsEntryDebounced())
 			{
 				Print("[KatTradeManager] Duplicate market order ignored (anti-spam debounce).");
-				return;
+				return false;
 			}
 
 			try
 
 			{
 				int qty = cachedQuantity > 0 ? cachedQuantity : DefaultQuantity;
-				string entryName = action == OrderAction.Buy ? "MarketBuy" : "MarketSell";
+				// NinjaTrader ATM contract: CreateOrder name MUST be "Entry".
+				// A custom name leaves StartAtmStrategy stuck at Initialized.
+				string entryName = HasAtmTemplate(cachedAtmTemplate) ? "Entry" : (action == OrderAction.Buy ? "MarketBuy" : "MarketSell");
 
 				entryOrder = account.CreateOrder(Instrument, action, OrderType.Market, OrderEntry.Manual, TimeInForce.Gtc, qty, 0, 0, "", entryName, NinjaTrader.Core.Globals.MaxDate, null);
 				if (entryOrder != null)
 				{
 					if (SubmitOrder(entryOrder))
+					{
 						Print(string.Format("[KatTradeManager] Market order submitted: {0} qty={1} atm={2}", action, qty, cachedAtmTemplate ?? "(none)"));
+						ShowHudStatus(string.Format("{0} market order submitted", action), System.Windows.Media.Brushes.LightGreen);
+						return true;
+					}
 					else
+					{
 						entryOrder = null;
+					}
 				}
+				else
+					Print(string.Format("[KatTradeManager] Market order creation returned null: action={0} qty={1} instrument={2}",
+						action, qty, Instrument.FullName));
 			}
 			catch (Exception ex)
 			{
 				Print(string.Format("[KatTradeManager] Error placing market order: {0}", ex.ToString()));
 			}
+			return false;
 		}
 
 		private void SetBreakeven()
@@ -528,6 +620,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		}
 
 		private int pendingRevertAction; // 0 = none, 1 = Buy, 2 = Sell
+		private int pendingRevertSubmitInFlight;
 
 		private void RevertPosition()
 		{
@@ -565,20 +658,46 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private void TrySubmitPendingRevert()
 		{
 			int requestedAction = System.Threading.Volatile.Read(ref pendingRevertAction);
-			if (requestedAction == 0 || IsCloseInFlight()) return;
+			if (requestedAction == 0 || account == null || Instrument == null || IsCloseInFlight()) return;
 
 			Position pos = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
 			if (pos != null && pos.MarketPosition != MarketPosition.Flat) return;
-
-			if (System.Threading.Interlocked.CompareExchange(ref pendingRevertAction, 0, requestedAction) != requestedAction)
+			if (System.Threading.Interlocked.CompareExchange(ref pendingRevertSubmitInFlight, 1, 0) != 0)
 				return;
 
 			OrderAction action = requestedAction == 1 ? OrderAction.Buy : OrderAction.Sell;
-			Action submit = () => PlaceMarketOrder(action);
-			if (ChartControl != null && ChartControl.Dispatcher != null)
-				ChartControl.Dispatcher.InvokeAsync(submit);
-			else
-				submit();
+			Action submit = () =>
+			{
+				try
+				{
+					if (System.Threading.Volatile.Read(ref pendingRevertAction) != requestedAction
+						|| account == null || Instrument == null || IsCloseInFlight())
+						return;
+
+					Position current = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
+					if (current != null && current.MarketPosition != MarketPosition.Flat)
+						return;
+
+					if (PlaceMarketOrder(action))
+						System.Threading.Interlocked.CompareExchange(ref pendingRevertAction, 0, requestedAction);
+				}
+				finally
+				{
+					System.Threading.Interlocked.Exchange(ref pendingRevertSubmitInFlight, 0);
+				}
+			};
+
+			try
+			{
+				if (ChartControl != null && ChartControl.Dispatcher != null)
+					ChartControl.Dispatcher.BeginInvoke(submit);
+				else
+					submit();
+			}
+			catch
+			{
+				System.Threading.Interlocked.Exchange(ref pendingRevertSubmitInFlight, 0);
+			}
 		}
 
 		private DateTime lastFreezeEnforceTime = DateTime.MinValue;
