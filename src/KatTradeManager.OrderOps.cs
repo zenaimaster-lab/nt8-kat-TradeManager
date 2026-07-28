@@ -1,4 +1,4 @@
-/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.75 (2026-07-28) */
+/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.76 (2026-07-28) */
 
 using System;
 using System.Collections.Generic;
@@ -101,6 +101,123 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return order.OrderType == OrderType.StopMarket
 				|| order.OrderType == OrderType.StopLimit
 				|| order.OrderType == OrderType.Limit;
+		}
+
+		private void ScheduleAtmBracketMerge()
+		{
+			if (!cachedIsAtmMerge || account == null || Instrument == null) return;
+			if (System.Threading.Interlocked.CompareExchange(ref atmMergeScheduled, 1, 0) != 0) return;
+
+			Action merge = () =>
+			{
+				try
+				{
+					MergeAtmBrackets();
+				}
+				finally
+				{
+					System.Threading.Interlocked.Exchange(ref atmMergeScheduled, 0);
+				}
+			};
+
+			try
+			{
+				if (ChartControl != null && ChartControl.Dispatcher != null)
+					ChartControl.Dispatcher.BeginInvoke(merge);
+				else
+					merge();
+			}
+			catch
+			{
+				System.Threading.Interlocked.Exchange(ref atmMergeScheduled, 0);
+			}
+		}
+
+		private void MergeAtmBrackets()
+		{
+			if (!cachedIsAtmMerge || account == null || Instrument == null) return;
+
+			try
+			{
+				Position position = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
+				List<Order> brackets = position != null && position.MarketPosition != MarketPosition.Flat
+					? account.Orders.Where(o => IsAtmMergeOrder(o, position.MarketPosition)).ToList()
+					: account.Orders.Where(o => o.Instrument == Instrument
+						&& IsMergeCandidateState(o.OrderState)
+						&& HasAtmBracketName(o)).ToList();
+
+				if (position == null || position.MarketPosition == MarketPosition.Flat)
+				{
+					if (brackets.Count > 0)
+					{
+						account.Cancel(brackets.ToArray());
+						Print(string.Format("[KatTradeManager] ATM MERGE flat cleanup: removed={0}", brackets.Count));
+					}
+					ResetAtmScaleInTracking();
+					return;
+				}
+
+				List<Order> stops = brackets
+					.Where(o => o.OrderType == OrderType.StopMarket || o.OrderType == OrderType.StopLimit)
+					.ToList();
+				List<Order> targets = brackets
+					.Where(o => o.OrderType == OrderType.Limit)
+					.ToList();
+				// ponytail: keep existing anchor prices; ceiling = synthetic ATM recalculation if NT8 exposes ownership transfer.
+
+				Order stopAnchor;
+				Order targetAnchor;
+				lock (atmScaleInLock)
+				{
+					stopAnchor = atmMergeStopAnchor != null && stops.Contains(atmMergeStopAnchor)
+						? atmMergeStopAnchor
+						: stops.FirstOrDefault();
+					targetAnchor = atmMergeTargetAnchor != null && targets.Contains(atmMergeTargetAnchor)
+						? atmMergeTargetAnchor
+						: targets.FirstOrDefault();
+					atmMergePosition = position.MarketPosition;
+					atmMergeStopAnchor = stopAnchor;
+					atmMergeTargetAnchor = targetAnchor;
+					atmMergeStopQuantity = position.Quantity;
+					atmMergeTargetQuantity = position.Quantity;
+				}
+
+				List<Order> changes = new List<Order>();
+				if (stopAnchor != null && stopAnchor.Quantity != position.Quantity)
+				{
+					stopAnchor.QuantityChanged = position.Quantity;
+					changes.Add(stopAnchor);
+				}
+				if (targetAnchor != null && targetAnchor.Quantity != position.Quantity)
+				{
+					targetAnchor.QuantityChanged = position.Quantity;
+					changes.Add(targetAnchor);
+				}
+				if (changes.Count > 0)
+					account.Change(changes.ToArray());
+
+				Order[] duplicates = stops
+					.Where(o => o != stopAnchor)
+					.Concat(targets.Where(o => o != targetAnchor))
+					.ToArray();
+				if (duplicates.Length > 0)
+					account.Cancel(duplicates);
+
+				if (changes.Count > 0 || duplicates.Length > 0)
+				{
+					Print(string.Format(
+						"[KatTradeManager] ATM MERGE reconciled: positionQty={0} stop={1} target={2} changed={3} removed={4}",
+						position.Quantity,
+						stopAnchor != null ? stopAnchor.OrderType.ToString() : "none",
+						targetAnchor != null ? targetAnchor.OrderType.ToString() : "none",
+						changes.Count,
+						duplicates.Length));
+				}
+			}
+			catch (Exception ex)
+			{
+				Print(string.Format("[KatTradeManager] ATM MERGE reconciliation failed: {0}", ex.Message));
+			}
 		}
 
 		private bool TryPrepareAtmScaleIn(Order entry)
@@ -636,6 +753,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (observed.Name == CloseOrderName && IsTerminalOrderState(observed.OrderState))
 				SchedulePendingRevertRetry();
 			ProcessAtmScaleInUpdate(observed);
+			ScheduleAtmBracketMerge();
 		}
 
 		private void SchedulePendingRevertRetry()

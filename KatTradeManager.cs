@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 0.75 (2026-07-28)
+ * Version: 0.76 (2026-07-28)
  * NinjaTrader 8 TradeManager Indicator
  */
 
@@ -69,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "0.75";
+		public const string VERSION = "0.76";
 		public const string RELEASE_DATE = "2026-07-28";
 
 		private volatile Account account;
@@ -130,6 +130,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private int atmMergeStopQuantity;
 		private int atmMergeTargetQuantity;
 		private MarketPosition atmMergePosition = MarketPosition.Flat;
+		private int atmMergeScheduled;
 
 		// Thread-safe cached values from UI controls (synced by watchdog on UI thread)
 		private volatile int cachedQuantity;

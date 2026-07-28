@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.75 (2026-07-28) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.76 (2026-07-28) */
 
 using System;
 using System.Collections.Generic;
@@ -84,6 +84,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			// Evaluate real-time daily risk protection limits
 			EvaluateDailyRiskLimits();
 			TrySubmitPendingRevert();
+			ScheduleAtmBracketMerge();
 
 			// Enforce Freeze Trail if active
 			CheckFreezeTrailEnforcement();
@@ -904,6 +905,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				btnAtmMerge.Content = cachedIsAtmMerge ? "ATM Bracket: MERGE" : "ATM Bracket: SPLIT";
 				btnAtmMerge.Background = cachedIsAtmMerge ? freezeOnBg : freezeOffBg;
 				btnAtmMerge.Foreground = cachedIsAtmMerge ? Brushes.White : Brushes.LightGray;
+				if (cachedIsAtmMerge)
+					ScheduleAtmBracketMerge();
 			};
 			sec4Panel.Children.Add(btnAtmMerge);
 

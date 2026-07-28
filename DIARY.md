@@ -23,6 +23,14 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v0.76] — 2026-07-28
+- **ATM MERGE scale-in/scale-out reconciliation**:
+  - Reconciles every 500 ms and after account order updates while MERGE is enabled.
+  - Uses live `Position.Quantity` as single source of truth for canonical SL and TP quantities.
+  - Keeps one existing stop anchor plus one target anchor; cancels duplicate ATM brackets even when their prices differ.
+  - Flat-position cleanup cancels remaining ATM brackets; MERGE OFF leaves independent brackets untouched and restores reconciliation when re-enabled.
+- **Validation**: 183/183 tests passing; CompileCheck succeeded with 0 errors.
+- **Graphify entity mapping**: `KatTradeManager.ScheduleAtmBracketMerge`, `KatTradeManager.MergeAtmBrackets`, `KatTradeManager.OnAccountOrderUpdate`, `KatTradeManagerUI.OnPanelWatchdogTick`, `KatTradeManagerUI.CreateWpfControls`.
 ### [v0.75] — 2026-07-28
 - **HUD status visual cleanup**:
   - Removed black fill from status slot; status text now renders with transparent background.
