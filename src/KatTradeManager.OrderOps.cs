@@ -1,4 +1,4 @@
-/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.74 (2026-07-28) */
+/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.75 (2026-07-28) */
 
 using System;
 using System.Collections.Generic;
@@ -772,6 +772,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (pos == null || pos.MarketPosition == MarketPosition.Flat)
 				{
 					Print("[KatTradeManager] BE: No active position to set Breakeven.");
+					ShowHudStatus("BE: no active position", System.Windows.Media.Brushes.OrangeRed);
 					return;
 				}
 
@@ -788,6 +789,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (livePrice > 0 && !KatTradeCalculator.IsStopOnValidSide(pos.MarketPosition == MarketPosition.Long, bePrice, livePrice))
 				{
 					Print(string.Format("[KatTradeManager] BE skipped: stop {0} invalid vs current market {1}.", bePrice, livePrice));
+					ShowHudStatus(string.Format("BE skipped: stop {0} invalid", bePrice), System.Windows.Media.Brushes.OrangeRed);
 					return;
 				}
 
@@ -800,7 +802,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{
 					foreach (Order stopOrder in workingStops)
 					{
-						stopOrder.StopPrice = bePrice;
+						stopOrder.StopPriceChanged = bePrice;
 						account.Change(new[] { stopOrder });
 					}
 					Print(string.Format("[KatTradeManager] Moved {0} Stop Loss order(s) to Breakeven @ {1} (Buffer: {2} ticks)", workingStops.Count, bePrice, bufferTicks));
@@ -982,7 +984,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					if (Math.Abs(stopOrder.StopPrice - frozenStopPrice) > 0.000001)
 					{
 						lastFreezeEnforceTime = DateTime.Now;
-						stopOrder.StopPrice = frozenStopPrice;
+						stopOrder.StopPriceChanged = frozenStopPrice;
 						account.Change(new[] { stopOrder });
 						Print(string.Format("[KatTradeManager] Trailing movement overridden — SL restored to frozen price {0}", frozenStopPrice));
 					}
@@ -1047,6 +1049,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (pos == null || pos.MarketPosition == MarketPosition.Flat)
 				{
 					Print("[KatTradeManager] Swing SL: No active position to shift SL.");
+					ShowHudStatus("SL: no active position", System.Windows.Media.Brushes.OrangeRed);
 					return;
 				}
 
@@ -1092,6 +1095,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					else
 					{
 						Print("[KatTradeManager] Swing SL: Already at initial SL position.");
+						ShowHudStatus("SL: already at initial position", System.Windows.Media.Brushes.OrangeRed);
 						return;
 					}
 				}
@@ -1121,6 +1125,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 							if (livePrice > 0 && !KatTradeCalculator.IsStopOnValidSide(pos.MarketPosition == MarketPosition.Long, nextSwing, livePrice))
 							{
 								Print(string.Format("[KatTradeManager] Swing SL skipped: {0} invalid vs current market {1}.", nextSwing, livePrice));
+								ShowHudStatus(string.Format("SL skipped: swing {0} invalid", nextSwing), System.Windows.Media.Brushes.OrangeRed);
 								return;
 							}
 							slMoveHistory.Add(nextSwing);
@@ -1130,6 +1135,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 						else
 						{
 							Print("[KatTradeManager] Swing SL: No further swing points found on chart.");
+							ShowHudStatus("SL: no further swing found", System.Windows.Media.Brushes.OrangeRed);
 							return;
 						}
 					}
@@ -1140,6 +1146,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (livePrice > 0 && !KatTradeCalculator.IsStopOnValidSide(pos.MarketPosition == MarketPosition.Long, targetPrice, livePrice))
 				{
 					Print(string.Format("[KatTradeManager] Swing SL skipped: {0} invalid vs current market {1}.", targetPrice, livePrice));
+					ShowHudStatus(string.Format("SL skipped: stop {0} invalid", targetPrice), System.Windows.Media.Brushes.OrangeRed);
 					return;
 				}
 
@@ -1150,13 +1157,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 						double limitOffset = stopOrder.OrderType == OrderType.StopLimit
 							? Math.Abs(stopOrder.LimitPrice - stopOrder.StopPrice)
 							: 0;
-						stopOrder.StopPrice = targetPrice;
+						stopOrder.StopPriceChanged = targetPrice;
 						if (stopOrder.OrderType == OrderType.StopLimit)
 						{
 							if (limitOffset <= 0)
 								limitOffset = cachedTickSize > 0 ? cachedTickSize : Instrument.MasterInstrument.TickSize;
 							if (limitOffset <= 0) limitOffset = 0.01;
-							stopOrder.LimitPrice = pos.MarketPosition == MarketPosition.Long
+							stopOrder.LimitPriceChanged = pos.MarketPosition == MarketPosition.Long
 								? targetPrice - limitOffset
 								: targetPrice + limitOffset;
 						}

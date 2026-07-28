@@ -1,16 +1,16 @@
 # Graph Report - nt8-kat-TradeManager  (2026-07-28)
 
 ## Corpus Check
-- 26 files · ~31,150 words
+- 26 files · ~31,279 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 374 nodes · 557 edges · 26 communities (11 shown, 15 thin omitted)
-- Extraction: 89% EXTRACTED · 11% INFERRED · 0% AMBIGUOUS · INFERRED: 63 edges (avg confidence: 0.8)
+- 374 nodes · 558 edges · 26 communities (11 shown, 15 thin omitted)
+- Extraction: 89% EXTRACTED · 11% INFERRED · 0% AMBIGUOUS · INFERRED: 64 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `18418301`
+- Built from commit: `f6a8d153`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -86,7 +86,7 @@ Nodes (3): AtmTemplateData, KatAtmXmlParser, NinjaTrader.NinjaScript.Indicators
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `KatTradeManager` connect `Community 2` to `Community 0`, `Community 3`, `Community 4`?**
-  _High betweenness centrality (0.066) - this node is a cross-community bridge._
+  _High betweenness centrality (0.065) - this node is a cross-community bridge._
 - **Why does `KatTradeManager` connect `Community 0` to `Community 3`, `Community 4`?**
   _High betweenness centrality (0.062) - this node is a cross-community bridge._
 - **Why does `string` connect `Community 4` to `Community 0`, `Community 2`, `Community 3`?**

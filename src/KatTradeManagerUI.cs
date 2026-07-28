@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.74 (2026-07-28) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.75 (2026-07-28) */
 
 using System;
 using System.Collections.Generic;
@@ -476,7 +476,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			hudStatusText = new TextBlock
 			{
-				Background = Brushes.Black,
+				Background = Brushes.Transparent,
 				Foreground = Brushes.White,
 				FontSize = 10,
 				Margin = new Thickness(0, 0, 0, 6),

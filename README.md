@@ -1,6 +1,6 @@
 # NT8 Kat TradeManager
 
-**Current Version**: `v0.74` (Released: `2026-07-28`)
+**Current Version**: `v0.75` (Released: `2026-07-28`)
 
 An advanced TradeManager Indicator for **NinjaTrader 8 (NT8)** designed for fast execution, candle-based pending stop orders, and dynamic risk management.
 
@@ -30,7 +30,7 @@ An advanced TradeManager Indicator for **NinjaTrader 8 (NT8)** designed for fast
   - Submits brackets server-side for maximum reliability and protection against network lag.
 - **Visual SL/TP Levels**: Renders dashed horizontal lines on the chart (Red for SL, Green for TP) while pending orders are active.
 - **One-Click Close/Flatten & Order Management**: Full-width Close/Flatten button to close active positions and cancel pending orders.
-- **Runtime feedback**: Permanent black two-line HUD status slot reports EMA Place/Angle rejection reasons and order submission status; NinjaScript Output logs account order-state transitions.
+- **Runtime feedback**: Permanent two-line HUD status slot with transparent background reports EMA Place/Angle rejection reasons and order submission status; NinjaScript Output logs account order-state transitions.
 
 ## 🛠️ Installation in NinjaTrader 8
 

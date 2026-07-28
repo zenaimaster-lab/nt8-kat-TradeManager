@@ -23,6 +23,15 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v0.75] — 2026-07-28
+- **HUD status visual cleanup**:
+  - Removed black fill from status slot; status text now renders with transparent background.
+  - Preserved fixed two-line slot, timeout clearing, and HUD height stability.
+- **BE / Swing SL runtime fix**:
+  - `Account.Change()` now receives `StopPriceChanged` and `LimitPriceChanged`, matching NT8 Cbi order-change contract.
+  - Added HUD feedback for no-position, invalid-stop, and no-swing no-op paths.
+- **Validation**: 183/183 tests passing; CompileCheck succeeded with 0 errors.
+- **Graphify entity mapping**: `KatTradeManagerUI.CreateWpfControls` status `TextBlock` background, `KatTradeManager.SetBreakeven`, `KatTradeManager.ShiftSlToSwing`.
 ### [v0.74] — 2026-07-28
 - **Permanent HUD status slot**:
   - Added fixed-height black two-line status region at HUD top.
