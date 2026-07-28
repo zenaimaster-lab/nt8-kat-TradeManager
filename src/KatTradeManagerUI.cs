@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.72 (2026-07-28) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.73 (2026-07-28) */
 
 using System;
 using System.Collections.Generic;
@@ -31,6 +31,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private string pendingHudStatusMessage;
 		private Brush pendingHudStatusBrush;
 		private System.Windows.Threading.DispatcherTimer hudStatusTimer;
+		private Point hudDragStart;
+		private double hudDragStartLeft;
+		private double hudDragStartTop;
+		private bool isHudDragging;
 
 		private void StartPanelWatchdog()
 		{
@@ -258,6 +262,80 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return false;
 		}
 
+		private bool IsHudDragSource(DependencyObject source)
+		{
+			return source != null
+				&& panelBorder != null
+				&& (ReferenceEquals(source, panelBorder) || panelBorder.IsAncestorOf(source))
+				&& !IsInteractiveVisual(source);
+		}
+
+		private void OnHudPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+		{
+			if (isHudDragging) return;
+
+			DependencyObject source = e.OriginalSource as DependencyObject ?? e.Source as DependencyObject;
+			if (!IsHudDragSource(source)) return;
+
+			hudDragStart = e.GetPosition(hudCanvas);
+			hudDragStartLeft = Canvas.GetLeft(panelBorder);
+			hudDragStartTop = Canvas.GetTop(panelBorder);
+			if (double.IsNaN(hudDragStartLeft)) hudDragStartLeft = 10;
+			if (double.IsNaN(hudDragStartTop)) hudDragStartTop = 10;
+
+			isHudDragging = true;
+			Mouse.Capture(hudCanvas, CaptureMode.SubTree);
+			e.Handled = true;
+		}
+
+		private void OnHudPreviewMouseMove(object sender, MouseEventArgs e)
+		{
+			if (!isHudDragging || hudCanvas == null || panelBorder == null) return;
+			if (e.LeftButton != MouseButtonState.Pressed)
+			{
+				StopHudDrag();
+				return;
+			}
+
+			Point current = e.GetPosition(hudCanvas);
+			double newLeft = hudDragStartLeft + (current.X - hudDragStart.X);
+			double newTop = hudDragStartTop + (current.Y - hudDragStart.Y);
+
+			const double minVisible = 40;
+			double canvasWidth = hudCanvas.ActualWidth > 0 ? hudCanvas.ActualWidth : chartGrid.ActualWidth;
+			double canvasHeight = hudCanvas.ActualHeight > 0 ? hudCanvas.ActualHeight : chartGrid.ActualHeight;
+			double panelWidth = panelBorder.ActualWidth > 0 ? panelBorder.ActualWidth : panelBorder.Width;
+			double panelHeight = panelBorder.ActualHeight > 0 ? panelBorder.ActualHeight : 40;
+			newLeft = KatTradeCalculator.ClampHudCoordinate(newLeft, panelWidth, canvasWidth, minVisible);
+			newTop = KatTradeCalculator.ClampHudCoordinate(newTop, panelHeight, canvasHeight, minVisible);
+
+			Canvas.SetLeft(panelBorder, newLeft);
+			Canvas.SetTop(panelBorder, newTop);
+			hasHudDragPosition = true;
+			hudDragLeft = newLeft;
+			hudDragTop = newTop;
+			e.Handled = true;
+		}
+
+		private void OnHudPreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+		{
+			if (!isHudDragging) return;
+			StopHudDrag();
+			e.Handled = true;
+		}
+
+		private void StopHudDrag()
+		{
+			isHudDragging = false;
+			if (hudCanvas != null && Mouse.Captured == hudCanvas)
+				Mouse.Capture(null);
+		}
+
+		private void OnHudLostMouseCapture(object sender, MouseEventArgs e)
+		{
+			isHudDragging = false;
+		}
+
 		private bool IsPanelAttached()
 		{
 			if (panelBorder == null) return false;
@@ -350,10 +428,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				panelBorder.Cursor = Cursors.SizeAll;
 				hudCanvas.Children.Add(panelBorder);
 
-				Point dragStart = new Point();
 				double dragStartLeft = hasHudDragPosition ? hudDragLeft : 10;
 				double dragStartTop = hasHudDragPosition ? hudDragTop : 10;
-				bool isDragging = false;
 				Canvas.SetLeft(panelBorder, dragStartLeft);
 				Canvas.SetTop(panelBorder, hasHudDragPosition
 					? dragStartTop
@@ -364,63 +440,21 @@ namespace NinjaTrader.NinjaScript.Indicators
 						Canvas.SetTop(panelBorder, Math.Max(0, hudCanvas.ActualHeight - panelBorder.ActualHeight - 10));
 				};
 
-				// Use PREVIEW (tunneling) so we can bail BEFORE the event reaches buttons.
-				// MouseLeftButtonDown (bubbling) was sometimes too late and could interfere with Button internal state.
-				panelBorder.PreviewMouseLeftButtonDown += (s, ev) =>
-				{
-					// CRITICAL: do NOT capture mouse when clicking buttons/inputs.
-					// CaptureMouse + Handled steals MouseUp from the Button → Click never fires.
-					DependencyObject src = ev.OriginalSource as DependencyObject ?? ev.Source as DependencyObject;
-					if (IsInteractiveVisual(src))
-						return;
-
-					dragStart = ev.GetPosition(hudCanvas);
-					dragStartLeft = Canvas.GetLeft(panelBorder);
-					dragStartTop = Canvas.GetTop(panelBorder);
-					if (double.IsNaN(dragStartLeft)) dragStartLeft = 10;
-					if (double.IsNaN(dragStartTop)) dragStartTop = 10;
-
-					panelBorder.CaptureMouse();
-					isDragging = true;
-					ev.Handled = true;
-				};
-
-				panelBorder.PreviewMouseMove += (s, ev) =>
-				{
-					if (isDragging)
-					{
-						Point current = ev.GetPosition(hudCanvas);
-						double newLeft = dragStartLeft + (current.X - dragStart.X);
-						double newTop = dragStartTop + (current.Y - dragStart.Y);
-
-						// Clamp: keep at least 40px of the panel reachable inside the chart
-						const double minVisible = 40;
-						double canvasWidth = hudCanvas.ActualWidth > 0 ? hudCanvas.ActualWidth : chartGrid.ActualWidth;
-						double canvasHeight = hudCanvas.ActualHeight > 0 ? hudCanvas.ActualHeight : chartGrid.ActualHeight;
-						double panelWidth = panelBorder.ActualWidth > 0 ? panelBorder.ActualWidth : panelBorder.Width;
-						double panelHeight = panelBorder.ActualHeight > 0 ? panelBorder.ActualHeight : 40;
-						newLeft = KatTradeCalculator.ClampHudCoordinate(newLeft, panelWidth, canvasWidth, minVisible);
-						newTop = KatTradeCalculator.ClampHudCoordinate(newTop, panelHeight, canvasHeight, minVisible);
-
-						Canvas.SetLeft(panelBorder, newLeft);
-						Canvas.SetTop(panelBorder, newTop);
-						hasHudDragPosition = true;
-						hudDragLeft = newLeft;
-						hudDragTop = newTop;
-					}
-				};
-
-				panelBorder.LostMouseCapture += (s, ev) => isDragging = false;
-
-				panelBorder.PreviewMouseLeftButtonUp += (s, ev) =>
-				{
-					if (isDragging)
-					{
-						panelBorder.ReleaseMouseCapture();
-						isDragging = false;
-						ev.Handled = true;
-					}
-				};
+				// Capture the overlay Canvas, not Border. This survives routed events crossing
+				// nested cards/buttons and keeps drag alive until explicit mouse-up/lost capture.
+				panelBorder.AddHandler(UIElement.PreviewMouseLeftButtonDownEvent,
+					new MouseButtonEventHandler(OnHudPreviewMouseLeftButtonDown), true);
+				panelBorder.AddHandler(UIElement.PreviewMouseMoveEvent,
+					new MouseEventHandler(OnHudPreviewMouseMove), true);
+				panelBorder.AddHandler(UIElement.PreviewMouseLeftButtonUpEvent,
+					new MouseButtonEventHandler(OnHudPreviewMouseLeftButtonUp), true);
+				hudCanvas.AddHandler(UIElement.PreviewMouseLeftButtonDownEvent,
+					new MouseButtonEventHandler(OnHudPreviewMouseLeftButtonDown), true);
+				hudCanvas.AddHandler(UIElement.PreviewMouseMoveEvent,
+					new MouseEventHandler(OnHudPreviewMouseMove), true);
+				hudCanvas.AddHandler(UIElement.PreviewMouseLeftButtonUpEvent,
+					new MouseButtonEventHandler(OnHudPreviewMouseLeftButtonUp), true);
+				hudCanvas.LostMouseCapture += OnHudLostMouseCapture;
 
 			}
 

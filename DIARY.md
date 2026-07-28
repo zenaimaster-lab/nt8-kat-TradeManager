@@ -23,6 +23,14 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v0.73] — 2026-07-28
+- **HUD drag reliability fix**:
+  - Replaced Border-only mouse capture with routed handlers registered using `handledEventsToo`.
+  - Captures InChart overlay Canvas subtree, so nested card/control routing cannot lose drag move/up events.
+  - Preserves button, TextBox, ComboBox, Selector, and Thumb clicks by rejecting interactive visual sources.
+  - Keeps 40px visibility clamp and persisted HUD coordinates.
+  - **Tests**: 183/183 passing. Compile gate: succeeded with 0 errors (existing NT8 reference-conflict/obsolete warnings only).
+  - **Graphify entity mapping**: `KatTradeManagerUI.OnHudPreviewMouseLeftButtonDown`, `KatTradeManagerUI.OnHudPreviewMouseMove`, `KatTradeManagerUI.OnHudPreviewMouseLeftButtonUp`, `KatTradeManagerUI.StopHudDrag`, `KatTradeCalculator.ClampHudCoordinate`.
 ### [v0.72] — 2026-07-28
 - **ATM bracket merge/split toggle**:
   - Added default-on `ATM Bracket: MERGE` button directly below Stop-Limit; `SPLIT` preserves existing separate-bracket behavior.
