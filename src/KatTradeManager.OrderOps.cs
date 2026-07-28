@@ -1,4 +1,4 @@
-/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.66 (2026-07-28) */
+/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.68 (2026-07-28) */
 
 using System;
 using System.Collections.Generic;
@@ -15,20 +15,31 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		// Submits via ATM template when it exists on disk; falls back to plain submit otherwise.
 		// StartAtmStrategy with a missing template fails silently -> created order never submitted (orphaned).
-		private void SubmitOrder(Order order)
+		private bool SubmitOrder(Order order)
 		{
+			if (account == null || order == null) return false;
 			string tpl = cachedAtmTemplate;
-			if (!string.IsNullOrEmpty(tpl))
+			try
 			{
-				string path = System.IO.Path.Combine(NinjaTrader.Core.Globals.UserDataDir, "templates", "AtmStrategy", tpl + ".xml");
-				if (System.IO.File.Exists(path))
+				if (!string.IsNullOrEmpty(tpl))
 				{
-					NinjaTrader.NinjaScript.AtmStrategy.StartAtmStrategy(tpl, order);
-					return;
+					string path = System.IO.Path.Combine(NinjaTrader.Core.Globals.UserDataDir, "templates", "AtmStrategy", tpl + ".xml");
+					if (System.IO.File.Exists(path))
+					{
+						NinjaTrader.NinjaScript.AtmStrategy.StartAtmStrategy(tpl, order);
+						return true;
+					}
+					Print(string.Format("[KatTradeManager] ATM template '{0}' not found — submitting order WITHOUT ATM strategy", tpl));
 				}
-				Print(string.Format("[KatTradeManager] ATM template '{0}' not found — submitting order WITHOUT ATM strategy", tpl));
+
+				account.Submit(new[] { order });
+				return true;
 			}
-			account.Submit(new[] { order });
+			catch (Exception ex)
+			{
+				Print(string.Format("[KatTradeManager] Order submit failed: {0}", ex.ToString()));
+				return false;
+			}
 		}
 
 		private DateTime lastEntrySubmitTime = DateTime.MinValue;
@@ -56,6 +67,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private void PlaceOrder(OrderAction action, bool isCurrentCandle)
 		{
+			Print(string.Format("[KatTradeManager] PlaceOrder click: {0} {1}", action, isCurrentCandle ? "current" : "previous"));
 			if (account == null || Instrument == null)
 			{
 				if (account == null) Print("[KatTradeManager] No account — watchdog auto-recovering. Retry in a moment.");
@@ -82,7 +94,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 					currentPx = cachedCurrentPrice > 0 ? cachedCurrentPrice : basePrice;
 				}
 
-				if (basePrice <= 0) return;
+				if (basePrice <= 0)
+				{
+					Print(string.Format("[KatTradeManager] PlaceOrder aborted: basePrice={0} (no bar data cached yet — wait for live ticks)", basePrice));
+					return;
+				}
 
 				double triggerPrice = KatTradeCalculator.CalculateTriggerPrice(katAction, basePrice, cachedBufferTicks, cachedTickSize);
 				KatOrderType katOrderType = KatTradeCalculator.DetermineOrderType(katAction, triggerPrice, currentPx, cachedTickSize, out double limitPrice, out double stopPrice);
@@ -137,6 +153,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private void PlaceEmaOrder(OrderAction action, int emaPeriod)
 		{
+			Print(string.Format("[KatTradeManager] PlaceEmaOrder click: {0} EMA{1}", action, emaPeriod));
 			if (account == null || Instrument == null)
 			{
 				if (account == null) Print("[KatTradeManager] No account — watchdog auto-recovering. Retry in a moment.");
@@ -155,27 +172,33 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 				lock (priceLock)
 				{
-					EMA targetEma = (emaPeriod == 34) ? (ema34Series != null && barIdx < ema34Series.Length ? ema34Series[barIdx] : null)
-					                                  : (ema89Series != null && barIdx < ema89Series.Length ? ema89Series[barIdx] : null);
-
-					int maxBars = CurrentBars[barIdx];
-					if (targetEma != null)
+					if (emaPeriod == 34)
 					{
-						for (int barsAgo = 0; barsAgo < maxBars && barsAgo < 500; barsAgo++)
-						{
-							double h = Highs[barIdx][barsAgo];
-							double l = Lows[barIdx][barsAgo];
-							double emaVal = targetEma[barsAgo];
-
-							if (KatTradeCalculator.IsEmaTouchBar(h, l, emaVal))
-							{
-								foundBarsAgo = barsAgo;
-								double open  = Opens[barIdx][barsAgo];
-								double close = Closes[barIdx][barsAgo];
-								basePrice = KatTradeCalculator.CalculateCandlePrice(katAction, cachedIsPartialCandle, cachedPartialPercent, h, l, open, close, barIdx == 0 && isRenkoChart, cachedTickSize);
-								break;
-							}
-						}
+						foundBarsAgo = ema34TouchBarsAgo[barIdx];
+						basePrice = KatTradeCalculator.CalculateCandlePrice(
+							katAction,
+							cachedIsPartialCandle,
+							cachedPartialPercent,
+							ema34TouchHigh[barIdx],
+							ema34TouchLow[barIdx],
+							ema34TouchOpen[barIdx],
+							ema34TouchClose[barIdx],
+							barIdx == 0 && isRenkoChart,
+							cachedTickSize);
+					}
+					else if (emaPeriod == 89)
+					{
+						foundBarsAgo = ema89TouchBarsAgo[barIdx];
+						basePrice = KatTradeCalculator.CalculateCandlePrice(
+							katAction,
+							cachedIsPartialCandle,
+							cachedPartialPercent,
+							ema89TouchHigh[barIdx],
+							ema89TouchLow[barIdx],
+							ema89TouchOpen[barIdx],
+							ema89TouchClose[barIdx],
+							barIdx == 0 && isRenkoChart,
+							cachedTickSize);
 					}
 					currentPx = cachedCurrentPrice > 0 ? cachedCurrentPrice : basePrice;
 				}
@@ -233,12 +256,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 					{
 						double[] emaVals = new double[3];
 						int valCount = 0;
-						if (EmaPlace1Enabled && emaPlaceFilterSeries != null && emaPlaceFilterSeries[0] != null && CurrentBars[emaPlaceFilterBarIdx[0]] >= 0)
-							emaVals[valCount++] = emaPlaceFilterSeries[0][0];
-						if (EmaPlace2Enabled && emaPlaceFilterSeries != null && emaPlaceFilterSeries[1] != null && CurrentBars[emaPlaceFilterBarIdx[1]] >= 0)
-							emaVals[valCount++] = emaPlaceFilterSeries[1][0];
-						if (EmaPlace3Enabled && emaPlaceFilterSeries != null && emaPlaceFilterSeries[2] != null && CurrentBars[emaPlaceFilterBarIdx[2]] >= 0)
-							emaVals[valCount++] = emaPlaceFilterSeries[2][0];
+						if (EmaPlace1Enabled) emaVals[valCount++] = cachedEmaPlaceValues[0];
+						if (EmaPlace2Enabled) emaVals[valCount++] = cachedEmaPlaceValues[1];
+						if (EmaPlace3Enabled) emaVals[valCount++] = cachedEmaPlaceValues[2];
 
 						if (valCount > 0 && !KatTradeCalculator.ValidateEmaPlace(katAction, checkPrice, emaVals.Take(valCount).ToArray(), out string errPlace))
 						{
@@ -255,22 +275,22 @@ namespace NinjaTrader.NinjaScript.Indicators
 						double[] minAngles = new double[3];
 						int angleCount = 0;
 
-						if (EmaAngle1Enabled && emaAngleFilterSeries != null && emaAngleFilterSeries[0] != null && CurrentBars[emaAngleFilterBarIdx[0]] >= 1)
+						if (EmaAngle1Enabled && cachedEmaAngleCurrent[0] > 0 && cachedEmaAnglePrevious[0] > 0)
 						{
-							currEmas[angleCount] = emaAngleFilterSeries[0][0];
-							prevEmas[angleCount] = emaAngleFilterSeries[0][1];
+							currEmas[angleCount] = cachedEmaAngleCurrent[0];
+							prevEmas[angleCount] = cachedEmaAnglePrevious[0];
 							minAngles[angleCount++] = EmaAngle1MinAngle;
 						}
-						if (EmaAngle2Enabled && emaAngleFilterSeries != null && emaAngleFilterSeries[1] != null && CurrentBars[emaAngleFilterBarIdx[1]] >= 1)
+						if (EmaAngle2Enabled && cachedEmaAngleCurrent[1] > 0 && cachedEmaAnglePrevious[1] > 0)
 						{
-							currEmas[angleCount] = emaAngleFilterSeries[1][0];
-							prevEmas[angleCount] = emaAngleFilterSeries[1][1];
+							currEmas[angleCount] = cachedEmaAngleCurrent[1];
+							prevEmas[angleCount] = cachedEmaAnglePrevious[1];
 							minAngles[angleCount++] = EmaAngle2MinAngle;
 						}
-						if (EmaAngle3Enabled && emaAngleFilterSeries != null && emaAngleFilterSeries[2] != null && CurrentBars[emaAngleFilterBarIdx[2]] >= 1)
+						if (EmaAngle3Enabled && cachedEmaAngleCurrent[2] > 0 && cachedEmaAnglePrevious[2] > 0)
 						{
-							currEmas[angleCount] = emaAngleFilterSeries[2][0];
-							prevEmas[angleCount] = emaAngleFilterSeries[2][1];
+							currEmas[angleCount] = cachedEmaAngleCurrent[2];
+							prevEmas[angleCount] = cachedEmaAnglePrevious[2];
 							minAngles[angleCount++] = EmaAngle3MinAngle;
 						}
 
@@ -282,6 +302,25 @@ namespace NinjaTrader.NinjaScript.Indicators
 					}
 				}
 
+				// Re-evaluate Stop vs Limit using the *latest* cachedCurrentPrice right before submit.
+				// If price has run past the intended stop (making StopMarket invalid), flip to Limit order.
+				// This prevents broker rejections like "sell stop price must be below trade price".
+				double liveCurrent = cachedCurrentPrice > 0 ? cachedCurrentPrice : 0;
+				if (liveCurrent <= 0) liveCurrent = triggerPrice;
+
+				KatOrderType liveKatType = KatTradeCalculator.DetermineOrderType(
+					katAction, triggerPrice, liveCurrent, cachedTickSize, out double liveLimitPrice, out double liveStopPrice);
+				OrderType liveOrderType = ToNtOrderType(liveKatType);
+
+				if (liveOrderType != orderType)
+				{
+					Print(string.Format("[KatTradeManager] Price moved past intended stop — FLIPPING {0} → {1} (trigger={2}, live={3})",
+						orderType, liveOrderType, triggerPrice, liveCurrent));
+				}
+
+				orderType = liveOrderType;
+				limitPrice = liveLimitPrice;
+				stopPrice = liveStopPrice;
 
 				int qty = cachedQuantity > 0 ? cachedQuantity : DefaultQuantity;
 				string entryName = "Entry";
@@ -289,8 +328,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 				entryOrder = account.CreateOrder(Instrument, action, orderType, OrderEntry.Manual, TimeInForce.Gtc, qty, limitPrice, stopPrice, "", entryName, NinjaTrader.Core.Globals.MaxDate, null);
 				if (entryOrder != null)
 				{
-					SubmitOrder(entryOrder);
-
+					if (!SubmitOrder(entryOrder))
+					{
+						entryOrder = null;
+						return;
+					}
+					Print(string.Format("[KatTradeManager] Order submitted: {0} {1} @ {2} qty={3} atm={4}",
+						action, orderType, triggerPrice, qty, cachedAtmTemplate ?? "(none)"));
 
 					// Store pending draw request — OnBarUpdate (data thread) will execute the actual Draw calls
 					lock (priceLock)
@@ -305,6 +349,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 						pendingAtmSL1Trigger = atmSL1Trigger;
 						pendingAtmSL2Trigger = atmSL2Trigger;
 					}
+					pendingDrawOrder = entryOrder;
 					pendingDrawRequest = true;
 				}
 			}
@@ -384,6 +429,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private void PlaceMarketOrder(OrderAction action)
 		{
+			Print(string.Format("[KatTradeManager] PlaceMarketOrder click: {0}", action));
 			if (account == null || Instrument == null)
 			{
 				if (account == null) Print("[KatTradeManager] No account — watchdog auto-recovering. Retry in a moment.");
@@ -411,7 +457,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 				entryOrder = account.CreateOrder(Instrument, action, OrderType.Market, OrderEntry.Manual, TimeInForce.Gtc, qty, 0, 0, "", entryName, NinjaTrader.Core.Globals.MaxDate, null);
 				if (entryOrder != null)
 				{
-					SubmitOrder(entryOrder);
+					if (SubmitOrder(entryOrder))
+						Print(string.Format("[KatTradeManager] Market order submitted: {0} qty={1} atm={2}", action, qty, cachedAtmTemplate ?? "(none)"));
+					else
+						entryOrder = null;
 				}
 			}
 			catch (Exception ex)
@@ -478,6 +527,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 		}
 
+		private int pendingRevertAction; // 0 = none, 1 = Buy, 2 = Sell
+
 		private void RevertPosition()
 		{
 			if (account == null || Instrument == null)
@@ -501,14 +552,33 @@ namespace NinjaTrader.NinjaScript.Indicators
 				}
 
 				OrderAction oppositeAction = pos.MarketPosition == MarketPosition.Long ? OrderAction.Sell : OrderAction.Buy;
+				System.Threading.Interlocked.Exchange(ref pendingRevertAction, oppositeAction == OrderAction.Buy ? 1 : 2);
 				ClosePosition();
-				PlaceMarketOrder(oppositeAction);
-				Print(string.Format("[KatTradeManager] Reverted position to {0}", oppositeAction));
+				Print(string.Format("[KatTradeManager] Revert queued: close current position, then enter {0} after close fill.", oppositeAction));
 			}
 			catch (Exception ex)
 			{
 				Print(string.Format("[KatTradeManager] Error reverting position: {0}", ex.ToString()));
 			}
+		}
+
+		private void TrySubmitPendingRevert()
+		{
+			int requestedAction = System.Threading.Volatile.Read(ref pendingRevertAction);
+			if (requestedAction == 0 || IsCloseInFlight()) return;
+
+			Position pos = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
+			if (pos != null && pos.MarketPosition != MarketPosition.Flat) return;
+
+			if (System.Threading.Interlocked.CompareExchange(ref pendingRevertAction, 0, requestedAction) != requestedAction)
+				return;
+
+			OrderAction action = requestedAction == 1 ? OrderAction.Buy : OrderAction.Sell;
+			Action submit = () => PlaceMarketOrder(action);
+			if (ChartControl != null && ChartControl.Dispatcher != null)
+				ChartControl.Dispatcher.InvokeAsync(submit);
+			else
+				submit();
 		}
 
 		private DateTime lastFreezeEnforceTime = DateTime.MinValue;
@@ -607,14 +677,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private List<double> GetSwingPoints(MarketPosition position, int maxSwings = 20, int strength = 3)
 		{
 			List<double> empty = new List<double>();
-			if (CurrentBars[0] < strength * 2 + 1) return empty;
+			int availableBars;
+			lock (priceLock)
+				availableBars = cachedSwingBars;
+			if (availableBars < strength * 2 + 1) return empty;
 
-			int maxBarAgo = Math.Min(CurrentBars[0] - strength - 1, 500);
+			int maxBarAgo = Math.Min(availableBars - strength - 1, 500);
 			int count = maxBarAgo + strength + 1;
 			double[] series = new double[count];
 			bool findLows = position == MarketPosition.Long;
-			for (int i = 0; i < count; i++)
-				series[i] = findLows ? Lows[0][i] : Highs[0][i];
+			lock (priceLock)
+			{
+				for (int i = 0; i < count; i++)
+					series[i] = findLows ? cachedSwingLows[i] : cachedSwingHighs[i];
+			}
 
 			double tickSize = cachedTickSize > 0 ? cachedTickSize : (Instrument != null ? Instrument.MasterInstrument.TickSize : 0.25);
 			return KatTradeCalculator.FindSwingPoints(series, findLows, maxSwings, strength, tickSize);

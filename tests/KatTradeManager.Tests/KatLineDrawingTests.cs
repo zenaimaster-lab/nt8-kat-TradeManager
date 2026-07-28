@@ -68,5 +68,24 @@ namespace KatTradeManager.Tests
             int count = CountLinesToDraw(sl, tp, be, sl1, sl2);
             Assert.Equal(expectedCount, count);
         }
+
+        [Theory]
+        [InlineData(false, KatOrderType.Limit, false)]
+        [InlineData(true, KatOrderType.Market, false)]
+        [InlineData(true, KatOrderType.Limit, true)]
+        [InlineData(true, KatOrderType.StopMarket, true)]
+        public void ExpectedLinesOnlyFollowSubmittedPendingOrders(bool submitted, KatOrderType orderType, bool expected)
+        {
+            Assert.Equal(expected, KatTradeCalculator.ShouldDrawExpectedLines(submitted, orderType));
+        }
+
+        [Theory]
+        [InlineData(-500, 240, 1000, 40, -200)]
+        [InlineData(1200, 240, 1000, 40, 960)]
+        [InlineData(400, 240, 1000, 40, 400)]
+        public void HudDragCoordinate_ClampsWithMinimumVisiblePanel(double proposed, double panelExtent, double chartExtent, double minVisible, double expected)
+        {
+            Assert.Equal(expected, KatTradeCalculator.ClampHudCoordinate(proposed, panelExtent, chartExtent, minVisible));
+        }
     }
 }

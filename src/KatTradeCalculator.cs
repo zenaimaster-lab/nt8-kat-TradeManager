@@ -25,6 +25,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 			"KAT_ENTRY_LINE", "KAT_SL_LINE", "KAT_TP_LINE", "KAT_BE_LINE", "KAT_SL1_LINE", "KAT_SL2_LINE"
 		};
 
+		public static bool ShouldDrawExpectedLines(bool orderSubmitted, KatOrderType orderType)
+		{
+			return orderSubmitted && orderType != KatOrderType.Market;
+		}
+
+		public static double ClampHudCoordinate(double proposed, double panelExtent, double chartExtent, double minVisible)
+		{
+			if (minVisible < 0) minVisible = 0;
+			double min = -Math.Max(0, panelExtent - minVisible);
+			double max = Math.Max(0, chartExtent - minVisible);
+			return Math.Max(min, Math.Min(proposed, max));
+		}
+
 		/// <summary>Start anchor (barsAgo) for short order lines. Never exceeds currentBar, never negative.</summary>
 		public static int GetLineStartBar(int currentBar, int maxBarsAgo)
 		{

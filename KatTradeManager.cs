@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 0.66 (2026-07-28)
+ * Version: 0.68 (2026-07-28)
  * NinjaTrader 8 TradeManager Indicator
  */
 
@@ -69,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "0.66";
+		public const string VERSION = "0.68";
 		public const string RELEASE_DATE = "2026-07-28";
 
 		private volatile Account account;
@@ -102,6 +102,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private int[] emaPlaceFilterBarIdx;
 		private EMA[] emaAngleFilterSeries;
 		private int[] emaAngleFilterBarIdx;
+		private readonly double[] cachedEmaPlaceValues = new double[3];
+		private readonly double[] cachedEmaAngleCurrent = new double[3];
+		private readonly double[] cachedEmaAnglePrevious = new double[3];
 
 		// HUD toggle state for EMA Place & EMA Angle (default ON)
 		private volatile bool cachedIsEmaPlace = true;
@@ -115,6 +118,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private volatile string cachedAtmTemplate = "";
 
 		private volatile Order entryOrder = null;
+		private volatile Order pendingDrawOrder = null;
 
 		// Parsed ATM parameters for line drawing
 		private int atmStopLoss = 0;
@@ -157,6 +161,21 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private double[] cachedPrevClose    = new double[NUM_SERIES];
 		private double cachedTickSize;
 		private double cachedCurrentPrice;
+		private readonly double[] cachedSwingHighs = new double[501];
+		private readonly double[] cachedSwingLows = new double[501];
+		private volatile int cachedSwingBars = -1;
+
+		// EMA touch snapshots. WPF button handlers read these under priceLock; series access stays on data thread.
+		private readonly int[] ema34TouchBarsAgo = new int[NUM_SERIES];
+		private readonly double[] ema34TouchHigh = new double[NUM_SERIES];
+		private readonly double[] ema34TouchLow = new double[NUM_SERIES];
+		private readonly double[] ema34TouchOpen = new double[NUM_SERIES];
+		private readonly double[] ema34TouchClose = new double[NUM_SERIES];
+		private readonly int[] ema89TouchBarsAgo = new int[NUM_SERIES];
+		private readonly double[] ema89TouchHigh = new double[NUM_SERIES];
+		private readonly double[] ema89TouchLow = new double[NUM_SERIES];
+		private readonly double[] ema89TouchOpen = new double[NUM_SERIES];
+		private readonly double[] ema89TouchClose = new double[NUM_SERIES];
 		#endregion
 
 		#region Indicator Lifecycle
@@ -173,6 +192,24 @@ namespace NinjaTrader.NinjaScript.Indicators
 				case KatEmaTimeframe.Min30: return 7;
 				case KatEmaTimeframe.Min60: return 8;
 				default: return 0; // Chart TF
+			}
+		}
+
+		private void UpdateEmaFilterCache(int bip)
+		{
+			lock (priceLock)
+			{
+				for (int i = 0; i < 3; i++)
+				{
+					if (emaPlaceFilterBarIdx[i] == bip && emaPlaceFilterSeries[i] != null && CurrentBars[bip] >= 0)
+						cachedEmaPlaceValues[i] = emaPlaceFilterSeries[i][0];
+
+					if (emaAngleFilterBarIdx[i] == bip && emaAngleFilterSeries[i] != null && CurrentBars[bip] >= 1)
+					{
+						cachedEmaAngleCurrent[i] = emaAngleFilterSeries[i][0];
+						cachedEmaAnglePrevious[i] = emaAngleFilterSeries[i][1];
+					}
+				}
 			}
 		}
 
@@ -210,7 +247,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 				// Default Settings
 				IsPanelVisible						= true;
-				PanelLocation						= KatHudLocation.ChartTrader;
+				PanelLocation							= KatHudLocation.InChart;
 				DefaultQuantity						= 1;
 				AccountName							= "Sim101";
 				AccountFilter						= "";
@@ -304,6 +341,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ema89Series = new EMA[NUM_SERIES];
 				for (int i = 0; i < NUM_SERIES; i++)
 				{
+					ema34TouchBarsAgo[i] = -1;
+					ema89TouchBarsAgo[i] = -1;
 					ema34Series[i] = EMA(BarsArray[i], 34);
 					ema89Series[i] = EMA(BarsArray[i], 89);
 				}
@@ -400,6 +439,41 @@ namespace NinjaTrader.NinjaScript.Indicators
 				}
 			}
 		}
+
+		private void UpdateEmaTouchCache(int bip, EMA targetEma, int[] barsAgoCache, double[] highCache, double[] lowCache, double[] openCache, double[] closeCache)
+		{
+			if (targetEma == null || CurrentBars[bip] < 0) return;
+
+			int maxBars = Math.Min(CurrentBars[bip], 500);
+			int foundBarsAgo = -1;
+			double foundHigh = 0;
+			double foundLow = 0;
+			double foundOpen = 0;
+			double foundClose = 0;
+
+			for (int barsAgo = 0; barsAgo < maxBars; barsAgo++)
+			{
+				double high = Highs[bip][barsAgo];
+				double low = Lows[bip][barsAgo];
+				if (!KatTradeCalculator.IsEmaTouchBar(high, low, targetEma[barsAgo])) continue;
+
+				foundBarsAgo = barsAgo;
+				foundHigh = high;
+				foundLow = low;
+				foundOpen = Opens[bip][barsAgo];
+				foundClose = Closes[bip][barsAgo];
+				break;
+			}
+
+			lock (priceLock)
+			{
+				barsAgoCache[bip] = foundBarsAgo;
+				highCache[bip] = foundHigh;
+				lowCache[bip] = foundLow;
+				openCache[bip] = foundOpen;
+				closeCache[bip] = foundClose;
+			}
+		}
 		#endregion
 
 		// ponytail: WPF UI methods extracted to src/KatTradeManagerUI.cs (partial class)
@@ -429,9 +503,26 @@ namespace NinjaTrader.NinjaScript.Indicators
 							cachedPrevOpen[bip]  = Opens[bip][1];
 							cachedPrevClose[bip] = Closes[bip][1];
 						}
+						if (bip == 0)
+						{
+							int maxSwingBars = Math.Min(CurrentBars[0], 500);
+							for (int barsAgo = 0; barsAgo <= maxSwingBars; barsAgo++)
+							{
+								cachedSwingHighs[barsAgo] = Highs[0][barsAgo];
+								cachedSwingLows[barsAgo] = Lows[0][barsAgo];
+							}
+							cachedSwingBars = maxSwingBars;
+						}
 					}
 				}
 
+				if (bip < NUM_SERIES && ema34Series != null && ema89Series != null)
+				{
+					UpdateEmaTouchCache(bip, ema34Series[bip], ema34TouchBarsAgo, ema34TouchHigh, ema34TouchLow, ema34TouchOpen, ema34TouchClose);
+					UpdateEmaTouchCache(bip, ema89Series[bip], ema89TouchBarsAgo, ema89TouchHigh, ema89TouchLow, ema89TouchOpen, ema89TouchClose);
+				}
+				if (bip < NUM_SERIES && emaPlaceFilterSeries != null && emaAngleFilterSeries != null)
+					UpdateEmaFilterCache(bip);
 				if (bip != 0 || account == null || Instrument == null) return;
 
 				// Daily Risk Control evaluation
@@ -449,7 +540,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (pendingDrawRequest)
 				{
 					pendingDrawRequest = false;
-					DrawExpectedLines();
+					Order drawOrder = pendingDrawOrder;
+					pendingDrawOrder = null;
+					if (drawOrder != null
+						&& drawOrder.OrderState != OrderState.Cancelled
+						&& drawOrder.OrderState != OrderState.Rejected
+						&& KatTradeCalculator.ShouldDrawExpectedLines(
+							true,
+							drawOrder.OrderType == OrderType.Market
+								? KatOrderType.Market
+								: (drawOrder.OrderType == OrderType.StopMarket ? KatOrderType.StopMarket : KatOrderType.Limit)))
+					{
+						DrawExpectedLines();
+					}
 				}
 
 				// Auto-remove lines only on terminal states, not on transient states
@@ -468,6 +571,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{
 					RemoveExpectedLines();
 				}
+
+				TrySubmitPendingRevert();
 			}
 			catch (Exception ex)
 			{

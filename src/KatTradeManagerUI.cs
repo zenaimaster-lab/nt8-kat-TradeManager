@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.66 (2026-07-28) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.68 (2026-07-28) */
 
 using System;
 using System.Collections.Generic;
@@ -23,6 +23,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 		#region WPF UI Construction & Handlers
 		private bool isHotkeyAttached = false;
 		private Window hotkeyWindow; // cached at attach — chart can move to a new window before detach
+		private bool hasHudDragPosition;
+		private double hudDragLeft;
+		private double hudDragTop;
 
 		private void StartPanelWatchdog()
 		{
@@ -224,6 +227,23 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 		}
 
+		// Walk visual tree: click on Button text/ContentPresenter still counts as interactive.
+		// Used so panel drag does not steal MouseUp from buttons (Click never fires otherwise).
+		private static bool IsInteractiveVisual(DependencyObject src)
+		{
+			while (src != null)
+			{
+				if (src is System.Windows.Controls.Primitives.ButtonBase
+					|| src is TextBox
+					|| src is ComboBox
+					|| src is System.Windows.Controls.Primitives.Selector
+					|| src is System.Windows.Controls.Primitives.Thumb)
+					return true;
+				src = VisualTreeHelper.GetParent(src);
+			}
+			return false;
+		}
+
 		private bool IsPanelAttached()
 		{
 			if (panelBorder == null) return false;
@@ -307,12 +327,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 					panelBorder.VerticalAlignment = VerticalAlignment.Bottom;
 					panelBorder.Margin = new Thickness(10, 0, 0, 10);
 				}
+				else if (hasHudDragPosition)
+				{
+					// Preserve user position when watchdog recreates the panel.
+					panelBorder.HorizontalAlignment = HorizontalAlignment.Left;
+					panelBorder.VerticalAlignment = VerticalAlignment.Top;
+					panelBorder.Margin = new Thickness(hudDragLeft, hudDragTop, 0, 0);
+				}
 				else
 				{
-					// InChart mode -> Top-Right
-					panelBorder.HorizontalAlignment = HorizontalAlignment.Right;
-					panelBorder.VerticalAlignment = VerticalAlignment.Top;
-					panelBorder.Margin = new Thickness(0, 30, 20, 0);
+					// InChart default: bottom-left, clear of the price scale.
+					panelBorder.HorizontalAlignment = HorizontalAlignment.Left;
+					panelBorder.VerticalAlignment = VerticalAlignment.Bottom;
+					panelBorder.Margin = new Thickness(10, 0, 0, 10);
 				}
 
 				panelBorder.Cursor = Cursors.SizeAll;
@@ -322,10 +349,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Point dragStart = new Point();
 				bool isDragging = false;
 
-				panelBorder.MouseLeftButtonDown += (s, ev) =>
+				// Use PREVIEW (tunneling) so we can bail BEFORE the event reaches buttons.
+				// MouseLeftButtonDown (bubbling) was sometimes too late and could interfere with Button internal state.
+				panelBorder.PreviewMouseLeftButtonDown += (s, ev) =>
 				{
-					dragStart = ev.GetPosition(chartGrid);
+					// CRITICAL: do NOT capture mouse when clicking buttons/inputs.
+					// CaptureMouse + Handled steals MouseUp from the Button → Click never fires.
+					DependencyObject src = ev.OriginalSource as DependencyObject ?? ev.Source as DependencyObject;
+					if (IsInteractiveVisual(src))
+						return;
 
+					dragStart = ev.GetPosition(chartGrid);
 					// Normalize to Left/Top alignment with an absolute margin BEFORE dragging.
 					// Fallback mode uses VerticalAlignment.Bottom, where Margin.Top is ignored —
 					// without this, vertical dragging silently does nothing in fallback mode.
@@ -350,13 +384,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 						// Clamp: keep at least 40px of the panel reachable inside the chart
 						const double minVisible = 40;
-						double maxLeft = Math.Max(0, chartGrid.ActualWidth - minVisible);
-						double maxTop = Math.Max(0, chartGrid.ActualHeight - minVisible);
-						newLeft = Math.Max(-panelBorder.ActualWidth + minVisible, Math.Min(newLeft, maxLeft));
-						newTop = Math.Max(-panelBorder.ActualHeight + minVisible, Math.Min(newTop, maxTop));
+						newLeft = KatTradeCalculator.ClampHudCoordinate(newLeft, panelBorder.ActualWidth, chartGrid.ActualWidth, minVisible);
+						newTop = KatTradeCalculator.ClampHudCoordinate(newTop, panelBorder.ActualHeight, chartGrid.ActualHeight, minVisible);
 
 						panelBorder.Margin = new Thickness(newLeft, newTop, 0, 0);
 						panelBorder.HorizontalAlignment = HorizontalAlignment.Left;
+						panelBorder.VerticalAlignment = VerticalAlignment.Top;
+						hasHudDragPosition = true;
+						hudDragLeft = newLeft;
+						hudDragTop = newTop;
 						dragStart = current;
 					}
 				};

@@ -1,13 +1,13 @@
 # NT8 Kat TradeManager
 
-**Current Version**: `v0.66` (Released: `2026-07-28`)
+**Current Version**: `v0.68` (Released: `2026-07-28`)
 
 An advanced TradeManager Indicator for **NinjaTrader 8 (NT8)** designed for fast execution, candle-based pending stop orders, and dynamic risk management.
 
 ## 🚀 Features
 
 - **On-Chart WPF Control Panel**: Interactive buttons with SELL on left / BUY on right and dropdown selectors directly on your NinjaTrader 8 charts.
-- **Bottom-Anchored Floating ChartTrader HUD**: Anchored to bottom row of ChartTrader Grid with high Z-Index (`99999`). Docks at very bottom during normal height, floating upward over native controls when chart window height is reduced.
+- **Draggable In-Chart HUD (default)**: Opens at bottom-left inside chart, keeps at least 40px visible while dragging, and preserves user position across watchdog re-attachment. ChartTrader docking remains selectable.
 - **Freeze Trail Control (`Freeze Trail: OFF` / `⚡ Freeze Trail: ON`)**: Full-width dark gray HUD button positioned directly above Close/flatten to freeze active trailing Stop Loss in place while preserving working SL and TP orders.
 - **Swing Stop Loss Shift Controls (`◀ SL` & `SL ▶`)**: Dynamic gray HUD buttons below Section 2 to shift active Stop Loss orders back to historical Swing Lows (Long) or Swing Highs (Short) step-by-step with full Redo functionality.
 - **Daily Max Drawdown & Daily Max Profit Controls**: Side-by-side HUD toggle buttons (default ON, darker purple background `#3A136B`) with 6:00 PM NY session reset. Replaces entry blocking and auto-flattens positions/orders on breach with instant HUD toggle reactivity.

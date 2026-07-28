@@ -23,6 +23,16 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v0.68] — 2026-07-28
+- **Full click-path reaudit and HUD interaction fix**:
+  - HUD now defaults to `InChart`, first renders bottom-left, supports bounded drag, and preserves user position when watchdog reattaches the panel.
+  - Preview drag handler ignores Button/TextBox/ComboBox descendants, so controls no longer lose `MouseUp`/`Click` events.
+  - Pending candle/fixed-distance/EMA entries enqueue chart lines only after the exact order submission succeeds; market orders never create misleading pending-entry lines.
+  - Revert now queues opposite market entry until the close order fills, preventing close/reverse race and position over-flip.
+  - EMA touch, EMA filter, live-price, and Swing reads used by HUD actions now come from data-thread snapshots instead of WPF-thread NinjaScript series access.
+  - Added pure regression coverage for line eligibility and HUD drag clamping.
+  - **Tests**: 177/177 passing. Compile gate: succeeded (existing NT8 reference-conflict warnings only).
+  - **Graphify entity mapping**: `KatTradeManager.OnBarUpdate`, `KatTradeManager.UpdateEmaTouchCache`, `KatTradeManagerUI.CreateWpfControls`, `KatTradeManager.SubmitOrder`, `KatTradeManager.TrySubmitPendingRevert`, `KatTradeCalculator.ShouldDrawExpectedLines`, `KatTradeCalculator.ClampHudCoordinate`.
 
 ### [v0.66] — 2026-07-28
 - **CRITICAL FIX: "No button works — no order created"**:
