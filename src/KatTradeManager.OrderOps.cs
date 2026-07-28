@@ -1,4 +1,4 @@
-/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.78 (2026-07-28) */
+/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.79 (2026-07-28) */
 
 using System;
 using System.Collections.Generic;
@@ -129,16 +129,21 @@ namespace NinjaTrader.NinjaScript.Indicators
 				: action == OrderAction.Buy || action == OrderAction.BuyToCover;
 		}
 
-		private bool IsAtmMergeOrder(Order order, MarketPosition position)
+
+		private bool IsAtmBracketCandidate(Order order)
 		{
 			if (order == null || Instrument == null || order.Instrument != Instrument) return false;
 			if (IsManualExitOrder(order) || !IsMergeCandidateState(order.OrderState)) return false;
-			if (!IsAtmExitAction(order.OrderAction, position)) return false;
 			if (order.OrderType != OrderType.StopMarket
 				&& order.OrderType != OrderType.StopLimit
 				&& order.OrderType != OrderType.Limit)
 				return false;
 			return HasAtmBracketName(order) || HasAtmEntrySignal(order) || IsKnownAtmBracket(order);
+		}
+
+		private bool IsAtmMergeOrder(Order order, MarketPosition position)
+		{
+			return IsAtmBracketCandidate(order) && IsAtmExitAction(order.OrderAction, position);
 		}
 
 		private void ScheduleAtmBracketMerge()
@@ -178,24 +183,27 @@ namespace NinjaTrader.NinjaScript.Indicators
 			try
 			{
 				Position position = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
-				List<Order> brackets = position != null && position.MarketPosition != MarketPosition.Flat
-					? account.Orders.Where(o => IsAtmMergeOrder(o, position.MarketPosition)).ToList()
-					: account.Orders.Where(o => o.Instrument == Instrument
-						&& IsMergeCandidateState(o.OrderState)
-						&& !IsManualExitOrder(o)
-						&& HasAtmBracketName(o)).ToList();
+				List<Order> candidates = account.Orders.Where(IsAtmBracketCandidate).ToList();
 
 				if (position == null || position.MarketPosition == MarketPosition.Flat)
 				{
-					if (brackets.Count > 0)
+					if (candidates.Count > 0)
 					{
-						account.Cancel(brackets.ToArray());
-						Print(string.Format("[KatTradeManager] ATM MERGE flat cleanup: removed={0}", brackets.Count));
+						account.Cancel(candidates.ToArray());
+						Print(string.Format("[KatTradeManager] ATM MERGE flat cleanup: removed={0}", candidates.Count));
 					}
 					ResetAtmScaleInTracking();
 					return;
 				}
 
+				List<Order> brackets = candidates
+					.Where(o => IsAtmExitAction(o.OrderAction, position.MarketPosition))
+					.ToList();
+				List<Order> staleOppositeBrackets = candidates
+					.Where(o => !IsAtmExitAction(o.OrderAction, position.MarketPosition))
+					.ToList();
+				if (staleOppositeBrackets.Count > 0)
+					account.Cancel(staleOppositeBrackets.ToArray());
 				List<Order> stops = brackets
 					.Where(o => o.OrderType == OrderType.StopMarket || o.OrderType == OrderType.StopLimit)
 					.ToList();
@@ -241,16 +249,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 					.ToArray();
 				if (duplicates.Length > 0)
 					account.Cancel(duplicates);
-
-				if (changes.Count > 0 || duplicates.Length > 0)
+				int removedCount = duplicates.Length + staleOppositeBrackets.Count;
+				if (changes.Count > 0 || removedCount > 0)
 				{
 					Print(string.Format(
-						"[KatTradeManager] ATM MERGE reconciled: positionQty={0} stop={1} target={2} changed={3} removed={4}",
+						"[KatTradeManager] ATM MERGE reconciled: positionQty={0} stop={1} target={2} changed={3} removed={4} staleOpposite={5}",
 						position.Quantity,
 						stopAnchor != null ? stopAnchor.OrderType.ToString() : "none",
 						targetAnchor != null ? targetAnchor.OrderType.ToString() : "none",
 						changes.Count,
-						duplicates.Length));
+						removedCount,
+						staleOppositeBrackets.Count));
 				}
 			}
 			catch (Exception ex)
@@ -886,6 +895,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private bool PlaceMarketOrder(OrderAction action)
 		{
+			return PlaceMarketOrder(action, 0);
+		}
+
+		private bool PlaceMarketOrder(OrderAction action, int quantityOverride)
+		{
 			Print(string.Format("[KatTradeManager] PlaceMarketOrder click: {0}", action));
 			if (account == null || Instrument == null)
 			{
@@ -908,7 +922,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 			try
 
 			{
-				int qty = cachedQuantity > 0 ? cachedQuantity : DefaultQuantity;
+				int qty = quantityOverride > 0
+					? quantityOverride
+					: (cachedQuantity > 0 ? cachedQuantity : DefaultQuantity);
 				// NinjaTrader ATM contract: CreateOrder name MUST be "Entry".
 				// A custom name leaves StartAtmStrategy stuck at Initialized.
 				string entryName = HasAtmTemplate(cachedAtmTemplate) ? "Entry" : (action == OrderAction.Buy ? "MarketBuy" : "MarketSell");
@@ -1008,6 +1024,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		}
 
 		private int pendingRevertAction; // 0 = none, 1 = Buy, 2 = Sell
+		private int pendingRevertQuantity;
 		private int pendingRevertSubmitInFlight;
 
 		private void RevertPosition()
@@ -1033,9 +1050,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 				}
 
 				OrderAction oppositeAction = pos.MarketPosition == MarketPosition.Long ? OrderAction.Sell : OrderAction.Buy;
+				int revertQuantity = pos.Quantity;
 				System.Threading.Interlocked.Exchange(ref pendingRevertAction, oppositeAction == OrderAction.Buy ? 1 : 2);
+				System.Threading.Interlocked.Exchange(ref pendingRevertQuantity, revertQuantity);
 				ClosePosition();
-				Print(string.Format("[KatTradeManager] Revert queued: close current position, then enter {0} after close fill.", oppositeAction));
+				Print(string.Format("[KatTradeManager] Revert queued: close qty={0}, then enter {1} qty={0} after close fill.",
+					revertQuantity, oppositeAction));
 			}
 			catch (Exception ex)
 			{
@@ -1046,7 +1066,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private void TrySubmitPendingRevert()
 		{
 			int requestedAction = System.Threading.Volatile.Read(ref pendingRevertAction);
+			int requestedQuantity = System.Threading.Volatile.Read(ref pendingRevertQuantity);
 			if (requestedAction == 0 || account == null || Instrument == null || IsCloseInFlight()) return;
+			if (requestedQuantity <= 0)
+			{
+				System.Threading.Interlocked.Exchange(ref pendingRevertAction, 0);
+				System.Threading.Interlocked.Exchange(ref pendingRevertQuantity, 0);
+				return;
+			}
 
 			Position pos = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
 			if (pos != null && pos.MarketPosition != MarketPosition.Flat) return;
@@ -1059,6 +1086,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				try
 				{
 					if (System.Threading.Volatile.Read(ref pendingRevertAction) != requestedAction
+						|| System.Threading.Volatile.Read(ref pendingRevertQuantity) != requestedQuantity
 						|| account == null || Instrument == null || IsCloseInFlight())
 						return;
 
@@ -1066,8 +1094,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 					if (current != null && current.MarketPosition != MarketPosition.Flat)
 						return;
 
-					if (PlaceMarketOrder(action))
+					if (PlaceMarketOrder(action, requestedQuantity))
+					{
 						System.Threading.Interlocked.CompareExchange(ref pendingRevertAction, 0, requestedAction);
+						System.Threading.Interlocked.CompareExchange(ref pendingRevertQuantity, 0, requestedQuantity);
+					}
 				}
 				finally
 				{

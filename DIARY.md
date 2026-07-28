@@ -23,6 +23,17 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v0.79] — 2026-07-28
+- **Revert quantity fix**:
+  - Revert now captures live position quantity before close and carries that quantity through asynchronous close-fill retry.
+  - Reversed market entry no longer falls back to HUD Contracts value, so a 4-contract position reverts to 4 contracts instead of 1.
+- **ATM MERGE stale-bracket cleanup**:
+  - Reconciliation now scans all ATM-looking protective orders on the instrument, not only orders matching current position exit direction.
+  - Opposite-side stale ATM SL/TP sets, such as old `Sell` brackets left after reversal while current position is Short, are cancelled.
+  - Current-side canonical SL/TP quantity merge remains unchanged; manual `KAT_*` exits remain excluded.
+- **Runtime diagnostics**: Revert logs captured close/entry quantity; MERGE logs `staleOpposite` removals.
+- **Validation**: 183/183 tests passing; CompileCheck succeeded with 0 errors.
+- **Graphify entity mapping**: `KatTradeManager.RevertPosition`, `KatTradeManager.TrySubmitPendingRevert`, `KatTradeManager.PlaceMarketOrder`, `KatTradeManager.IsAtmBracketCandidate`, `KatTradeManager.MergeAtmBrackets`.
 ### [v0.78] — 2026-07-28
 - **HUD drag runtime hardening**:
   - Default InChart left inset is now 50px.
