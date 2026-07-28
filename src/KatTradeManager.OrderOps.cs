@@ -1,4 +1,4 @@
-/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.77 (2026-07-28) */
+/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.78 (2026-07-28) */
 
 using System;
 using System.Collections.Generic;
@@ -17,6 +17,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (string.IsNullOrEmpty(templateName)) return false;
 			string path = System.IO.Path.Combine(NinjaTrader.Core.Globals.UserDataDir, "templates", "AtmStrategy", templateName + ".xml");
 			return System.IO.File.Exists(path);
+		}
+		private static bool IsManualExitOrder(Order order)
+		{
+			return order != null
+				&& !string.IsNullOrEmpty(order.Name)
+				&& order.Name.StartsWith("KAT_", StringComparison.OrdinalIgnoreCase);
 		}
 
 		// Submits via ATM template when it exists on disk; falls back to plain submit otherwise.
@@ -74,7 +80,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return state == OrderState.Initialized
 				|| state == OrderState.Submitted
 				|| state == OrderState.Accepted
-				|| state == OrderState.Working;
+				|| state == OrderState.AcceptedByRisk
+				|| state == OrderState.Working
+				|| state == OrderState.TriggerPending
+				|| state == OrderState.ChangePending
+				|| state == OrderState.ChangeSubmitted
+				|| state == OrderState.PartFilled
+				|| state == OrderState.Suspended;
 		}
 
 		private static bool HasAtmBracketName(Order order)
@@ -84,6 +96,30 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return name.IndexOf("stop", StringComparison.OrdinalIgnoreCase) >= 0
 				|| name.IndexOf("target", StringComparison.OrdinalIgnoreCase) >= 0
 				|| name.IndexOf("profit", StringComparison.OrdinalIgnoreCase) >= 0;
+		}
+
+		private static bool HasAtmEntrySignal(Order order)
+		{
+			return order != null
+				&& !string.IsNullOrEmpty(order.FromEntrySignal)
+				&& order.FromEntrySignal.IndexOf("entry", StringComparison.OrdinalIgnoreCase) >= 0;
+		}
+
+		private bool IsKnownAtmBracket(Order order)
+		{
+			if (order == null) return false;
+			lock (atmScaleInLock)
+			{
+				if (ReferenceEquals(order, atmMergeStopAnchor) || ReferenceEquals(order, atmMergeTargetAnchor))
+					return true;
+				if (atmMergeStopAnchor != null && !string.IsNullOrEmpty(atmMergeStopAnchor.Oco)
+					&& string.Equals(atmMergeStopAnchor.Oco, order.Oco, StringComparison.Ordinal))
+					return true;
+				if (atmMergeTargetAnchor != null && !string.IsNullOrEmpty(atmMergeTargetAnchor.Oco)
+					&& string.Equals(atmMergeTargetAnchor.Oco, order.Oco, StringComparison.Ordinal))
+					return true;
+				return false;
+			}
 		}
 
 		private static bool IsAtmExitAction(OrderAction action, MarketPosition position)
@@ -96,11 +132,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private bool IsAtmMergeOrder(Order order, MarketPosition position)
 		{
 			if (order == null || Instrument == null || order.Instrument != Instrument) return false;
-			if (!IsMergeCandidateState(order.OrderState) || !HasAtmBracketName(order)) return false;
+			if (IsManualExitOrder(order) || !IsMergeCandidateState(order.OrderState)) return false;
 			if (!IsAtmExitAction(order.OrderAction, position)) return false;
-			return order.OrderType == OrderType.StopMarket
-				|| order.OrderType == OrderType.StopLimit
-				|| order.OrderType == OrderType.Limit;
+			if (order.OrderType != OrderType.StopMarket
+				&& order.OrderType != OrderType.StopLimit
+				&& order.OrderType != OrderType.Limit)
+				return false;
+			return HasAtmBracketName(order) || HasAtmEntrySignal(order) || IsKnownAtmBracket(order);
 		}
 
 		private void ScheduleAtmBracketMerge()
@@ -144,6 +182,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					? account.Orders.Where(o => IsAtmMergeOrder(o, position.MarketPosition)).ToList()
 					: account.Orders.Where(o => o.Instrument == Instrument
 						&& IsMergeCandidateState(o.OrderState)
+						&& !IsManualExitOrder(o)
 						&& HasAtmBracketName(o)).ToList();
 
 				if (position == null || position.MarketPosition == MarketPosition.Flat)
@@ -701,10 +740,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return state == OrderState.Initialized
 				|| state == OrderState.Submitted
 				|| state == OrderState.Accepted
+				|| state == OrderState.AcceptedByRisk
 				|| state == OrderState.Working
 				|| state == OrderState.TriggerPending
 				|| state == OrderState.ChangePending
 				|| state == OrderState.ChangeSubmitted
+				|| state == OrderState.PartFilled
+				|| state == OrderState.Suspended
 				|| state == OrderState.CancelPending
 				|| state == OrderState.CancelSubmitted;
 		}
@@ -712,7 +754,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private static bool IsTerminalOrderState(OrderState state)
 		{
 			return state == OrderState.Filled
-				|| state == OrderState.PartFilled
 				|| state == OrderState.Cancelled
 				|| state == OrderState.Rejected;
 		}
@@ -739,6 +780,26 @@ namespace NinjaTrader.NinjaScript.Indicators
 			Order observed = e != null ? e.Order : null;
 			if (observed == null || Instrument == null || observed.Instrument != Instrument)
 				return;
+
+			if (cachedIsAtmMerge
+				&& (observed.OrderType == OrderType.StopMarket
+					|| observed.OrderType == OrderType.StopLimit
+					|| observed.OrderType == OrderType.Limit))
+			{
+				Print(string.Format(
+					"[KatTradeManager] ATM order identity: name={0} id={1} oco={2} from={3} action={4} type={5} state={6} qty={7} filled={8} stop={9} limit={10}",
+					observed.Name ?? string.Empty,
+					observed.OrderId ?? string.Empty,
+					observed.Oco ?? string.Empty,
+					observed.FromEntrySignal ?? string.Empty,
+					observed.OrderAction,
+					observed.OrderType,
+					observed.OrderState,
+					observed.Quantity,
+					observed.Filled,
+					observed.StopPrice,
+					observed.LimitPrice));
+			}
 
 			bool tracked = observed.Name == CloseOrderName
 				|| observed.Name == "Entry"

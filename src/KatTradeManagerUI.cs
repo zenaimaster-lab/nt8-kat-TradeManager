@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.77 (2026-07-28) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.78 (2026-07-28) */
 
 using System;
 using System.Collections.Generic;
@@ -36,7 +36,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private double hudDragStartTop;
 		private IInputElement hudDragCoordinateHost;
 		private bool isHudDragging;
-		private const double DefaultHudLeft = 80;
+		private const double DefaultHudLeft = 50;
 
 		private void StartPanelWatchdog()
 		{
@@ -241,7 +241,39 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 		}
 
-		// Walk visual tree: click on Button text/ContentPresenter still counts as interactive.
+		private static DependencyObject GetHudParent(DependencyObject element)
+		{
+			if (element == null) return null;
+
+			if (element is System.Windows.ContentElement contentElement)
+			{
+				DependencyObject contentParent = System.Windows.ContentOperations.GetParent(contentElement);
+				if (contentParent != null) return contentParent;
+				if (element is FrameworkContentElement frameworkContentElement && frameworkContentElement.Parent != null)
+					return frameworkContentElement.Parent;
+			}
+
+			try
+			{
+				DependencyObject visualParent = VisualTreeHelper.GetParent(element);
+				if (visualParent != null) return visualParent;
+			}
+			catch
+			{
+				// ContentElement/Run can exist outside VisualTreeHelper.
+			}
+
+			try
+			{
+				return LogicalTreeHelper.GetParent(element);
+			}
+			catch
+			{
+				return null;
+			}
+		}
+
+		// Walk visual/logical/content tree: click on Button/ContentPresenter still counts as interactive.
 		// Used so panel drag does not steal MouseUp from buttons (Click never fires otherwise).
 		private static bool IsInteractiveVisual(DependencyObject src)
 		{
@@ -253,14 +285,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					|| src is System.Windows.Controls.Primitives.Selector
 					|| src is System.Windows.Controls.Primitives.Thumb)
 					return true;
-				try
-				{
-					src = VisualTreeHelper.GetParent(src);
-				}
-				catch
-				{
-					src = LogicalTreeHelper.GetParent(src);
-				}
+				src = GetHudParent(src);
 			}
 			return false;
 		}
@@ -273,26 +298,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				if (ReferenceEquals(current, panelBorder))
 					return !IsInteractiveVisual(source);
-				DependencyObject parent = null;
-				try
-				{
-					parent = VisualTreeHelper.GetParent(current);
-				}
-				catch
-				{
-					// ContentElement/Run can exist outside VisualTreeHelper.
-				}
-				if (parent == null)
-				{
-					try
-					{
-						parent = LogicalTreeHelper.GetParent(current);
-					}
-					catch
-					{
-						parent = null;
-					}
-				}
+				DependencyObject parent = GetHudParent(current);
 				if (ReferenceEquals(parent, current)) break;
 				current = parent;
 			}
@@ -330,8 +336,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				isHudDragging = false;
 				hudDragCoordinateHost = null;
+				Print(string.Format("[KatTradeManager] HUD drag capture FAILED: source={0} mode={1}",
+					source != null ? source.GetType().Name : "null", PanelLocation));
 				return;
 			}
+			Print(string.Format("[KatTradeManager] HUD drag started: source={0} mode={1} parent={2}",
+				source != null ? source.GetType().Name : "null",
+				PanelLocation,
+				panelBorder.Parent != null ? panelBorder.Parent.GetType().Name : "null"));
 			e.Handled = true;
 		}
 
@@ -398,6 +410,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private void OnHudLostMouseCapture(object sender, MouseEventArgs e)
 		{
 			isHudDragging = false;
+			hudDragCoordinateHost = null;
 		}
 
 		private bool IsPanelAttached()
@@ -448,9 +461,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (ctPanel != null)
 				{
 					panelBorder.Width = double.NaN;
-					panelBorder.HorizontalAlignment = HorizontalAlignment.Stretch;
-					panelBorder.VerticalAlignment = VerticalAlignment.Bottom;
-					panelBorder.Margin = new Thickness(0, 0, 0, 0);
+					panelBorder.HorizontalAlignment = hasHudDragPosition ? HorizontalAlignment.Left : HorizontalAlignment.Stretch;
+					panelBorder.VerticalAlignment = hasHudDragPosition ? VerticalAlignment.Top : VerticalAlignment.Bottom;
+					panelBorder.Margin = hasHudDragPosition
+						? new Thickness(hudDragLeft, hudDragTop, 0, 0)
+						: new Thickness(0, 0, 0, 0);
 					panelBorder.Cursor = Cursors.SizeAll;
 					System.Windows.Controls.Panel.SetZIndex(panelBorder, 99999);
 

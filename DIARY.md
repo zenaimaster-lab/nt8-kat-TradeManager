@@ -23,6 +23,18 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v0.78] — 2026-07-28
+- **HUD drag runtime hardening**:
+  - Default InChart left inset is now 50px.
+  - Drag source traversal now handles visual, logical, and `ContentElement`/`Run` parents, with runtime capture/mode/parent diagnostics.
+  - ChartTrader restores persisted dragged coordinates after watchdog re-attachment instead of resetting to its default docked alignment.
+- **ATM MERGE scale-out reconciliation hardening**:
+  - Protective-order detection now uses ATM bracket names, `FromEntrySignal`, and known anchor OCO identity while excluding all `KAT_*` manual exits.
+  - Includes transient ATM states such as `AcceptedByRisk`, `TriggerPending`, `ChangePending`, `ChangeSubmitted`, `PartFilled`, and `Suspended`.
+  - Runtime diagnostics print order name, ID, OCO, entry signal, action, type, state, quantity, fill, stop, and limit values for direct scale-out verification.
+  - `PartFilled` remains active for bracket resizing and is no longer treated as terminal for tracked scale-in/revert orders.
+- **Validation**: 183/183 tests passing; CompileCheck succeeded with 0 errors.
+- **Graphify entity mapping**: `KatTradeManagerUI.GetHudParent`, `KatTradeManagerUI.OnHudPreviewMouseLeftButtonDown`, `KatTradeManagerUI.CreateWpfControls`, `KatTradeManager.IsAtmMergeOrder`, `KatTradeManager.IsKnownAtmBracket`, `KatTradeManager.OnAccountOrderUpdate`.
 ### [v0.77] — 2026-07-28
 - **HUD drag root-cause fix**:
   - ChartTrader mode previously set `Cursor = Arrow` and attached no drag handlers; InChart mode captured the Canvas, making routed WPF move/up events fragile.
