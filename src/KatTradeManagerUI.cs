@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.84 (2026-07-28) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.85 (2026-07-29) */
 
 using System;
 using System.Collections.Generic;
@@ -919,26 +919,26 @@ namespace NinjaTrader.NinjaScript.Indicators
 			SolidColorBrush sellFixedBg = new SolidColorBrush(Color.FromRgb(75, 20, 24));
 
 			StackPanel buyCol = new StackPanel();
-			Button btnBuyPrev = CreateButton("BUY previous", buyPrevBg, (s, ev) => PlaceOrder(OrderAction.Buy, false), 48, 12);
+			Button btnBuyPrev = CreateButton("BUY previous", buyCurrBg, (s, ev) => PlaceOrder(OrderAction.Buy, false), 48, 12);
 			btnBuyPrev.Margin = new Thickness(0, 0, 0, 4);
-			Button btnBuyCurr = CreateButton("BUY current", buyCurrBg, (s, ev) => PlaceOrder(OrderAction.Buy, true), 24, 10);
+			Button btnBuyCurr = CreateButton("BUY current", buyPrevBg, (s, ev) => PlaceOrder(OrderAction.Buy, true), 48, 12);
 			btnBuyCurr.Margin = new Thickness(0, 0, 0, 4);
 			Button btnBuyDist = CreateButton("BUY +distance", buyFixedBg, (s, ev) => PlaceFixedDistanceOrder(OrderAction.Buy), 24, 10);
 
-			buyCol.Children.Add(btnBuyPrev);
 			buyCol.Children.Add(btnBuyCurr);
+			buyCol.Children.Add(btnBuyPrev);
 			buyCol.Children.Add(btnBuyDist);
 			Grid.SetColumn(buyCol, 2);
 
 			StackPanel sellCol = new StackPanel();
-			Button btnSellPrev = CreateButton("SELL previous", sellPrevBg, (s, ev) => PlaceOrder(OrderAction.Sell, false), 48, 12);
+			Button btnSellPrev = CreateButton("SELL previous", sellCurrBg, (s, ev) => PlaceOrder(OrderAction.Sell, false), 48, 12);
 			btnSellPrev.Margin = new Thickness(0, 0, 0, 4);
-			Button btnSellCurr = CreateButton("SELL current", sellCurrBg, (s, ev) => PlaceOrder(OrderAction.Sell, true), 24, 10);
+			Button btnSellCurr = CreateButton("SELL current", sellPrevBg, (s, ev) => PlaceOrder(OrderAction.Sell, true), 48, 12);
 			btnSellCurr.Margin = new Thickness(0, 0, 0, 4);
 			Button btnSellDist = CreateButton("SELL -distance", sellFixedBg, (s, ev) => PlaceFixedDistanceOrder(OrderAction.Sell), 24, 10);
 
-			sellCol.Children.Add(btnSellPrev);
 			sellCol.Children.Add(btnSellCurr);
+			sellCol.Children.Add(btnSellPrev);
 			sellCol.Children.Add(btnSellDist);
 			Grid.SetColumn(sellCol, 0);
 

@@ -23,6 +23,13 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v0.85] — 2026-07-29
+- **Buy/Sell HUD ordering and visual sizing**:
+  - Buy/Sell `current` buttons now appear above corresponding `previous` buttons.
+  - Current buttons inherit previous buttons' former colors; previous buttons inherit current buttons' former colors.
+  - Current buttons now match previous buttons at `48px` height and `12px` font size.
+- **Validation**: 191/191 tests passing; CompileCheck: 0 errors (existing NT8 reference-conflict warnings).
+- **Graphify entity mapping**: `KatTradeManagerUI.CreateWpfControls`, `KatTradeManagerUI.CreateButton`, `KatTradeManager.PlaceOrder`.
 ### [v0.84] — 2026-07-28
 - **Account-wide Close/flatten**:
   - Close/flatten button and hotkey now clear the entire selected account, not only chart instrument position.
