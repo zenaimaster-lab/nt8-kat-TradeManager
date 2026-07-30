@@ -23,6 +23,14 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v0.87] — 2026-07-30
+- **Indicator settings and HUD lifecycle**:
+  - Account Name now uses NinjaTrader `AccountNameConverter`, exposing connected accounts as standard property-grid choices while preserving serializable string settings.
+  - Default ATM Template now scans sorted `templates\AtmStrategy\*.xml` names through a standard-values converter/editor.
+  - Runtime account and ATM selectors honor saved settings and write user selections back to persisted properties.
+  - Show Control Panel visibility gate now runs before account operations, risk checks, hotkeys, drag handlers, or HUD creation; hidden HUD teardown is idempotent.
+- **Validation**: 194/194 tests passing; CompileCheck: 0 errors (existing NT8 reference-conflict/obsolete warnings).
+- **Graphify entity mapping**: `AtmTemplateNameConverter`, `KatTradeManagerUI.OnPanelWatchdogTick`, `KatTradeManagerUI.CreateWpfControls`, `KatTradeManagerUI.RemoveWpfControls`, `KatTradeManager.SelectAccount`.
 ### [v0.86] — 2026-07-30
 - **ATM protective bracket lifecycle hardening** (2026-07-30 08:46 UTC):
   - MERGE no longer cancels SL/TP during short NT8 gaps where `Entry` is terminal but `Account.Positions` still reports Flat.

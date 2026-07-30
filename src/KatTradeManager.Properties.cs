@@ -1,12 +1,73 @@
-/* KatTradeManager.Properties.cs - NinjaScript properties (partial class) v0.86 (2026-07-30) */
+/* KatTradeManager.Properties.cs - NinjaScript properties (partial class) v0.87 (2026-07-30) */
 
+using System;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
+using System.IO;
 using System.Windows.Input;
 using NinjaTrader.NinjaScript;
+using NinjaTrader.Gui;
 
 namespace NinjaTrader.NinjaScript.Indicators
 {
+	public sealed class AtmTemplateNameConverter : TypeConverter
+	{
+		private static string GetAtmTemplateDirectory()
+		{
+			return Path.Combine(NinjaTrader.Core.Globals.UserDataDir, "templates", "AtmStrategy");
+		}
+
+		private static List<string> GetTemplateNames()
+		{
+			List<string> names = new List<string>();
+			string directory = GetAtmTemplateDirectory();
+			if (!Directory.Exists(directory)) return names;
+
+			foreach (string file in Directory.GetFiles(directory, "*.xml"))
+				names.Add(Path.GetFileNameWithoutExtension(file));
+
+			names.Sort(StringComparer.OrdinalIgnoreCase);
+			return names;
+		}
+
+		public override bool GetStandardValuesSupported(ITypeDescriptorContext context)
+		{
+			return true;
+		}
+
+		public override bool GetStandardValuesExclusive(ITypeDescriptorContext context)
+		{
+			return true;
+		}
+
+		public override StandardValuesCollection GetStandardValues(ITypeDescriptorContext context)
+		{
+			return new StandardValuesCollection(GetTemplateNames());
+		}
+
+		public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
+		{
+			return sourceType == typeof(string) || base.CanConvertFrom(context, sourceType);
+		}
+
+		public override bool CanConvertTo(ITypeDescriptorContext context, Type destinationType)
+		{
+			return destinationType == typeof(string) || base.CanConvertTo(context, destinationType);
+		}
+
+		public override object ConvertFrom(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value)
+		{
+			return value == null ? string.Empty : value.ToString();
+		}
+
+		public override object ConvertTo(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value, Type destinationType)
+		{
+			if (destinationType == typeof(string))
+				return value == null ? string.Empty : value.ToString();
+			return base.ConvertTo(context, culture, value, destinationType);
+		}
+	}
 	public partial class KatTradeManager
 	{
 		#region NinjaScript Properties
@@ -33,6 +94,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public int DefaultQuantity { get; set; }
 
 		[NinjaScriptProperty]
+		[TypeConverter(typeof(NinjaTrader.NinjaScript.AccountNameConverter))]
 		[Display(Name="Account Name", Order=2, GroupName="Parameters")]
 		public string AccountName { get; set; }
 
@@ -50,6 +112,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public int DefaultBufferTicks { get; set; }
 
 		[NinjaScriptProperty]
+		[PropertyEditor("NinjaTrader.Gui.Tools.StringStandardValuesEditorKey")]
+		[TypeConverter(typeof(AtmTemplateNameConverter))]
 		[Display(Name="Default ATM Template", Order=5, GroupName="Parameters")]
 		public string DefaultAtmTemplate { get; set; }
 

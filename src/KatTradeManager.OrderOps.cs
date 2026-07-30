@@ -1,4 +1,4 @@
-/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.86 (2026-07-30) */
+/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.87 (2026-07-30) */
 
 using System;
 using System.Collections.Generic;

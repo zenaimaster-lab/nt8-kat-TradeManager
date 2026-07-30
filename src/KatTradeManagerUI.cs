@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.86 (2026-07-30) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.87 (2026-07-30) */
 
 using System;
 using System.Collections.Generic;
@@ -68,6 +68,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private void OnPanelWatchdogTick(object sender, EventArgs e)
 		{
+			if (!IsPanelVisible)
+			{
+				RemoveWpfControls();
+				return;
+			}
 			if (isTerminated || ChartControl == null)
 			{
 				StopPanelWatchdog();
@@ -98,12 +103,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			// Enforce Freeze Trail if active
 			CheckFreezeTrailEnforcement();
-
-			if (!IsPanelVisible)
-			{
-				if (panelBorder != null) RemoveWpfControls();
-				return;
-			}
 
 
 			// Sync UI control values to thread-safe cached fields
@@ -635,7 +634,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				var allowedAccs = Account.All.Where(a => IsAccountAllowed(a.Name)).ToList();
 				foreach (var acc in allowedAccs) accSelector.Items.Add(acc.Name);
-				if (account != null && accSelector.Items.Contains(account.Name))
+				string savedAccountName = AccountName;
+				if (!string.IsNullOrEmpty(savedAccountName) && accSelector.Items.Contains(savedAccountName))
+				{
+					accSelector.SelectedItem = savedAccountName;
+					account = Account.All.FirstOrDefault(a => a.Name.Equals(savedAccountName, StringComparison.OrdinalIgnoreCase));
+					EnsureAccountEventSubscription();
+				}
+				else if (account != null && accSelector.Items.Contains(account.Name))
 				{
 					accSelector.SelectedItem = account.Name;
 				}
@@ -643,6 +649,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{
 					accSelector.SelectedIndex = 0;
 					account = allowedAccs[0]; // assign directly — SelectionChanged handler isn't attached yet
+					AccountName = account.Name;
 					EnsureAccountEventSubscription();
 					Print(string.Format("[KatTradeManager] Defaulted account to first allowed: {0}", account.Name));
 				}
@@ -653,6 +660,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{
 					string selectedName = accSelector.SelectedItem.ToString();
 					account = Account.All.FirstOrDefault(a => a.Name == selectedName);
+					AccountName = selectedName;
 					EnsureAccountEventSubscription();
 
 					// Reset per-account state — otherwise the OLD account's realized PnL stays as the
@@ -717,6 +725,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (atmSelector.SelectedItem != null)
 			{
 				cachedAtmTemplate = atmSelector.SelectedItem.ToString();
+				DefaultAtmTemplate = cachedAtmTemplate;
 				LoadAtmTemplateSettings(cachedAtmTemplate);
 			}
 			atmSelector.SelectionChanged += (s, ev) =>
@@ -724,6 +733,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (atmSelector.SelectedItem != null)
 				{
 					cachedAtmTemplate = atmSelector.SelectedItem.ToString();
+					DefaultAtmTemplate = cachedAtmTemplate;
 					LoadAtmTemplateSettings(cachedAtmTemplate);
 				}
 			};
