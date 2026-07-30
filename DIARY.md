@@ -23,6 +23,12 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v0.88] — 2026-07-30
+- **ATM merge collection-race hardening**:
+  - Locks `Account.Positions` and `Account.Orders` while taking the merge snapshot, preventing NT8 broker-thread mutations from corrupting LINQ enumeration.
+  - Adds an outer dispatcher callback guard so an unexpected collection exception cannot escape the HUD watchdog as an unhandled UI exception.
+- **Validation**: 194/194 tests passing; CompileCheck: 0 errors (existing NT8 reference-conflict/obsolete warnings).
+- **Graphify entity mapping**: `KatTradeManager.ScheduleAtmBracketMerge`, `KatTradeManager.MergeAtmBrackets`.
 ### [v0.87] — 2026-07-30
 - **Indicator settings and HUD lifecycle**:
   - Account Name now uses NinjaTrader `AccountNameConverter`, exposing connected accounts as standard property-grid choices while preserving serializable string settings.

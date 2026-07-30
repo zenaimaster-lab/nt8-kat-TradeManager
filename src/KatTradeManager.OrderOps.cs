@@ -1,4 +1,4 @@
-/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.87 (2026-07-30) */
+/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.88 (2026-07-30) */
 
 using System;
 using System.Collections.Generic;
@@ -570,6 +570,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{
 					MergeAtmBrackets();
 				}
+				catch (Exception ex)
+				{
+					Print(string.Format("[KatTradeManager] ATM MERGE dispatcher callback failed: {0}", ex.Message));
+				}
 				finally
 				{
 					System.Threading.Interlocked.Exchange(ref atmMergeScheduled, 0);
@@ -595,8 +599,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			try
 			{
-				Position position = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
-				List<Order> candidates = account.Orders.Where(IsAtmBracketCandidate).ToList();
+				Position position;
+				var positions = account.Positions;
+				lock (positions)
+					position = positions.FirstOrDefault(p => p.Instrument == Instrument);
+
+				List<Order> candidates;
+				var orders = account.Orders;
+				lock (orders)
+					candidates = orders.Where(IsAtmBracketCandidate).ToList();
 				bool positionConfirmed = position != null && position.MarketPosition != MarketPosition.Flat;
 				if (positionConfirmed)
 				{
