@@ -35,6 +35,27 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return atmEntryStartupPending && !positionConfirmed;
 		}
 
+		/// <summary>
+		/// Prevents ATM protective-order cleanup while NT8 may still be publishing an entry or
+		/// scale-out across its order and position snapshots.
+		/// </summary>
+		public static bool ShouldDeferAtmFlatCleanup(
+			bool atmEntryStartupPending,
+			bool positionConfirmed,
+			bool positionWasConfirmedThisEpisode,
+			double millisecondsSinceLastAtmActivity,
+			double graceMilliseconds)
+		{
+			if (positionConfirmed) return false;
+			if (!positionWasConfirmedThisEpisode && atmEntryStartupPending) return true;
+			if (double.IsNaN(millisecondsSinceLastAtmActivity)
+				|| double.IsInfinity(millisecondsSinceLastAtmActivity)
+				|| millisecondsSinceLastAtmActivity < 0)
+				return true;
+
+			return millisecondsSinceLastAtmActivity < Math.Max(0, graceMilliseconds);
+		}
+
 		/// <summary>Close/flatten has work to do only if the account has working orders or an open position.</summary>
 		public static bool ShouldFlattenAccount(bool hasWorkingOrders, bool hasOpenPosition)
 		{

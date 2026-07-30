@@ -20,6 +20,39 @@ namespace KatTradeManager.Tests
 		}
 
 		[Fact]
+		public void AtmFlatCleanup_StartupTerminalButPositionUpdateStillPending_IsDeferred()
+		{
+			Assert.True(KatTradeCalculator.ShouldDeferAtmFlatCleanup(
+				false,
+				false,
+				false,
+				250.0,
+				3000.0));
+		}
+
+		[Fact]
+		public void AtmFlatCleanup_ScaleOutTransientFlatWithinActivityGrace_IsDeferred()
+		{
+			Assert.True(KatTradeCalculator.ShouldDeferAtmFlatCleanup(
+				false,
+				false,
+				true,
+				500.0,
+				3000.0));
+		}
+
+		[Fact]
+		public void AtmFlatCleanup_StaleFlatPastActivityGrace_IsAllowed()
+		{
+			Assert.False(KatTradeCalculator.ShouldDeferAtmFlatCleanup(
+				false,
+				false,
+				true,
+				3500.0,
+				3000.0));
+		}
+
+		[Fact]
 		public void FlattenAccount_WithOrdersOrPositions_HasWork()
 		{
 			Assert.True(KatTradeCalculator.ShouldFlattenAccount(true, false));

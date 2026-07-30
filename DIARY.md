@@ -23,6 +23,14 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v0.86] — 2026-07-30
+- **ATM protective bracket lifecycle hardening** (2026-07-30 08:46 UTC):
+  - MERGE no longer cancels SL/TP during short NT8 gaps where `Entry` is terminal but `Account.Positions` still reports Flat.
+  - Tracks ATM Entry, scale-in, and protective-order callbacks; defers flat cleanup for 3 seconds after recent lifecycle activity.
+  - Preserves first-entry startup protection through terminal-entry callbacks and records confirmed-position episodes across scale-out.
+  - Added regression coverage for terminal-entry propagation, transient scale-out Flat snapshots, and stale-flat cleanup.
+- **Validation**: 194/194 tests passing; CompileCheck: 0 errors (134 existing NT8 reference-conflict/obsolete warnings).
+- **Graphify entity mapping**: `KatTradeManager.IsAtmStartupPending`, `KatTradeManager.ProcessAtmStartupUpdate`, `KatTradeManager.MergeAtmBrackets`, `KatTradeManager.OnAccountOrderUpdate`, `KatTradeCalculator.ShouldDeferAtmFlatCleanup`, `KatOrderLifecycleTests`.
 ### [v0.85] — 2026-07-29
 - **Buy/Sell HUD ordering and visual sizing**:
   - Buy/Sell `current` buttons now appear above corresponding `previous` buttons.

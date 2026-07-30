@@ -59,4 +59,4 @@ On every code change, BEFORE closing session:
 ## Version Tracking
 - Code versions: KatTradeManager.cs VERSION constant
 - Doc versions: README.md, DIARY.md
-- **Current: v0.85 (2026-07-29)**
+- **Current: v0.86 (2026-07-30)**

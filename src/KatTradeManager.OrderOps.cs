@@ -1,4 +1,4 @@
-/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.85 (2026-07-29) */
+/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.86 (2026-07-30) */
 
 using System;
 using System.Collections.Generic;
@@ -35,6 +35,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private Order atmStartupOrder;
 		private readonly object flattenCloseLock = new object();
 		private readonly List<Order> flattenCloseOrders = new List<Order>();
+		private const double AtmLifecycleGraceMilliseconds = 3000.0;
+		private DateTime atmLastLifecycleActivityUtc = DateTime.MinValue;
+		private bool atmPositionWasConfirmedThisEpisode;
 
 		private static bool IsAccountOperationPending(OrderState state)
 		{
@@ -357,7 +360,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			if (order == null) return;
 			lock (atmScaleInLock)
+			{
 				atmStartupOrder = order;
+				atmLastLifecycleActivityUtc = DateTime.UtcNow;
+				atmPositionWasConfirmedThisEpisode = false;
+			}
 		}
 
 		private void ClearAtmStartup(Order expected = null)
@@ -372,21 +379,28 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private bool IsAtmStartupPending()
 		{
 			Order startup;
+			DateTime lastActivity;
 			lock (atmScaleInLock)
-				startup = atmStartupOrder;
-			if (startup == null) return false;
-			if (IsTerminalOrderState(startup.OrderState))
 			{
-				ClearAtmStartup(startup);
-				return false;
+				startup = atmStartupOrder;
+				lastActivity = atmLastLifecycleActivityUtc;
 			}
-			return true;
+			if (startup == null) return false;
+			if (!IsTerminalOrderState(startup.OrderState))
+				return true;
+
+			if (lastActivity == DateTime.MinValue) return true;
+			return (DateTime.UtcNow - lastActivity).TotalMilliseconds < AtmLifecycleGraceMilliseconds;
 		}
 
 		private void ProcessAtmStartupUpdate(Order observed)
 		{
-			if (observed == null || !IsTerminalOrderState(observed.OrderState)) return;
-			ClearAtmStartup(observed);
+			if (observed == null) return;
+			lock (atmScaleInLock)
+			{
+				if (SameOrder(atmStartupOrder, observed))
+					atmLastLifecycleActivityUtc = DateTime.UtcNow;
+			}
 		}
 		private static KatOrderAction ToKatAction(OrderAction action) => action == OrderAction.Buy ? KatOrderAction.Buy : KatOrderAction.Sell;
 		private static OrderType ToNtOrderType(KatOrderType type) => type == KatOrderType.StopMarket ? OrderType.StopMarket : OrderType.Limit;
@@ -489,6 +503,21 @@ namespace NinjaTrader.NinjaScript.Indicators
 				&& order.FromEntrySignal.IndexOf("entry", StringComparison.OrdinalIgnoreCase) >= 0;
 		}
 
+		private bool IsAtmLifecycleOrder(Order order)
+		{
+			return order != null
+				&& (order.Name == "Entry"
+					|| HasAtmBracketName(order)
+					|| HasAtmEntrySignal(order)
+					|| IsKnownAtmBracket(order));
+		}
+
+		private void MarkAtmLifecycleActivity()
+		{
+			lock (atmScaleInLock)
+				atmLastLifecycleActivityUtc = DateTime.UtcNow;
+		}
+
 		private bool IsKnownAtmBracket(Order order)
 		{
 			if (order == null) return false;
@@ -570,13 +599,42 @@ namespace NinjaTrader.NinjaScript.Indicators
 				List<Order> candidates = account.Orders.Where(IsAtmBracketCandidate).ToList();
 				bool positionConfirmed = position != null && position.MarketPosition != MarketPosition.Flat;
 				if (positionConfirmed)
+				{
+					lock (atmScaleInLock)
+					{
+						if (!atmPositionWasConfirmedThisEpisode)
+							atmLastLifecycleActivityUtc = DateTime.UtcNow;
+						atmPositionWasConfirmedThisEpisode = true;
+					}
 					ClearAtmStartup();
+				}
 
 				if (!positionConfirmed)
 				{
-					if (KatTradeCalculator.ShouldDeferAtmFlatCleanup(IsAtmStartupPending(), false))
+					bool startupPending = IsAtmStartupPending();
+					bool wasPositionConfirmed;
+					DateTime lastActivity;
+					lock (atmScaleInLock)
 					{
-						Print("[KatTradeManager] ATM MERGE flat cleanup deferred: first ATM entry startup pending.");
+						wasPositionConfirmed = atmPositionWasConfirmedThisEpisode;
+						lastActivity = atmLastLifecycleActivityUtc;
+					}
+
+					double activityAge = lastActivity == DateTime.MinValue
+						? -1
+						: (DateTime.UtcNow - lastActivity).TotalMilliseconds;
+					if (KatTradeCalculator.ShouldDeferAtmFlatCleanup(
+						startupPending,
+						false,
+						wasPositionConfirmed,
+						activityAge,
+						AtmLifecycleGraceMilliseconds))
+					{
+						Print(string.Format(
+							"[KatTradeManager] ATM MERGE flat cleanup deferred: startupPending={0} wasPositionConfirmed={1} activityAgeMs={2:F0}.",
+							startupPending,
+							wasPositionConfirmed,
+							activityAge));
 						return;
 					}
 					if (candidates.Count > 0)
@@ -682,6 +740,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			lock (atmScaleInLock)
 			{
+				if (!atmPositionWasConfirmedThisEpisode)
+					atmLastLifecycleActivityUtc = DateTime.UtcNow;
+				atmPositionWasConfirmedThisEpisode = true;
 				if (atmMergePosition != position.MarketPosition)
 				{
 					atmScaleInStates.Clear();
@@ -706,6 +767,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (order == null) return;
 			lock (atmScaleInLock)
 			{
+				atmLastLifecycleActivityUtc = DateTime.UtcNow;
 				atmScaleInStates.Add(new AtmScaleInState
 				{
 					Order = order,
@@ -724,6 +786,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 				atmMergeStopQuantity = 0;
 				atmMergeTargetQuantity = 0;
 				atmMergePosition = MarketPosition.Flat;
+				atmStartupOrder = null;
+				atmLastLifecycleActivityUtc = DateTime.MinValue;
+				atmPositionWasConfirmedThisEpisode = false;
 			}
 		}
 
@@ -770,6 +835,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private void ProcessAtmScaleInUpdate(Order observed)
 		{
 			if (!cachedIsAtmMerge || observed == null || observed.Name != "Entry") return;
+			lock (atmScaleInLock)
+				atmLastLifecycleActivityUtc = DateTime.UtcNow;
 
 			AtmScaleInState state = FindAtmScaleInState(observed);
 			if (state == null) return;
@@ -1189,6 +1256,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			TryCompleteActiveAccountOperation();
 			if (Instrument == null || observed.Instrument != Instrument)
 				return;
+			if (cachedIsAtmMerge && IsAtmLifecycleOrder(observed))
+				MarkAtmLifecycleActivity();
 
 			if (cachedIsAtmMerge
 				&& (observed.OrderType == OrderType.StopMarket
