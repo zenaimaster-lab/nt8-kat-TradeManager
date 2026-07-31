@@ -431,6 +431,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 		}
 
 		/// <summary>
+		/// Normalizes an ATM quick-set button label: trimmed, at most 3 characters, falling back to
+		/// the default letter when empty/whitespace.
+		/// </summary>
+		public static string NormalizeAtmSetName(string value, string fallback)
+		{
+			string trimmed = (value ?? string.Empty).Trim();
+			if (trimmed.Length == 0) return fallback;
+			return trimmed.Length > 3 ? trimmed.Substring(0, 3) : trimmed;
+		}
+
+		/// <summary>
 		/// Checks account name against comma/semicolon-separated filter.
 		/// Tokens prefixed with '!' are excludes; plain tokens are includes.
 		/// Empty filter = allow all. Excludes win over includes.

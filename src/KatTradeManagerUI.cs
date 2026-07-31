@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.93 (2026-07-31) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.94 (2026-07-31) */
 
 using System;
 using System.Collections.Generic;
@@ -21,6 +21,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class KatTradeManager
 	{
 		#region WPF UI Construction & Handlers
+		private Button[] atmSetButtons;
+		private readonly SolidColorBrush atmSetOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65)); // same gray as other OFF buttons
+		private readonly SolidColorBrush atmSetOnBg = new SolidColorBrush(Color.FromRgb(180, 90, 20)); // amber when its ATM is selected
 		private bool isHotkeyAttached = false;
 		private Window hotkeyWindow; // cached at attach — chart can move to a new window before detach
 		private bool hasHudDragPosition;
@@ -163,6 +166,81 @@ namespace NinjaTrader.NinjaScript.Indicators
 			cachedAtmTemplate = IsNoAtmSelection(selected) ? string.Empty : selected;
 			DefaultAtmTemplate = cachedAtmTemplate;
 			LoadAtmTemplateSettings(cachedAtmTemplate); // empty name clears parsed ATM levels
+			UpdateAtmSetButtons();
+		}
+
+		private string GetAtmSetTemplate(int idx)
+		{
+			switch (idx)
+			{
+				case 0: return AtmSet1Atm;
+				case 1: return AtmSet2Atm;
+				case 2: return AtmSet3Atm;
+				case 3: return AtmSet4Atm;
+				case 4: return AtmSet5Atm;
+				default: return AtmSet6Atm;
+			}
+		}
+
+		private string GetAtmSetName(int idx)
+		{
+			switch (idx)
+			{
+				case 0: return AtmSet1Name;
+				case 1: return AtmSet2Name;
+				case 2: return AtmSet3Name;
+				case 3: return AtmSet4Name;
+				case 4: return AtmSet5Name;
+				default: return AtmSet6Name;
+			}
+		}
+
+		// Quick-set click: select the assigned ATM immediately (same as picking it from the dropdown).
+		private void ApplyAtmSetSelection(int idx)
+		{
+			string tpl = GetAtmSetTemplate(idx);
+			if (string.IsNullOrEmpty(tpl))
+			{
+				ShowHudStatus(string.Format("Set {0}: no ATM assigned (Indicator Settings)", GetAtmSetName(idx)), Brushes.OrangeRed);
+				return;
+			}
+
+			if (atmSelector != null)
+			{
+				bool found = false;
+				for (int i = 0; i < atmSelector.Items.Count; i++)
+				{
+					if (atmSelector.Items[i].ToString().Equals(tpl, StringComparison.OrdinalIgnoreCase))
+					{
+						atmSelector.SelectedIndex = i; // dropdown shows it; SelectionChanged fires ApplyAtmSelection
+						found = true;
+						break;
+					}
+				}
+				if (!found)
+				{
+					ShowHudStatus(string.Format("Set {0}: ATM '{1}' not found on disk", GetAtmSetName(idx), tpl), Brushes.OrangeRed);
+					return;
+				}
+			}
+			ApplyAtmSelection(tpl); // idempotent when the dropdown handler already ran
+		}
+
+		// Exactly one set button is ON: the one whose assigned ATM equals the current selection.
+		// ATM None (empty) turns every button OFF.
+		private void UpdateAtmSetButtons()
+		{
+			if (atmSetButtons == null) return;
+			for (int i = 0; i < atmSetButtons.Length; i++)
+			{
+				if (atmSetButtons[i] == null) continue;
+				string tpl = GetAtmSetTemplate(i);
+				bool on = !string.IsNullOrEmpty(cachedAtmTemplate)
+					&& !string.IsNullOrEmpty(tpl)
+					&& tpl.Equals(cachedAtmTemplate, StringComparison.OrdinalIgnoreCase);
+				atmSetButtons[i].Background = on ? atmSetOnBg : atmSetOffBg;
+				atmSetButtons[i].Foreground = on ? Brushes.White : Brushes.LightGray;
+			}
 		}
 
 		// ponytail: uses visual tree type name matching for ChartTraderControl; fallback to chart grid if hidden
@@ -747,6 +825,26 @@ namespace NinjaTrader.NinjaScript.Indicators
 			atmSelector.SelectionChanged += (s, ev) => ApplyAtmSelection(atmSelector.SelectedItem);
 
 			sec1Panel.Children.Add(atmSelector);
+
+			// --- ATM Quick Set buttons (A–F), one-click ATM selection ---
+			atmSetButtons = new Button[6];
+			Grid atmSetGrid = new Grid { Margin = new Thickness(0, 4, 0, 0) };
+			for (int i = 0; i < 6; i++)
+				atmSetGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+			for (int i = 0; i < 6; i++)
+			{
+				int setIdx = i;
+				Button setBtn = CreateButton(GetAtmSetName(setIdx), atmSetOffBg, null, 22, 10);
+				setBtn.Foreground = Brushes.LightGray;
+				setBtn.Margin = new Thickness(setIdx == 0 ? 0 : 2, 0, 0, 0);
+				setBtn.Click += (s, ev) => ApplyAtmSetSelection(setIdx);
+				Grid.SetColumn(setBtn, setIdx);
+				atmSetButtons[setIdx] = setBtn;
+				atmSetGrid.Children.Add(setBtn);
+			}
+			sec1Panel.Children.Add(atmSetGrid);
+			UpdateAtmSetButtons();
 			mainPanel.Children.Add(CreateSectionCard(sec1Panel, 6));
 
 

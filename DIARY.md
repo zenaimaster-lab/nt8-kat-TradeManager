@@ -23,6 +23,14 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v0.94] — 2026-07-31
+- **ATM Quick Set buttons (A–F)**:
+  - Row of 6 one-click buttons directly below the HUD ATM dropdown; each instantly selects its assigned ATM template (equivalent to picking it from the dropdown — the dropdown updates to match).
+  - Exactly one button shows amber ON state — the one whose assigned ATM equals the current selection; the rest render the standard OFF gray; ATM `None` turns all OFF. Manual dropdown changes re-sync the buttons through `ApplyAtmSelection`.
+  - 12 new persisted settings in group "ATM Quick Sets": per-set button label (text, normalized to max 3 chars with letter fallback via `KatTradeCalculator.NormalizeAtmSetName`) and per-set ATM template (standard-values dropdown via `AtmTemplateNameConverter`). Defaults: labels A–F, no ATM assigned (click shows HUD status hint).
+  - Unassigned or deleted-template clicks surface a HUD status warning instead of silently doing nothing.
+- **Validation**: 214/214 tests passing (+4 quick-set name normalization tests); CompileCheck: 0 errors (existing NT8 reference-conflict/obsolete warnings).
+- **Graphify entity mapping**: `KatTradeManagerUI.ApplyAtmSetSelection`, `KatTradeManagerUI.UpdateAtmSetButtons`, `KatTradeManagerUI.GetAtmSetTemplate`, `KatTradeManagerUI.GetAtmSetName`, `KatTradeManager.AtmSet1Name`–`AtmSet6Name`, `KatTradeManager.AtmSet1Atm`–`AtmSet6Atm`, `KatTradeCalculator.NormalizeAtmSetName`, `KatAtmQuickSetTests`.
 ### [v0.93] — 2026-07-31
 - **Idle-time "Index was outside the bounds of the array" dialog fix**:
   - NT8 trace evidence (`trace.20260731`, 03:25:42): `System.IndexOutOfRangeException` attributed to `ScheduleAtmBracketMerge` from `OnPanelWatchdogTick` via `DispatcherTimer.FireTick` — escaping every inner try/catch, so it was thrown inside a guard-clause NT8 property getter (`Instrument` indexes Bars internally) during overnight session maintenance (hourly HdsClient reconnects / token renewals). Release-build line numbers in the trace were misattributed; the boundary was the real hole.

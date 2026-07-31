@@ -1,4 +1,4 @@
-/* KatTradeManager.Properties.cs - NinjaScript properties (partial class) v0.92 (2026-07-31) */
+/* KatTradeManager.Properties.cs - NinjaScript properties (partial class) v0.94 (2026-07-31) */
 
 using System;
 using System.ComponentModel;
@@ -126,6 +126,99 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Range(1, 99)]
 		[Display(Name="Partial Candle Pullback (%)", Order=7, GroupName="Parameters")]
 		public int DefaultPartialCandlePercent { get; set; }
+
+		#region ATM Quick Set Properties
+		private string atmSet1Name = "A";
+		private string atmSet2Name = "B";
+		private string atmSet3Name = "C";
+		private string atmSet4Name = "D";
+		private string atmSet5Name = "E";
+		private string atmSet6Name = "F";
+
+		[NinjaScriptProperty]
+		[Display(Name="Set 1 Name", Order=1, GroupName="ATM Quick Sets", Description="Button label (max 3 chars)")]
+		public string AtmSet1Name
+		{
+			get { return atmSet1Name; }
+			set { atmSet1Name = KatTradeCalculator.NormalizeAtmSetName(value, "A"); }
+		}
+
+		[NinjaScriptProperty]
+		[PropertyEditor("NinjaTrader.Gui.Tools.StringStandardValuesEditorKey")]
+		[TypeConverter(typeof(AtmTemplateNameConverter))]
+		[Display(Name="Set 1 ATM", Order=2, GroupName="ATM Quick Sets")]
+		public string AtmSet1Atm { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Set 2 Name", Order=3, GroupName="ATM Quick Sets", Description="Button label (max 3 chars)")]
+		public string AtmSet2Name
+		{
+			get { return atmSet2Name; }
+			set { atmSet2Name = KatTradeCalculator.NormalizeAtmSetName(value, "B"); }
+		}
+
+		[NinjaScriptProperty]
+		[PropertyEditor("NinjaTrader.Gui.Tools.StringStandardValuesEditorKey")]
+		[TypeConverter(typeof(AtmTemplateNameConverter))]
+		[Display(Name="Set 2 ATM", Order=4, GroupName="ATM Quick Sets")]
+		public string AtmSet2Atm { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Set 3 Name", Order=5, GroupName="ATM Quick Sets", Description="Button label (max 3 chars)")]
+		public string AtmSet3Name
+		{
+			get { return atmSet3Name; }
+			set { atmSet3Name = KatTradeCalculator.NormalizeAtmSetName(value, "C"); }
+		}
+
+		[NinjaScriptProperty]
+		[PropertyEditor("NinjaTrader.Gui.Tools.StringStandardValuesEditorKey")]
+		[TypeConverter(typeof(AtmTemplateNameConverter))]
+		[Display(Name="Set 3 ATM", Order=6, GroupName="ATM Quick Sets")]
+		public string AtmSet3Atm { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Set 4 Name", Order=7, GroupName="ATM Quick Sets", Description="Button label (max 3 chars)")]
+		public string AtmSet4Name
+		{
+			get { return atmSet4Name; }
+			set { atmSet4Name = KatTradeCalculator.NormalizeAtmSetName(value, "D"); }
+		}
+
+		[NinjaScriptProperty]
+		[PropertyEditor("NinjaTrader.Gui.Tools.StringStandardValuesEditorKey")]
+		[TypeConverter(typeof(AtmTemplateNameConverter))]
+		[Display(Name="Set 4 ATM", Order=8, GroupName="ATM Quick Sets")]
+		public string AtmSet4Atm { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Set 5 Name", Order=9, GroupName="ATM Quick Sets", Description="Button label (max 3 chars)")]
+		public string AtmSet5Name
+		{
+			get { return atmSet5Name; }
+			set { atmSet5Name = KatTradeCalculator.NormalizeAtmSetName(value, "E"); }
+		}
+
+		[NinjaScriptProperty]
+		[PropertyEditor("NinjaTrader.Gui.Tools.StringStandardValuesEditorKey")]
+		[TypeConverter(typeof(AtmTemplateNameConverter))]
+		[Display(Name="Set 5 ATM", Order=10, GroupName="ATM Quick Sets")]
+		public string AtmSet5Atm { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Set 6 Name", Order=11, GroupName="ATM Quick Sets", Description="Button label (max 3 chars)")]
+		public string AtmSet6Name
+		{
+			get { return atmSet6Name; }
+			set { atmSet6Name = KatTradeCalculator.NormalizeAtmSetName(value, "F"); }
+		}
+
+		[NinjaScriptProperty]
+		[PropertyEditor("NinjaTrader.Gui.Tools.StringStandardValuesEditorKey")]
+		[TypeConverter(typeof(AtmTemplateNameConverter))]
+		[Display(Name="Set 6 ATM", Order=12, GroupName="ATM Quick Sets")]
+		public string AtmSet6Atm { get; set; }
+		#endregion
 
 		#region Daily Risk Control Properties
 		[NinjaScriptProperty]
