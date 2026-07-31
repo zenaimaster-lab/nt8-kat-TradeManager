@@ -23,6 +23,14 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v0.92] — 2026-07-31
+- **Re-audit rounds 3+4 — FIFO stall ceiling, PnL baseline poisoning, cross-account revert, freeze OFF mid-detach**:
+  - **Account-operation FIFO stall (round 3)**: a broker state stuck pending (e.g. `ChangePending`/`CancelPending` hang) pinned the serialized queue forever — every later submit/change/cancel, including Close/flatten, starved behind it with no escape. Added a 10 s ceiling: the active operation is timeout-released and a stalled queue head is timeout-skipped (both logged), so the queue always drains.
+  - **Daily PnL baseline poisoning (round 3)**: a failed `account.Get(GrossRealizedProfitLoss)` read fell into the catch with `currentRealizedPnL = 0`, and that zero was captured as the session baseline — the next successful read then reported the entire account realized PnL as today's, a phantom breach (or phantom recovery). Baseline capture now requires a successful read (`KatTradeCalculator.ShouldCaptureSessionBaseline`); failed reads contribute zero daily realized instead of corrupting state.
+  - **Cross-account revert leak (round 3)**: a queued revert intent (`pendingRevertAction`) survived account switches and could fire a market order on the NEW account. `SwitchAccount` now clears pending revert action/quantity.
+  - **Freeze OFF mid-detach (round 4)**: toggling Freeze OFF while the detach cancel was still in flight no longer submits the static KAT_FRZ bracket — the user asked for ATM behavior again, so `SubmitFreezeProtection` guards on `cachedIsFreezeTrail`.
+- **Validation**: 210/210 tests passing (+3 session-baseline gate tests); CompileCheck: 0 errors (existing NT8 reference-conflict/obsolete warnings).
+- **Graphify entity mapping**: `KatTradeManager.TryCompleteActiveAccountOperation`, `KatTradeManager.PumpAccountOperationQueue`, `KatTradeManager.SwitchAccount`, `KatTradeManager.CalculateDailyPnL`, `KatTradeManager.SubmitFreezeProtection`, `KatTradeCalculator.ShouldCaptureSessionBaseline`, `KatDailyRiskTests`.
 ### [v0.91] — 2026-07-31
 - **Re-audit round 2 — account collection race hardening**:
   - 15 sites enumerated `Account.Orders` / `Account.Positions` without a lock (Close, Flatten, CancelAll, BE, Swing SL, Revert, scale-in prep, daily risk); NT8 broker-thread mutations could throw "Collection was modified" mid-enumeration and surface as random error spam or silently skipped logic. v0.88 only hardened MERGE.

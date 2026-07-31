@@ -1,4 +1,4 @@
-/* KatTradeManager.FreezeTrail.cs - Freeze Trail: ATM detach / HUD takeover (partial class) v0.91 (2026-07-31) */
+/* KatTradeManager.FreezeTrail.cs - Freeze Trail: ATM detach / HUD takeover (partial class) v0.92 (2026-07-31) */
 
 using System;
 using System.Collections.Generic;
@@ -108,6 +108,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 			try
 			{
 				if (account == null || Instrument == null || captures == null || captures.Count == 0) return;
+				// Freeze toggled OFF while the detach cancel was in flight — the user asked for ATM
+				// behavior again, so do not replace it with static orders they did not ask for.
+				if (!cachedIsFreezeTrail)
+				{
+					Print("[KatTradeManager] Freeze OFF mid-detach — static protection skipped.");
+					return;
+				}
 
 				Position pos;
 				var positions = account.Positions;

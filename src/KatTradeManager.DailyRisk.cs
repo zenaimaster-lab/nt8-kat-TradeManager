@@ -1,4 +1,4 @@
-/* KatTradeManager.DailyRisk.cs - Daily Max DD / Max Profit protection (partial class) v0.91 (2026-07-31) */
+/* KatTradeManager.DailyRisk.cs - Daily Max DD / Max Profit protection (partial class) v0.92 (2026-07-31) */
 
 using System;
 using System.Linq;
@@ -15,20 +15,27 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			DateTime currentSessionStartUtc = KatTradeCalculator.GetNySessionStartUtc(DateTime.UtcNow);
 			double currentRealizedPnL = 0;
+			bool realizedReadOk;
 			try
 			{
 				currentRealizedPnL = account.Get(AccountItem.GrossRealizedProfitLoss, Currency.UsDollar);
+				realizedReadOk = true;
 			}
-			catch {}
+			catch
+			{
+				realizedReadOk = false;
+			}
 
-			if (!isSessionStartCaptured || currentSessionStartUtc > lastSessionStartUtc)
+			// Failed reads must not capture a zero baseline — the next successful read would
+			// report the entire account realized PnL as today's, a phantom breach.
+			if (KatTradeCalculator.ShouldCaptureSessionBaseline(isSessionStartCaptured, currentSessionStartUtc, lastSessionStartUtc, realizedReadOk))
 			{
 				lastSessionStartUtc = currentSessionStartUtc;
 				sessionStartRealizedPnL = currentRealizedPnL;
 				isSessionStartCaptured = true;
 			}
 
-			double dailyRealized = currentRealizedPnL - sessionStartRealizedPnL;
+			double dailyRealized = realizedReadOk ? currentRealizedPnL - sessionStartRealizedPnL : 0;
 
 			double dailyUnrealized = 0;
 			try

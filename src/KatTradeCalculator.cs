@@ -517,6 +517,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 		}
 
 		/// <summary>
+		/// Session baseline capture gate. The baseline (realized PnL at session start) must only be
+		/// captured when the account read actually succeeded — capturing 0 after a failed read poisons
+		/// the baseline and produces a phantom daily PnL (and a phantom risk breach) on the next read.
+		/// </summary>
+		public static bool ShouldCaptureSessionBaseline(bool isCaptured, DateTime currentSessionStartUtc, DateTime lastSessionStartUtc, bool readSucceeded)
+		{
+			if (!readSucceeded) return false;
+			return !isCaptured || currentSessionStartUtc > lastSessionStartUtc;
+		}
+
+		/// <summary>
 		/// Calculates UTC timestamp corresponding to 6:00 PM NY time (Eastern Time) of active trading session.
 		/// </summary>
 		public static DateTime GetNySessionStartUtc(DateTime nowUtc)

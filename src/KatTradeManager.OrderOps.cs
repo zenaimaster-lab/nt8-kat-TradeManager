@@ -1,4 +1,4 @@
-/* KatTradeManager.OrderOps.cs - Order execution & position management (partial class) v0.91 (2026-07-31) */
+/* KatTradeManager.OrderOps.cs - Order execution & position management (partial class) v0.92 (2026-07-31) */
 
 using System;
 using System.Collections.Generic;
@@ -31,6 +31,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private readonly Queue<AccountOperationRequest> accountOperationQueue = new Queue<AccountOperationRequest>();
 		private AccountOperationRequest activeAccountOperation;
 		private int accountOperationPumpScheduled;
+		private DateTime activeAccountOperationSinceUtc = DateTime.MinValue;
+		private DateTime queueHeadStallSinceUtc = DateTime.MinValue;
+		// A broker state stuck pending (ChangePending/CancelPending hang) would pin the FIFO forever —
+		// every later submit/change/cancel, including Close/flatten, would starve behind it. 10s ceiling.
+		private const double AccountOperationSettleTimeoutMs = 10000.0;
 		private int closeOperationQueued;
 		private Order atmStartupOrder;
 		private readonly object flattenCloseLock = new object();
@@ -158,6 +163,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (!ReferenceEquals(activeAccountOperation, request))
 					return;
 				activeAccountOperation = null;
+				activeAccountOperationSinceUtc = DateTime.MinValue;
 				completions = request.Completions.ToList();
 			}
 
@@ -199,10 +205,26 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private void TryCompleteActiveAccountOperation()
 		{
 			AccountOperationRequest request;
+			DateTime activeSince;
 			lock (accountOperationLock)
+			{
 				request = activeAccountOperation;
-			if (request != null && IsAccountOperationSettled(request))
+				activeSince = activeAccountOperationSinceUtc;
+			}
+			if (request == null) return;
+			if (IsAccountOperationSettled(request))
+			{
 				CompleteAccountOperation(request);
+				return;
+			}
+			// Broker never settled the call (pending state hang) — release the FIFO so later
+			// operations, including Close/flatten, are not starved behind the stuck request.
+			if (activeSince != DateTime.MinValue
+				&& (DateTime.UtcNow - activeSince).TotalMilliseconds > AccountOperationSettleTimeoutMs)
+			{
+				LogAccountOperation("timeout-release", request);
+				CompleteAccountOperation(request);
+			}
 		}
 
 		private void QueueAccountOperation(
@@ -260,6 +282,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			AccountOperationRequest request;
 			Order[] dispatchOrders;
+			bool stalledHead = false;
 			lock (accountOperationLock)
 			{
 				if (activeAccountOperation != null || accountOperationQueue.Count == 0)
@@ -274,21 +297,35 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{
 					bool waitingForPlatform = request.Orders.Any(order => order != null && IsAccountOperationPending(order.OrderState));
 					if (waitingForPlatform)
-						return;
+					{
+						// Head orders stuck pending: wait, but not forever — a hung broker state must not
+						// starve every operation queued behind it.
+						if (queueHeadStallSinceUtc == DateTime.MinValue)
+						{
+							queueHeadStallSinceUtc = DateTime.UtcNow;
+							return;
+						}
+						if ((DateTime.UtcNow - queueHeadStallSinceUtc).TotalMilliseconds <= AccountOperationSettleTimeoutMs)
+							return;
+						stalledHead = true;
+					}
 					accountOperationQueue.Dequeue();
+					queueHeadStallSinceUtc = DateTime.MinValue;
 				}
 				else
 				{
 					accountOperationQueue.Dequeue();
+					queueHeadStallSinceUtc = DateTime.MinValue;
 					request.Orders = dispatchOrders;
 					request.CallReturned = false;
 					activeAccountOperation = request;
+					activeAccountOperationSinceUtc = DateTime.UtcNow;
 				}
 			}
 
 			if (dispatchOrders.Length == 0)
 			{
-				LogAccountOperation("skipped", request);
+				LogAccountOperation(stalledHead ? "timeout-skip" : "skipped", request);
 				foreach (Action completion in request.Completions)
 					completion?.Invoke();
 				ScheduleAccountOperationPump();
@@ -325,6 +362,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				accountOperationQueue.Clear();
 				activeAccountOperation = null;
+				activeAccountOperationSinceUtc = DateTime.MinValue;
+				queueHeadStallSinceUtc = DateTime.MinValue;
 			}
 			System.Threading.Interlocked.Exchange(ref accountOperationPumpScheduled, 0);
 			System.Threading.Interlocked.Exchange(ref closeOperationQueued, 0);
@@ -371,6 +410,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 			account = next;
 			isSessionStartCaptured = false;
 			System.Threading.Interlocked.Exchange(ref dailyRiskFlattened, 0);
+			// A revert queued on the OLD account must never fire a market order on the new one.
+			System.Threading.Interlocked.Exchange(ref pendingRevertAction, 0);
+			System.Threading.Interlocked.Exchange(ref pendingRevertQuantity, 0);
 			EnsureAccountEventSubscription();
 		}
 
