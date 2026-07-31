@@ -1,4 +1,4 @@
-/* KatTradeManager.OrderOps.cs - Order execution & position management (partial class) v0.90 (2026-07-31) */
+/* KatTradeManager.OrderOps.cs - Order execution & position management (partial class) v0.91 (2026-07-31) */
 
 using System;
 using System.Collections.Generic;
@@ -48,16 +48,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 				|| state == OrderState.CancelSubmitted;
 		}
 
-		private static bool IsAccountOperationTerminal(OrderState state)
-		{
-			return state == OrderState.Filled
-				|| state == OrderState.Cancelled
-				|| state == OrderState.Rejected;
-		}
-
 		private static bool IsAccountOperationEligible(AccountOperationType type, Order order)
 		{
-			if (order == null || IsAccountOperationTerminal(order.OrderState))
+			if (order == null || IsTerminalOrderState(order.OrderState))
 				return false;
 
 			switch (type)
@@ -346,11 +339,46 @@ namespace NinjaTrader.NinjaScript.Indicators
 				flattenCloseOrders.Clear();
 		}
 
+		// NT8 mutates Orders/Positions from the broker thread while the UI thread and watchdog read them;
+		// an unlocked LINQ pass throws "Collection was modified" mid-enumeration. Always snapshot under lock.
+		private Position GetInstrumentPosition()
+		{
+			if (account == null || Instrument == null) return null;
+			var positions = account.Positions;
+			lock (positions)
+				return positions.FirstOrDefault(p => p.Instrument == Instrument);
+		}
+
+		private List<Order> GetAccountOrdersSnapshot()
+		{
+			var orders = account.Orders;
+			lock (orders)
+				return orders.ToList();
+		}
+
+		private List<Position> GetAccountPositionsSnapshot()
+		{
+			var positions = account.Positions;
+			lock (positions)
+				return positions.ToList();
+		}
+
+		// Central account switch point: resets the per-account session baseline so the previous account's
+		// realized PnL cannot phantom-breach (or blind) daily risk on the new account.
+		private void SwitchAccount(Account next)
+		{
+			if (ReferenceEquals(account, next)) return;
+			account = next;
+			isSessionStartCaptured = false;
+			System.Threading.Interlocked.Exchange(ref dailyRiskFlattened, 0);
+			EnsureAccountEventSubscription();
+		}
+
 		private bool IsAccountCloseInFlight()
 		{
 			try
 			{
-				return account != null && account.Orders.Any(o => o.Name == CloseOrderName && IsActiveOrderState(o.OrderState));
+				return account != null && GetAccountOrdersSnapshot().Any(o => o.Name == CloseOrderName && IsActiveOrderState(o.OrderState));
 			}
 			catch
 			{
@@ -744,14 +772,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			if (entry == null || account == null || Instrument == null) return false;
 
-			Position position = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
+			Position position = GetInstrumentPosition();
 			if (position == null || position.MarketPosition == MarketPosition.Flat) return false;
 
 			bool sameDirection = (position.MarketPosition == MarketPosition.Long && entry.OrderAction == OrderAction.Buy)
 				|| (position.MarketPosition == MarketPosition.Short && entry.OrderAction == OrderAction.Sell);
 			if (!sameDirection) return false;
 
-			List<Order> brackets = account.Orders
+			List<Order> brackets = GetAccountOrdersSnapshot()
 				.Where(o => IsAtmMergeOrder(o, position.MarketPosition))
 				.ToList();
 			if (brackets.Count == 0) return false;
@@ -1221,7 +1249,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				return true;
 			try
 			{
-				return account.Orders.Any(o => o.Instrument == Instrument && o.Name == CloseOrderName
+				return GetAccountOrdersSnapshot().Any(o => o.Instrument == Instrument && o.Name == CloseOrderName
 					&& IsActiveOrderState(o.OrderState));
 			}
 			catch { return false; }
@@ -1348,7 +1376,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			try
 			{
 				// Never cancel our own close order — a just-submitted close can already be Accepted here.
-				var workingOrders = account.Orders.Where(o => o.Name != CloseOrderName
+				var workingOrders = GetAccountOrdersSnapshot().Where(o => o.Name != CloseOrderName
 					&& IsActiveOrderState(o.OrderState)).ToArray();
 				QueueAccountOperation(AccountOperationType.Cancel, workingOrders, "close/flatten cancellation", afterCancel);
 				entryOrder = null;
@@ -1370,7 +1398,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			try
 			{
-				Position pos = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
+				Position pos = GetInstrumentPosition();
 				if (pos == null || pos.MarketPosition == MarketPosition.Flat)
 				{
 					System.Threading.Interlocked.Exchange(ref closeOperationQueued, 0);
@@ -1421,7 +1449,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					return;
 				}
 
-				Position pos = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
+				Position pos = GetInstrumentPosition();
 				if (pos != null && pos.MarketPosition != MarketPosition.Flat)
 				{
 					if (System.Threading.Interlocked.CompareExchange(ref closeOperationQueued, 1, 0) != 0)
@@ -1457,8 +1485,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 					return;
 				}
 
-				bool hasWorkingOrders = account.Orders.Any(o => IsActiveOrderState(o.OrderState));
-				bool hasOpenPosition = account.Positions.Any(p => p.MarketPosition != MarketPosition.Flat);
+				bool hasWorkingOrders = GetAccountOrdersSnapshot().Any(o => IsActiveOrderState(o.OrderState));
+				bool hasOpenPosition = GetAccountPositionsSnapshot().Any(p => p.MarketPosition != MarketPosition.Flat);
 				if (!KatTradeCalculator.ShouldFlattenAccount(hasWorkingOrders, hasOpenPosition))
 				{
 					Print("[KatTradeManager] Flatten: account already clear — no orders or positions");
@@ -1489,7 +1517,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			try
 			{
-				List<Position> openPositions = account.Positions
+				List<Position> openPositions = GetAccountPositionsSnapshot()
 					.Where(p => p.MarketPosition != MarketPosition.Flat)
 					.ToList();
 				if (openPositions.Count == 0)
@@ -1612,7 +1640,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			try
 			{
-				Position pos = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
+				Position pos = GetInstrumentPosition();
 				if (pos == null || pos.MarketPosition == MarketPosition.Flat)
 				{
 					Print("[KatTradeManager] BE: No active position to set Breakeven.");
@@ -1637,7 +1665,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					return;
 				}
 
-				var workingStops = account.Orders.Where(o => o.Instrument == Instrument &&
+				var workingStops = GetAccountOrdersSnapshot().Where(o => o.Instrument == Instrument &&
 					IsActiveOrderState(o.OrderState) &&
 					(o.OrderType == OrderType.StopMarket || o.OrderType == OrderType.StopLimit) &&
 					(pos.MarketPosition == MarketPosition.Long ? (o.OrderAction == OrderAction.Sell || o.OrderAction == OrderAction.SellShort) : (o.OrderAction == OrderAction.Buy || o.OrderAction == OrderAction.BuyToCover))).ToList();
@@ -1689,7 +1717,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					return;
 				}
 
-				Position pos = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
+				Position pos = GetInstrumentPosition();
 				if (pos == null || pos.MarketPosition == MarketPosition.Flat)
 				{
 					Print("[KatTradeManager] Revert: No active position to revert.");
@@ -1722,7 +1750,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				return;
 			}
 
-			Position pos = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
+			Position pos = GetInstrumentPosition();
 			if (pos != null && pos.MarketPosition != MarketPosition.Flat) return;
 			if (System.Threading.Interlocked.CompareExchange(ref pendingRevertSubmitInFlight, 1, 0) != 0)
 				return;
@@ -1737,7 +1765,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 						|| account == null || Instrument == null || IsCloseInFlight() || IsAccountCloseInFlight())
 						return;
 
-					Position current = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
+					Position current = GetInstrumentPosition();
 					if (current != null && current.MarketPosition != MarketPosition.Flat)
 						return;
 
@@ -1817,7 +1845,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			try
 			{
-				Position pos = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
+				Position pos = GetInstrumentPosition();
 				if (pos == null || pos.MarketPosition == MarketPosition.Flat)
 				{
 					Print("[KatTradeManager] Swing SL: No active position to shift SL.");
@@ -1833,7 +1861,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					slTrackedEntryPrice = pos.AveragePrice;
 				}
 
-				var workingStops = account.Orders.Where(o => o.Instrument == Instrument &&
+				var workingStops = GetAccountOrdersSnapshot().Where(o => o.Instrument == Instrument &&
 					IsActiveOrderState(o.OrderState) &&
 					(o.OrderType == OrderType.StopMarket || o.OrderType == OrderType.StopLimit) &&
 					(pos.MarketPosition == MarketPosition.Long ? (o.OrderAction == OrderAction.Sell || o.OrderAction == OrderAction.SellShort) : (o.OrderAction == OrderAction.Buy || o.OrderAction == OrderAction.BuyToCover))).ToList();

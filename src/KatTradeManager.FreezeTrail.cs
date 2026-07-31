@@ -1,4 +1,4 @@
-/* KatTradeManager.FreezeTrail.cs - Freeze Trail: ATM detach / HUD takeover (partial class) v0.90 (2026-07-31) */
+/* KatTradeManager.FreezeTrail.cs - Freeze Trail: ATM detach / HUD takeover (partial class) v0.91 (2026-07-31) */
 
 using System;
 using System.Collections.Generic;

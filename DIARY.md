@@ -23,6 +23,16 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v0.91] — 2026-07-31
+- **Re-audit round 2 — account collection race hardening**:
+  - 15 sites enumerated `Account.Orders` / `Account.Positions` without a lock (Close, Flatten, CancelAll, BE, Swing SL, Revert, scale-in prep, daily risk); NT8 broker-thread mutations could throw "Collection was modified" mid-enumeration and surface as random error spam or silently skipped logic. v0.88 only hardened MERGE.
+  - All reads now go through locked snapshots: `GetInstrumentPosition()`, `GetAccountOrdersSnapshot()`, `GetAccountPositionsSnapshot()`. Freeze/MERGE paths keep their existing explicit locks.
+- **Per-account daily-risk baseline centralization (bug #1 variant)**:
+  - `SwitchAccount()` is now the single account-change point — resets the session PnL baseline and the flatten guard, then re-subscribes order events.
+  - Watchdog auto-recovery, saved-account restore, and first-allowed defaulting previously assigned `account` directly without resetting the baseline, so a previous account's realized PnL could phantom-breach (or blind) daily risk on the new account. Only the HUD SelectionChanged handler reset it before.
+- **Dead/duplicate code removal**: deleted write-only `cachedDailyPnL`; collapsed duplicate `IsAccountOperationTerminal` into `IsTerminalOrderState`.
+- **Validation**: 207/207 tests passing; CompileCheck: 0 errors (existing NT8 reference-conflict/obsolete warnings).
+- **Graphify entity mapping**: `KatTradeManager.GetInstrumentPosition`, `KatTradeManager.GetAccountOrdersSnapshot`, `KatTradeManager.GetAccountPositionsSnapshot`, `KatTradeManager.SwitchAccount`, `KatTradeManager.IsDailyRiskBreached`, `KatTradeManagerUI.OnPanelWatchdogTick`, `KatTradeManagerUI.CreateWpfControls`.
 ### [v0.90] — 2026-07-31
 - **Daily-risk toggles persist (bug: OFF silently re-enabled)**:
   - HUD Max DD / Max Profit toggles used to flip only the volatile cached flags; a script refresh/reload re-read the persisted properties (default ON) and could EMERGENCY FLATTEN on the next breach, especially after account switches or refreshes.

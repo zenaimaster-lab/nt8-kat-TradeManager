@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.90 (2026-07-31) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.91 (2026-07-31) */
 
 using System;
 using System.Collections.Generic;
@@ -86,7 +86,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			// Auto-recover account if DataLoaded ran before accounts connected (root cause of "buttons don't work")
 			if (account == null)
 			{
-				account = SelectAccount();
+				SwitchAccount(SelectAccount()); // resets daily-risk baseline for the fresh account
 				if (account != null)
 					Print(string.Format("[KatTradeManager] Account auto-recovered by watchdog: {0}", account.Name));
 			}
@@ -659,8 +659,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (!string.IsNullOrEmpty(savedAccountName) && accSelector.Items.Contains(savedAccountName))
 				{
 					accSelector.SelectedItem = savedAccountName;
-					account = Account.All.FirstOrDefault(a => a.Name.Equals(savedAccountName, StringComparison.OrdinalIgnoreCase));
-					EnsureAccountEventSubscription();
+					SwitchAccount(Account.All.FirstOrDefault(a => a.Name.Equals(savedAccountName, StringComparison.OrdinalIgnoreCase)));
 				}
 				else if (account != null && accSelector.Items.Contains(account.Name))
 				{
@@ -669,9 +668,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				else if (allowedAccs.Count > 0)
 				{
 					accSelector.SelectedIndex = 0;
-					account = allowedAccs[0]; // assign directly — SelectionChanged handler isn't attached yet
-					AccountName = account.Name;
-					EnsureAccountEventSubscription();
+					SwitchAccount(allowedAccs[0]); // SelectionChanged handler isn't attached yet
+					AccountName = allowedAccs[0].Name;
 					Print(string.Format("[KatTradeManager] Defaulted account to first allowed: {0}", account.Name));
 				}
 			}
@@ -680,15 +678,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (accSelector.SelectedItem != null)
 				{
 					string selectedName = accSelector.SelectedItem.ToString();
-					account = Account.All.FirstOrDefault(a => a.Name == selectedName);
+					// SwitchAccount resets the per-account session baseline — otherwise the OLD account's
+					// realized PnL stays as the baseline (phantom daily PnL -> false/missed risk breach).
+					SwitchAccount(Account.All.FirstOrDefault(a => a.Name == selectedName));
 					AccountName = selectedName;
-					EnsureAccountEventSubscription();
-
-					// Reset per-account state — otherwise the OLD account's realized PnL stays as the
-					// session baseline (phantom daily PnL -> false/missed risk breach).
-					isSessionStartCaptured = false;
-					System.Threading.Interlocked.Exchange(ref dailyRiskFlattened, 0);
-
 					Print(string.Format("[KatTradeManager] Account changed via UI to: {0}", selectedName));
 				}
 			};

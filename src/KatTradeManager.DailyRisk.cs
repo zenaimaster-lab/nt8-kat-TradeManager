@@ -1,4 +1,4 @@
-/* KatTradeManager.DailyRisk.cs - Daily Max DD / Max Profit protection (partial class) v0.90 (2026-07-31) */
+/* KatTradeManager.DailyRisk.cs - Daily Max DD / Max Profit protection (partial class) v0.91 (2026-07-31) */
 
 using System;
 using System.Linq;
@@ -47,7 +47,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (account == null) return false;
 
 			double dailyPnL = CalculateDailyPnL();
-			cachedDailyPnL = dailyPnL;
 
 			return KatTradeCalculator.EvaluateDailyRiskBreach(
 				cachedIsDailyMaxDD, cachedDailyMaxDD,
@@ -61,9 +60,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			if (IsDailyRiskBreached(out string breachReason))
 			{
-				Position pos = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
+				Position pos = GetInstrumentPosition();
 				bool hasOpenPos = (pos != null && pos.MarketPosition != MarketPosition.Flat);
-				bool hasWorkingOrders = account.Orders.Any(o => (o.OrderState == OrderState.Working || o.OrderState == OrderState.Accepted) && o.Instrument == Instrument);
+				bool hasWorkingOrders = GetAccountOrdersSnapshot().Any(o => (o.OrderState == OrderState.Working || o.OrderState == OrderState.Accepted) && o.Instrument == Instrument);
 
 				// ponytail: flatten once per breach episode — flag resets when PnL recovers, prevents order spam from 500ms watchdog
 				// Interlocked: this method runs on BOTH data thread (OnBarUpdate) and UI thread (watchdog) —

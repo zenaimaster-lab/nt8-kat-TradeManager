@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 0.90 (2026-07-31)
+ * Version: 0.91 (2026-07-31)
  * NinjaTrader 8 TradeManager Indicator
  */
 
@@ -69,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "0.90";
+		public const string VERSION = "0.91";
 		public const string RELEASE_DATE = "2026-07-31";
 
 		private volatile Account account;
@@ -87,7 +87,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private volatile bool cachedIsDailyMaxProfit = true;
 		private double cachedDailyMaxDD = 500.0;
 		private double cachedDailyMaxProfit = 1000.0;
-		private double cachedDailyPnL = 0.0;
 		private DateTime lastSessionStartUtc = DateTime.MinValue;
 		private double sessionStartRealizedPnL = 0.0;
 		private bool isSessionStartCaptured = false;
