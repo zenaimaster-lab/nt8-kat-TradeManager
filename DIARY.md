@@ -23,6 +23,12 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v0.95] — 2026-07-31
+- **ATM Quick Set buttons (A–F) distribution fix**:
+  - Replaced asymmetric left margin grid column distribution with an 11-column Grid layout using 5 explicit 2px fixed column spacers and 0-margin buttons.
+  - Guarantees 100% uniform 2px gaps between all 6 buttons without floating-point layout rounding drift between button 3 and 4.
+  - **Graphify entity mapping**: `KatTradeManagerUI` (`atmSetGrid`).
+
 ### [v0.94] — 2026-07-31
 - **ATM Quick Set buttons (A–F)**:
   - Row of 6 one-click buttons directly below the HUD ATM dropdown; each instantly selects its assigned ATM template (equivalent to picking it from the dropdown — the dropdown updates to match).

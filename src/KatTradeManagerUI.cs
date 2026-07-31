@@ -830,16 +830,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 			atmSetButtons = new Button[6];
 			Grid atmSetGrid = new Grid { Margin = new Thickness(0, 4, 0, 0) };
 			for (int i = 0; i < 6; i++)
+			{
 				atmSetGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+				if (i < 5)
+					atmSetGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
+			}
 
 			for (int i = 0; i < 6; i++)
 			{
 				int setIdx = i;
 				Button setBtn = CreateButton(GetAtmSetName(setIdx), atmSetOffBg, null, 22, 10);
 				setBtn.Foreground = Brushes.LightGray;
-				setBtn.Margin = new Thickness(setIdx == 0 ? 0 : 2, 0, 0, 0);
+				setBtn.Margin = new Thickness(0);
 				setBtn.Click += (s, ev) => ApplyAtmSetSelection(setIdx);
-				Grid.SetColumn(setBtn, setIdx);
+				Grid.SetColumn(setBtn, setIdx * 2);
 				atmSetButtons[setIdx] = setBtn;
 				atmSetGrid.Children.Add(setBtn);
 			}
