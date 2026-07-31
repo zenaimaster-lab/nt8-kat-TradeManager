@@ -151,17 +151,33 @@ namespace NinjaTrader.NinjaScript.Indicators
 		}
 
 		/// <summary>
-		/// Restores a protective StopLimit's limit price when its stop is moved back to a frozen/target price.
-		/// Preserves the order's existing absolute stop-to-limit offset (falling back to one tick, then 0.01)
-		/// and keeps the protective direction: a Long exit (sell stop) places the limit BELOW the stop so it
-		/// can still fill in a falling market; a Short exit (buy stop) places it ABOVE.
+		/// Picks the price a freeze takeover should keep when several ATM brackets are collapsed into one:
+		/// Long keeps the HIGHER price, Short the LOWER. Applied to stops that is the TIGHTEST protection,
+		/// applied to targets the FARTHEST exit, so detaching an ATM never loosens the stop and never
+		/// closes earlier than the original ATM plan. Non-positive candidates are ignored.
 		/// </summary>
-		public static double CalculateFrozenStopLimitPrice(bool isLongPosition, double newStopPrice, double existingStopPrice, double existingLimitPrice, double tickSize)
+		public static bool IsPreferredFreezePrice(bool isLongPosition, double candidate, double current)
 		{
-			double offset = Math.Abs(existingLimitPrice - existingStopPrice);
-			if (double.IsNaN(offset) || double.IsInfinity(offset) || offset <= 0)
-				offset = tickSize > 0 ? tickSize : 0.01;
-			return isLongPosition ? newStopPrice - offset : newStopPrice + offset;
+			if (candidate <= 0 || double.IsNaN(candidate) || double.IsInfinity(candidate)) return false;
+			if (current <= 0) return true;
+			return isLongPosition ? candidate > current : candidate < current;
+		}
+
+		/// <summary>Static freeze exits must mirror live position quantity across scale-in and scale-out.</summary>
+		public static bool ShouldAdjustFreezeQuantity(int orderQuantity, int positionQuantity)
+		{
+			return positionQuantity > 0 && orderQuantity != positionQuantity;
+		}
+
+		/// <summary>
+		/// Freeze-owned exits are cancelled once the position is really gone — a leftover static stop would
+		/// OPEN a reverse position if it triggered. NT8 reports transient Flat snapshots during scale-out,
+		/// so cleanup waits out a grace window first.
+		/// </summary>
+		public static bool ShouldCancelFreezeOrphans(bool isFlat, double flatAgeMilliseconds, double graceMilliseconds)
+		{
+			if (!isFlat || flatAgeMilliseconds < 0) return false;
+			return flatAgeMilliseconds >= graceMilliseconds;
 		}
 
 
@@ -363,6 +379,55 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			if (stopPrice <= 0 || currentPrice <= 0) return false;
 			return isLongPosition ? stopPrice < currentPrice : stopPrice > currentPrice;
+		}
+
+		/// <summary>
+		/// A profit-target limit for a LONG position must sit ABOVE current market; for SHORT, BELOW.
+		/// Freeze takeover uses this to skip captured targets the market has already passed.
+		/// </summary>
+		public static bool IsLimitOnValidSide(bool isLongPosition, double limitPrice, double currentPrice)
+		{
+			if (limitPrice <= 0 || currentPrice <= 0) return false;
+			return isLongPosition ? limitPrice > currentPrice : limitPrice < currentPrice;
+		}
+
+		/// <summary>
+		/// Freeze takeover submits a static leg only when no frozen leg of that kind is already working,
+		/// a price was captured, and that price is still on the valid side of the market. Prevents the
+		/// duplicate SL/TP stack that appeared every time the ATM re-created its trailing stops.
+		/// </summary>
+		public static bool ShouldSubmitFreezeLeg(bool hasActiveFrozenLeg, bool hasCapturedPrice, bool priceValidVsMarket)
+		{
+			return !hasActiveFrozenLeg && hasCapturedPrice && priceValidVsMarket;
+		}
+
+		/// <summary>
+		/// Pure daily-risk gate: a limit can only breach while its toggle is ON and the configured
+		/// limit is positive. OFF means never breached, regardless of PnL.
+		/// </summary>
+		public static bool EvaluateDailyRiskBreach(
+			bool isMaxDDEnabled,
+			double maxDD,
+			bool isMaxProfitEnabled,
+			double maxProfit,
+			double dailyPnL,
+			out string breachReason)
+		{
+			breachReason = string.Empty;
+
+			if (isMaxDDEnabled && maxDD > 0 && dailyPnL <= -Math.Abs(maxDD))
+			{
+				breachReason = string.Format("Daily Max DD breached (Current Daily PnL: ${0:F2} <= Max DD limit: -${1:F2})", dailyPnL, Math.Abs(maxDD));
+				return true;
+			}
+
+			if (isMaxProfitEnabled && maxProfit > 0 && dailyPnL >= maxProfit)
+			{
+				breachReason = string.Format("Daily Max Profit reached (Current Daily PnL: ${0:F2} >= Max Profit limit: ${1:F2})", dailyPnL, maxProfit);
+				return true;
+			}
+
+			return false;
 		}
 
 		/// <summary>

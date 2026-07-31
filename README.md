@@ -1,6 +1,6 @@
 # NT8 Kat TradeManager
 
-**Current Version**: `v0.88` (Released: `2026-07-30`)
+**Current Version**: `v0.90` (Released: `2026-07-31`)
 
 An advanced TradeManager Indicator for **NinjaTrader 8 (NT8)** designed for fast execution, candle-based pending stop orders, and dynamic risk management.
 
@@ -8,8 +8,8 @@ An advanced TradeManager Indicator for **NinjaTrader 8 (NT8)** designed for fast
 
 - **On-Chart WPF Control Panel**: Interactive buttons with SELL on left / BUY on right and dropdown selectors directly on your NinjaTrader 8 charts.
 - **Configurable HUD (default InChart / optional ChartTrader)**: `HUD Left Inset (px)` defaults to 10px for fresh placement; `HUD Drag Enabled` defaults ON and can lock HUD in place. Background drag works in both modes, keeps at least 40px visible, preserves user position across watchdog re-attachment, and leaves buttons/text controls clickable.
-- **Freeze Trail StopLimit synchronization**: When Freeze Trail restores a protective StopLimit, both Stop and Limit prices move together while preserving the original offset and Long/Short protective direction.
-- **Freeze Trail Control (`Freeze Trail: OFF` / `⚡ Freeze Trail: ON`)**: Full-width dark gray HUD button positioned directly above Close/flatten to freeze active trailing Stop Loss in place while preserving working SL and TP orders.
+- **Freeze Trail Control (`Freeze Trail: OFF` / `⚡ Freeze Trail: ON`)**: Full-width dark gray HUD button directly above Close/flatten. ON abandons the ATM instead of racing it: every ATM protective exit on the instrument — including brackets of 2nd+ entries and Chart Trader ATMs — is cancelled and replaced by one static `KAT_FRZ_SL` (plus OCO `KAT_FRZ_TP` when the ATM had a target) at the tightest captured stop and farthest captured target, sized to live position quantity. Nothing trails afterwards and no code re-pushes prices, so BE, Swing SL, and chart drags of the Stop Loss stay where you put them. Quantity follows scale-in/scale-out; static exits are cancelled once the position stays flat. OFF stops taking over new brackets and keeps existing static exits.
+- **ATM `None` selection**: First item of the HUD ATM dropdown submits plain orders without any ATM strategy, matching NT8 Chart Trader's own None mode; with None selected the HUD no longer merges, resizes, or cancels protective orders it does not own.
 - **Pending Stop-Limit Control (`Stop-Limit: OFF` / `Stop-Limit: ON`)**: Full-width Freeze Trail-style button below Freeze Trail; converts valid candle and fixed-distance pending StopMarket entries to one-tick StopLimit entries when enabled.
 - **ATM Bracket Control (`ATM Bracket: MERGE` / `ATM Bracket: SPLIT`)**: Button below Stop-Limit; MERGE reconciles all scale-in and scale-out activity to one canonical SL plus one TP at live position quantity, while SPLIT preserves independent bracket sets per entry.
 - **Serialized account operations**: Submit, Change, and Cancel requests run through one state-aware FIFO gate; Close/flatten cancels working orders before submitting its close order.

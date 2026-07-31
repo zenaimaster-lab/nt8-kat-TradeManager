@@ -6,54 +6,93 @@ namespace KatTradeManager.Tests
 	public class KatFreezeTrailTests
 	{
 		[Fact]
-		public void CalculateFrozenStopLimitPrice_LongPosition_PreservesLimitBelowFrozenStop()
+		public void IsPreferredFreezePrice_LongStops_KeepsTightestProtection()
 		{
-			double limit = KatTradeCalculator.CalculateFrozenStopLimitPrice(
-				true, 100.0, 102.0, 101.0, 0.25);
-
-			Assert.Equal(99.0, limit, 8);
+			Assert.True(KatTradeCalculator.IsPreferredFreezePrice(true, 4010.0, 4000.0));
+			Assert.False(KatTradeCalculator.IsPreferredFreezePrice(true, 3990.0, 4000.0));
 		}
 
 		[Fact]
-		public void CalculateFrozenStopLimitPrice_ShortPosition_PreservesLimitAboveFrozenStop()
+		public void IsPreferredFreezePrice_ShortStops_KeepsTightestProtection()
 		{
-			double limit = KatTradeCalculator.CalculateFrozenStopLimitPrice(
-				false, 100.0, 98.0, 99.0, 0.25);
-
-			Assert.Equal(101.0, limit, 8);
+			Assert.True(KatTradeCalculator.IsPreferredFreezePrice(false, 3990.0, 4000.0));
+			Assert.False(KatTradeCalculator.IsPreferredFreezePrice(false, 4010.0, 4000.0));
 		}
 
 		[Fact]
-		public void CalculateFrozenStopLimitPrice_MultiTickOffset_PreservesExistingOffset()
+		public void IsPreferredFreezePrice_Targets_KeepsFarthestExit()
 		{
-			double longLimit = KatTradeCalculator.CalculateFrozenStopLimitPrice(
-				true, 4000.0, 4010.0, 4007.5, 0.25);
-			double shortLimit = KatTradeCalculator.CalculateFrozenStopLimitPrice(
-				false, 4000.0, 3990.0, 3992.5, 0.25);
-
-			Assert.Equal(3997.5, longLimit, 8);
-			Assert.Equal(4002.5, shortLimit, 8);
+			// Same comparison serves targets: Long keeps the higher price, Short the lower one.
+			Assert.True(KatTradeCalculator.IsPreferredFreezePrice(true, 4025.0, 4015.0));
+			Assert.True(KatTradeCalculator.IsPreferredFreezePrice(false, 3975.0, 3985.0));
 		}
 
 		[Fact]
-		public void CalculateFrozenStopLimitPrice_ZeroOffset_UsesTickFallback()
+		public void IsPreferredFreezePrice_FirstValidCandidate_ReplacesMissingPrice()
 		{
-			double longLimit = KatTradeCalculator.CalculateFrozenStopLimitPrice(
-				true, 100.0, 102.0, 102.0, 0.25);
-			double shortLimit = KatTradeCalculator.CalculateFrozenStopLimitPrice(
-				false, 100.0, 98.0, 98.0, 0.25);
-
-			Assert.Equal(99.75, longLimit, 8);
-			Assert.Equal(100.25, shortLimit, 8);
+			Assert.True(KatTradeCalculator.IsPreferredFreezePrice(true, 4000.0, 0.0));
+			Assert.True(KatTradeCalculator.IsPreferredFreezePrice(false, 4000.0, -1.0));
 		}
 
 		[Fact]
-		public void CalculateFrozenStopLimitPrice_InvalidTickFallback_UsesHundredth()
+		public void IsPreferredFreezePrice_InvalidCandidate_IsRejected()
 		{
-			double limit = KatTradeCalculator.CalculateFrozenStopLimitPrice(
-				true, 100.0, 102.0, 102.0, 0.0);
+			Assert.False(KatTradeCalculator.IsPreferredFreezePrice(true, 0.0, 4000.0));
+			Assert.False(KatTradeCalculator.IsPreferredFreezePrice(true, double.NaN, 4000.0));
+			Assert.False(KatTradeCalculator.IsPreferredFreezePrice(false, double.PositiveInfinity, 4000.0));
+		}
 
-			Assert.Equal(99.99, limit, 8);
+		[Fact]
+		public void ShouldAdjustFreezeQuantity_MirrorsPositionQuantity()
+		{
+			Assert.True(KatTradeCalculator.ShouldAdjustFreezeQuantity(2, 4));  // scale-in
+			Assert.True(KatTradeCalculator.ShouldAdjustFreezeQuantity(4, 2));  // scale-out
+			Assert.False(KatTradeCalculator.ShouldAdjustFreezeQuantity(3, 3));
+			Assert.False(KatTradeCalculator.ShouldAdjustFreezeQuantity(3, 0)); // flat handled by cleanup
+		}
+
+		[Fact]
+		public void ShouldCancelFreezeOrphans_WaitsOutTransientFlat()
+		{
+			Assert.False(KatTradeCalculator.ShouldCancelFreezeOrphans(false, 10000, 3000));
+			Assert.False(KatTradeCalculator.ShouldCancelFreezeOrphans(true, 1500, 3000));
+			Assert.False(KatTradeCalculator.ShouldCancelFreezeOrphans(true, -1, 3000));
+			Assert.True(KatTradeCalculator.ShouldCancelFreezeOrphans(true, 3000, 3000));
+			Assert.True(KatTradeCalculator.ShouldCancelFreezeOrphans(true, 9000, 3000));
+		}
+
+		[Fact]
+		public void ShouldSubmitFreezeLeg_NeverDuplicatesActiveLeg()
+		{
+			// Regression: re-detach on every ATM re-trail used to stack duplicate SL/TP pairs.
+			Assert.False(KatTradeCalculator.ShouldSubmitFreezeLeg(true, true, true));   // already protected
+			Assert.True(KatTradeCalculator.ShouldSubmitFreezeLeg(false, true, true));   // fresh submit
+			Assert.False(KatTradeCalculator.ShouldSubmitFreezeLeg(false, false, true)); // nothing captured
+			Assert.False(KatTradeCalculator.ShouldSubmitFreezeLeg(false, true, false)); // stale price, would be rejected
+		}
+
+		[Fact]
+		public void IsLimitOnValidSide_LongTarget_MustBeAboveMarket()
+		{
+			Assert.True(KatTradeCalculator.IsLimitOnValidSide(true, 4010.0, 4000.0));
+			Assert.False(KatTradeCalculator.IsLimitOnValidSide(true, 3990.0, 4000.0));
+			Assert.False(KatTradeCalculator.IsLimitOnValidSide(true, 4000.0, 4000.0));
+		}
+
+		[Fact]
+		public void IsLimitOnValidSide_ShortTarget_MustBeBelowMarket()
+		{
+			Assert.True(KatTradeCalculator.IsLimitOnValidSide(false, 3990.0, 4000.0));
+			Assert.False(KatTradeCalculator.IsLimitOnValidSide(false, 4010.0, 4000.0));
+			Assert.False(KatTradeCalculator.IsLimitOnValidSide(false, 4000.0, 4000.0));
+		}
+
+		[Fact]
+		public void IsLimitOnValidSide_InvalidInputs_AreRejected()
+		{
+			Assert.False(KatTradeCalculator.IsLimitOnValidSide(true, 0.0, 4000.0));
+			Assert.False(KatTradeCalculator.IsLimitOnValidSide(true, 4010.0, 0.0));
+			Assert.False(KatTradeCalculator.IsLimitOnValidSide(false, -5.0, 4000.0));
 		}
 	}
 }

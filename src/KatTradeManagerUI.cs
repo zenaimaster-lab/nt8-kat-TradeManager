@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.88 (2026-07-30) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.90 (2026-07-31) */
 
 using System;
 using System.Collections.Generic;
@@ -101,8 +101,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			TrySubmitPendingRevert();
 			ScheduleAtmBracketMerge();
 
-			// Enforce Freeze Trail if active
-			CheckFreezeTrailEnforcement();
+			// Freeze Trail: take over ATM protection while ON, clean up static exits once flat
+			ProcessFreezeTrail();
 
 
 			// Sync UI control values to thread-safe cached fields
@@ -120,7 +120,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (txtQuantity != null)
 				cachedQuantity = int.TryParse(txtQuantity.Text, out int q) ? q : DefaultQuantity;
 			if (atmSelector != null && atmSelector.SelectedItem != null)
-				cachedAtmTemplate = atmSelector.SelectedItem.ToString();
+			{
+				string selectedAtm = atmSelector.SelectedItem.ToString();
+				cachedAtmTemplate = IsNoAtmSelection(selectedAtm) ? string.Empty : selectedAtm;
+			}
 
 			cachedTfIndex = (int)DefaultTimeframe;
 			cachedBufferTicks = DefaultBufferTicks;
@@ -131,6 +134,24 @@ namespace NinjaTrader.NinjaScript.Indicators
 			cachedHudDragEnabled = HudDragEnabled;
 			if (wasHudDragEnabled && !cachedHudDragEnabled && isHudDragging)
 				StopHudDrag();
+		}
+
+		// "None" = trade without ATM, matching NT8 Chart Trader's own None selection. Empty cachedAtmTemplate
+		// makes SubmitOrder use a plain submit and stops the HUD from managing brackets it does not own.
+		// ponytail: an ATM template literally named "None" collides; ceiling = non-string sentinel item.
+		private const string NoAtmTemplateLabel = "None";
+
+		private static bool IsNoAtmSelection(string value)
+		{
+			return string.IsNullOrEmpty(value) || value.Equals(NoAtmTemplateLabel, StringComparison.OrdinalIgnoreCase);
+		}
+
+		private void ApplyAtmSelection(object selectedItem)
+		{
+			string selected = selectedItem != null ? selectedItem.ToString() : string.Empty;
+			cachedAtmTemplate = IsNoAtmSelection(selected) ? string.Empty : selected;
+			DefaultAtmTemplate = cachedAtmTemplate;
+			LoadAtmTemplateSettings(cachedAtmTemplate); // empty name clears parsed ATM levels
 		}
 
 		// ponytail: uses visual tree type name matching for ChartTraderControl; fallback to chart grid if hidden
@@ -664,11 +685,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 					EnsureAccountEventSubscription();
 
 					// Reset per-account state — otherwise the OLD account's realized PnL stays as the
-					// session baseline (phantom daily PnL -> false/missed risk breach), and a stale
-					// frozen stop from the old account would yank the new account's stops.
+					// session baseline (phantom daily PnL -> false/missed risk breach).
 					isSessionStartCaptured = false;
 					System.Threading.Interlocked.Exchange(ref dailyRiskFlattened, 0);
-					frozenStopPrice = 0;
 
 					Print(string.Format("[KatTradeManager] Account changed via UI to: {0}", selectedName));
 				}
@@ -696,6 +715,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Margin = new Thickness(0, 0, 0, 0),
 				HorizontalAlignment = HorizontalAlignment.Stretch
 			};
+			atmSelector.Items.Add(NoAtmTemplateLabel); // first item, also the fallback when no template matches
 			string atmDir = System.IO.Path.Combine(NinjaTrader.Core.Globals.UserDataDir, "templates", "AtmStrategy");
 			if (System.IO.Directory.Exists(atmDir))
 			{
@@ -707,36 +727,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 					atmSelector.Items.Add(name);
 				}
 			}
-			if (atmSelector.Items.Count > 0)
+			atmSelector.SelectedIndex = 0;
+			if (!string.IsNullOrEmpty(DefaultAtmTemplate))
 			{
-				bool selected = false;
 				for (int i = 0; i < atmSelector.Items.Count; i++)
 				{
 					if (atmSelector.Items[i].ToString().Equals(DefaultAtmTemplate, StringComparison.OrdinalIgnoreCase))
 					{
 						atmSelector.SelectedIndex = i;
-						selected = true;
 						break;
 					}
 				}
-				if (!selected)
-					atmSelector.SelectedIndex = 0;
 			}
-			if (atmSelector.SelectedItem != null)
-			{
-				cachedAtmTemplate = atmSelector.SelectedItem.ToString();
-				DefaultAtmTemplate = cachedAtmTemplate;
-				LoadAtmTemplateSettings(cachedAtmTemplate);
-			}
-			atmSelector.SelectionChanged += (s, ev) =>
-			{
-				if (atmSelector.SelectedItem != null)
-				{
-					cachedAtmTemplate = atmSelector.SelectedItem.ToString();
-					DefaultAtmTemplate = cachedAtmTemplate;
-					LoadAtmTemplateSettings(cachedAtmTemplate);
-				}
-			};
+			ApplyAtmSelection(atmSelector.SelectedItem);
+			atmSelector.SelectionChanged += (s, ev) => ApplyAtmSelection(atmSelector.SelectedItem);
 
 			sec1Panel.Children.Add(atmSelector);
 			mainPanel.Children.Add(CreateSectionCard(sec1Panel, 6));
@@ -886,6 +890,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 			btnDailyMaxDD.Click += (s, ev) =>
 			{
 				cachedIsDailyMaxDD = !cachedIsDailyMaxDD;
+				// Persist to the NinjaScript property — a script refresh/reload re-reads the property,
+				// so a volatile-only OFF was silently re-enabled and could flatten on the next breach.
+				DailyMaxDDEnabled = cachedIsDailyMaxDD;
 				btnDailyMaxDD.Content = cachedIsDailyMaxDD ? "Max DD: ON" : "Max DD: OFF";
 				btnDailyMaxDD.Background = cachedIsDailyMaxDD ? dailyOnBg : dailyOffBg;
 				btnDailyMaxDD.Foreground = cachedIsDailyMaxDD ? Brushes.White : Brushes.LightGray;
@@ -903,6 +910,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			btnDailyMaxProfit.Click += (s, ev) =>
 			{
 				cachedIsDailyMaxProfit = !cachedIsDailyMaxProfit;
+				DailyMaxProfitEnabled = cachedIsDailyMaxProfit; // persist — survives script refresh/reload
 				btnDailyMaxProfit.Content = cachedIsDailyMaxProfit ? "Max Profit: ON" : "Max Profit: OFF";
 				btnDailyMaxProfit.Background = cachedIsDailyMaxProfit ? dailyOnBg : dailyOffBg;
 				btnDailyMaxProfit.Foreground = cachedIsDailyMaxProfit ? Brushes.White : Brushes.LightGray;
@@ -1014,6 +1022,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 				if (cachedIsFreezeTrail)
 					FreezeCurrentStopLoss();
+				else
+					ShowHudStatus("Freeze OFF: static SL/TP kept — new entries use ATM again", Brushes.LightGray);
 			};
 			sec4Panel.Children.Add(btnFreezeTrail);
 

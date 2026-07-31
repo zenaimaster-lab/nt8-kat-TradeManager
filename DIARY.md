@@ -23,6 +23,33 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v0.90] — 2026-07-31
+- **Daily-risk toggles persist (bug: OFF silently re-enabled)**:
+  - HUD Max DD / Max Profit toggles used to flip only the volatile cached flags; a script refresh/reload re-read the persisted properties (default ON) and could EMERGENCY FLATTEN on the next breach, especially after account switches or refreshes.
+  - Toggles now write through to `DailyMaxDDEnabled` / `DailyMaxProfitEnabled`, matching the AccountName / DefaultAtmTemplate persistence pattern.
+  - Breach gate extracted to pure `KatTradeCalculator.EvaluateDailyRiskBreach`; OFF means never breached, zero/negative limit means disabled (legacy semantics preserved).
+- **Freeze Trail duplicate SL/TP stack fix (bug: chart littered with overlapping KAT_FRZ pairs)**:
+  - Root cause: the ATM strategy stays alive after detach and keeps re-creating trailing stops; every 500 ms watchdog re-detach submitted a NEW KAT_FRZ pair without checking the existing one — each pair under its own OCO, so two stops could both fill and flip the position. Pairs vanished on close/fill via the flat-orphan cleanup, matching the reported symptom.
+  - `SubmitFreezeProtection` now dedupes per leg against active frozen exits, only submits missing legs, and links mixed old/new pairs under the surviving leg's OCO.
+  - `ReconcileFreezeQuantity` sweeps legacy stacked duplicates: keeps the single best stop/target leg, cancels the rest.
+- **Broker-reject spam fix (bug: bursts of platform error notifications)**:
+  - Captured freeze stop/target prices are validated against the live market side before submit (`IsStopOnValidSide` / new `IsLimitOnValidSide`); prices the market already passed are skipped instead of submitted into guaranteed broker rejections.
+- **Module split**: Freeze Trail and Daily Risk regions moved out of `KatTradeManager.OrderOps.cs` (2372 → 1966 lines) into new partials `src/KatTradeManager.FreezeTrail.cs` and `src/KatTradeManager.DailyRisk.cs`; CompileCheck and deploy list updated.
+- **Tools**: added `scripts/Deploy-NT8.ps1` (deploy + live-recompile verification) and `scripts/Run-AllChecks.ps1` (xunit + net48 compile gate one-shot).
+- **Validation**: 207/207 tests passing (+11 new: breach gate matrix, freeze leg dedupe, limit-side validation); CompileCheck: 0 errors (existing NT8 reference-conflict/obsolete warnings).
+- **Graphify entity mapping**: `KatTradeCalculator.EvaluateDailyRiskBreach`, `KatTradeCalculator.IsLimitOnValidSide`, `KatTradeCalculator.ShouldSubmitFreezeLeg`, `KatTradeManager.SubmitFreezeProtection`, `KatTradeManager.ReconcileFreezeQuantity`, `KatTradeManager.IsDailyRiskBreached`, `KatTradeManagerUI.CreateWpfControls` (toggle persistence), `KatDailyRiskTests`, `KatFreezeTrailTests`.
+### [v0.89] — 2026-07-30
+- **Freeze Trail v2 — ATM detach / HUD takeover** (replaces price-lock enforcement):
+  - Freeze ON now cancels every ATM-owned protective exit of the instrument and submits one static `KAT_FRZ_SL` (+ OCO `KAT_FRZ_TP` when a target existed) at the tightest captured stop / farthest captured target, sized to live position quantity.
+  - Watchdog keeps detaching newly appearing ATM brackets, so freeze covers 2nd+ entries with independent ATMs and Chart Trader ATMs.
+  - Removed all stop-price re-pushing (`frozenStopPrice`, `lastFreezeEnforceTime`, `CheckFreezeTrailEnforcement`, `KatTradeCalculator.CalculateFrozenStopLimitPrice`): BE, Swing SL, and chart SL drags are no longer reverted.
+  - Quantity-only reconciliation for scale-in/scale-out; static exits are cancelled after the position stays flat past the ATM lifecycle grace window.
+  - MERGE reconciliation is gated off while freeze is ON to avoid two owners of the same orders.
+- **ATM `None` support**:
+  - HUD ATM dropdown gains `None` as first item (also the fallback when the saved template is missing), clearing `cachedAtmTemplate` so entries submit natively without an ATM.
+  - ATM MERGE scheduling/reconciliation now requires an active HUD ATM template, so None-mode Chart Trader orders are never merged, resized, or cancelled by the HUD.
+- **Validation**: 196/196 tests passing; CompileCheck: 0 errors (existing NT8 reference-conflict/obsolete warnings).
+- **Graphify entity mapping**: `KatTradeManager.ProcessFreezeTrail`, `KatTradeManager.DetachAtmProtection`, `KatTradeManager.SubmitFreezeProtection`, `KatTradeManager.ReconcileFreezeQuantity`, `KatTradeManager.CancelFreezeOrphans`, `KatTradeManager.IsHudAtmActive`, `KatTradeManagerUI.ApplyAtmSelection`, `KatTradeCalculator.IsPreferredFreezePrice`, `KatTradeCalculator.ShouldAdjustFreezeQuantity`, `KatTradeCalculator.ShouldCancelFreezeOrphans`, `KatFreezeTrailTests`.
 ### [v0.88] — 2026-07-30
 - **ATM merge collection-race hardening**:
   - Locks `Account.Positions` and `Account.Orders` while taking the merge snapshot, preventing NT8 broker-thread mutations from corrupting LINQ enumeration.

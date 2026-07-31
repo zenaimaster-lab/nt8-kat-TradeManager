@@ -1,4 +1,4 @@
-/* KatTradeManager.OrderOps.cs - Order execution, position management & daily risk logic (partial class) v0.88 (2026-07-30) */
+/* KatTradeManager.OrderOps.cs - Order execution & position management (partial class) v0.90 (2026-07-31) */
 
 using System;
 using System.Collections.Generic;
@@ -335,6 +335,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			System.Threading.Interlocked.Exchange(ref accountOperationPumpScheduled, 0);
 			System.Threading.Interlocked.Exchange(ref closeOperationQueued, 0);
+			// Detach completions are dropped with the queue — release the guard or freeze stops detaching.
+			System.Threading.Interlocked.Exchange(ref freezeDetachInFlight, 0);
 			ClearFlattenCloseTracking();
 		}
 
@@ -409,6 +411,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (string.IsNullOrEmpty(templateName)) return false;
 			string path = System.IO.Path.Combine(NinjaTrader.Core.Globals.UserDataDir, "templates", "AtmStrategy", templateName + ".xml");
 			return System.IO.File.Exists(path);
+		}
+
+		// HUD ATM selector set to "None" clears the template, which means the HUD owns no ATM brackets and
+		// must not merge, resize or cancel Chart Trader orders. Deliberately no disk check: this runs on
+		// every watchdog tick and order update.
+		private bool IsHudAtmActive()
+		{
+			return !string.IsNullOrEmpty(cachedAtmTemplate);
 		}
 		private static bool IsManualExitOrder(Order order)
 		{
@@ -561,7 +571,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private void ScheduleAtmBracketMerge()
 		{
-			if (!cachedIsAtmMerge || account == null || Instrument == null) return;
+			// Freeze takes ownership of protective exits; MERGE would race it for the same orders.
+			if (!cachedIsAtmMerge || cachedIsFreezeTrail || !IsHudAtmActive() || account == null || Instrument == null) return;
 			if (System.Threading.Interlocked.CompareExchange(ref atmMergeScheduled, 1, 0) != 0) return;
 
 			Action merge = () =>
@@ -595,7 +606,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private void MergeAtmBrackets()
 		{
-			if (!cachedIsAtmMerge || account == null || Instrument == null) return;
+			if (!cachedIsAtmMerge || cachedIsFreezeTrail || !IsHudAtmActive() || account == null || Instrument == null) return;
 
 			try
 			{
@@ -1755,105 +1766,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 		}
 
-		private DateTime lastFreezeEnforceTime = DateTime.MinValue;
-
-		private void FreezeCurrentStopLoss()
-		{
-			if (account == null || Instrument == null)
-			{
-				if (account == null) Print("[KatTradeManager] No account — watchdog auto-recovering. Retry in a moment.");
-				return;
-			}
-			frozenStopPrice = 0; // clear stale value from a previous freeze episode — enforcement re-captures fresh
-			try
-			{
-				Position pos = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
-				if (pos == null || pos.MarketPosition == MarketPosition.Flat)
-				{
-					Print("[KatTradeManager] Freeze Trail: No active position to freeze.");
-					return;
-				}
-
-				var workingStops = account.Orders.Where(o => o.Instrument == Instrument &&
-					IsActiveOrderState(o.OrderState) &&
-					(o.OrderType == OrderType.StopMarket || o.OrderType == OrderType.StopLimit) &&
-					(pos.MarketPosition == MarketPosition.Long ? (o.OrderAction == OrderAction.Sell || o.OrderAction == OrderAction.SellShort) : (o.OrderAction == OrderAction.Buy || o.OrderAction == OrderAction.BuyToCover))).ToList();
-
-				if (workingStops.Count > 0)
-				{
-					frozenStopPrice = workingStops[0].StopPrice;
-					Print(string.Format("[KatTradeManager] Freeze Trail active @ Stop Loss price: {0}", frozenStopPrice));
-				}
-				else
-				{
-					Print("[KatTradeManager] Freeze Trail active: Waiting for working Stop Loss order.");
-				}
-			}
-			catch (Exception ex)
-			{
-				Print(string.Format("[KatTradeManager] Error freezing Stop Loss: {0}", ex.ToString()));
-			}
-		}
-
-		private void CheckFreezeTrailEnforcement()
-		{
-			if (!cachedIsFreezeTrail || account == null || Instrument == null) return;
-			try
-			{
-				Position pos = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
-				if (pos == null || pos.MarketPosition == MarketPosition.Flat)
-				{
-					frozenStopPrice = 0;
-					return;
-				}
-
-				// Rate-limit check: only evaluate enforcement at most once every 3 seconds to avoid API spamming
-				if ((DateTime.Now - lastFreezeEnforceTime).TotalMilliseconds < 3000)
-					return;
-
-				var workingStops = account.Orders.Where(o => o.Instrument == Instrument &&
-					IsActiveOrderState(o.OrderState) &&
-					(o.OrderType == OrderType.StopMarket || o.OrderType == OrderType.StopLimit) &&
-					(pos.MarketPosition == MarketPosition.Long ? (o.OrderAction == OrderAction.Sell || o.OrderAction == OrderAction.SellShort) : (o.OrderAction == OrderAction.Buy || o.OrderAction == OrderAction.BuyToCover))).ToList();
-
-				if (workingStops.Count == 0) return;
-
-				if (frozenStopPrice <= 0)
-				{
-					frozenStopPrice = workingStops[0].StopPrice;
-					Print(string.Format("[KatTradeManager] Freeze Trail captured SL price @ {0}", frozenStopPrice));
-					return;
-				}
-
-				List<Order> changes = new List<Order>();
-				foreach (Order stopOrder in workingStops)
-				{
-					if (Math.Abs(stopOrder.StopPrice - frozenStopPrice) > 0.000001)
-					{
-						stopOrder.StopPriceChanged = frozenStopPrice;
-						// StopLimit must move its limit with the stop, else the trailed limit is left behind
-						// and can invert the stop/limit relationship -> rejected or unsafe protective order.
-						if (stopOrder.OrderType == OrderType.StopLimit)
-						{
-							double tickSize = cachedTickSize > 0 ? cachedTickSize : Instrument.MasterInstrument.TickSize;
-							stopOrder.LimitPriceChanged = KatTradeCalculator.CalculateFrozenStopLimitPrice(
-								pos.MarketPosition == MarketPosition.Long, frozenStopPrice, stopOrder.StopPrice, stopOrder.LimitPrice, tickSize);
-						}
-						changes.Add(stopOrder);
-					}
-				}
-				if (changes.Count > 0)
-				{
-					lastFreezeEnforceTime = DateTime.Now;
-					QueueAccountOperation(AccountOperationType.Change, changes, "freeze trail stop restoration");
-					Print(string.Format("[KatTradeManager] Trailing movement overridden — {0} SL order(s) restored to frozen price {1}", changes.Count, frozenStopPrice));
-				}
-			}
-			catch (Exception ex)
-			{
-				Print(string.Format("[KatTradeManager] Error enforcing Freeze Trail: {0}", ex.ToString()));
-			}
-		}
+		// ponytail: Freeze Trail extracted to src/KatTradeManager.FreezeTrail.cs (partial class)
 
 		// ponytail: Swing SL shift tracking state
 		private List<double> slMoveHistory = new List<double>();
@@ -2048,89 +1961,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 		}
 		#endregion
 
-		#region Daily Risk Protection Logic
-		private double CalculateDailyPnL()
-		{
-			if (account == null) return 0;
-
-			DateTime currentSessionStartUtc = KatTradeCalculator.GetNySessionStartUtc(DateTime.UtcNow);
-			double currentRealizedPnL = 0;
-			try
-			{
-				currentRealizedPnL = account.Get(AccountItem.GrossRealizedProfitLoss, Currency.UsDollar);
-			}
-			catch {}
-
-			if (!isSessionStartCaptured || currentSessionStartUtc > lastSessionStartUtc)
-			{
-				lastSessionStartUtc = currentSessionStartUtc;
-				sessionStartRealizedPnL = currentRealizedPnL;
-				isSessionStartCaptured = true;
-			}
-
-			double dailyRealized = currentRealizedPnL - sessionStartRealizedPnL;
-
-			double dailyUnrealized = 0;
-			try
-			{
-				dailyUnrealized = account.Get(AccountItem.UnrealizedProfitLoss, Currency.UsDollar);
-			}
-			catch {}
-
-			return dailyRealized + dailyUnrealized;
-		}
-
-
-		private bool IsDailyRiskBreached(out string breachReason)
-		{
-			breachReason = string.Empty;
-			if (account == null) return false;
-
-			double dailyPnL = CalculateDailyPnL();
-			cachedDailyPnL = dailyPnL;
-
-			if (cachedIsDailyMaxDD && cachedDailyMaxDD > 0 && dailyPnL <= -Math.Abs(cachedDailyMaxDD))
-			{
-				breachReason = string.Format("Daily Max DD breached (Current Daily PnL: ${0:F2} <= Max DD limit: -${1:F2})", dailyPnL, Math.Abs(cachedDailyMaxDD));
-				return true;
-			}
-
-			if (cachedIsDailyMaxProfit && cachedDailyMaxProfit > 0 && dailyPnL >= cachedDailyMaxProfit)
-			{
-				breachReason = string.Format("Daily Max Profit reached (Current Daily PnL: ${0:F2} >= Max Profit limit: ${1:F2})", dailyPnL, cachedDailyMaxProfit);
-				return true;
-			}
-
-			return false;
-		}
-
-		private void EvaluateDailyRiskLimits()
-		{
-			if (account == null || isTerminated) return;
-
-			if (IsDailyRiskBreached(out string breachReason))
-			{
-				Position pos = account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
-				bool hasOpenPos = (pos != null && pos.MarketPosition != MarketPosition.Flat);
-				bool hasWorkingOrders = account.Orders.Any(o => (o.OrderState == OrderState.Working || o.OrderState == OrderState.Accepted) && o.Instrument == Instrument);
-
-				// ponytail: flatten once per breach episode — flag resets when PnL recovers, prevents order spam from 500ms watchdog
-				// Interlocked: this method runs on BOTH data thread (OnBarUpdate) and UI thread (watchdog) —
-				// check-then-set on a bool raced and could submit ClosePosition twice (position flip).
-				if (hasOpenPos || hasWorkingOrders)
-				{
-					if (System.Threading.Interlocked.CompareExchange(ref dailyRiskFlattened, 1, 0) == 0)
-					{
-						Print(string.Format("[KatTradeManager] EMERGENCY FLATTEN triggered by Daily Risk Protection: {0}", breachReason));
-						ClosePosition();
-					}
-				}
-			}
-			else
-			{
-				System.Threading.Interlocked.Exchange(ref dailyRiskFlattened, 0);
-			}
-		}
-		#endregion
+		// ponytail: Daily risk protection extracted to src/KatTradeManager.DailyRisk.cs (partial class)
 	}
 }

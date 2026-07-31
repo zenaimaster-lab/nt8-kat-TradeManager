@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 0.88 (2026-07-30)
+ * Version: 0.90 (2026-07-31)
  * NinjaTrader 8 TradeManager Indicator
  */
 
@@ -69,8 +69,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "0.88";
-		public const string RELEASE_DATE = "2026-07-30";
+		public const string VERSION = "0.90";
+		public const string RELEASE_DATE = "2026-07-31";
 
 		private volatile Account account;
 		private Account subscribedAccount;
@@ -169,7 +169,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private volatile bool cachedIsPartialCandle = false;
 		private volatile int cachedPartialPercent = 30;
 		private volatile bool cachedIsFreezeTrail = false;
-		private double frozenStopPrice = 0;
 		private bool isRenkoChart = false;
 
 		// Thread synchronization lock for bar price caching

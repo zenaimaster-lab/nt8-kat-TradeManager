@@ -24,6 +24,8 @@
     <Compile Include="..\..\KatTradeManager.cs" />
     <Compile Include="..\..\src\KatTradeManagerUI.cs" />
     <Compile Include="..\..\src\KatTradeManager.OrderOps.cs" />
+    <Compile Include="..\..\src\KatTradeManager.FreezeTrail.cs" />
+    <Compile Include="..\..\src\KatTradeManager.DailyRisk.cs" />
     <Compile Include="..\..\src\KatTradeManager.Properties.cs" />
     <Compile Include="..\..\src\KatTradeCalculator.cs" />
     <Compile Include="..\..\src\KatAtmXmlParser.cs" />
