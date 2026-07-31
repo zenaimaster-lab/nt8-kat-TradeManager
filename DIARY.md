@@ -23,6 +23,14 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v0.93] — 2026-07-31
+- **Idle-time "Index was outside the bounds of the array" dialog fix**:
+  - NT8 trace evidence (`trace.20260731`, 03:25:42): `System.IndexOutOfRangeException` attributed to `ScheduleAtmBracketMerge` from `OnPanelWatchdogTick` via `DispatcherTimer.FireTick` — escaping every inner try/catch, so it was thrown inside a guard-clause NT8 property getter (`Instrument` indexes Bars internally) during overnight session maintenance (hourly HdsClient reconnects / token renewals). Release-build line numbers in the trace were misattributed; the boundary was the real hole.
+  - `OnPanelWatchdogTick` now wraps its whole body in a boundary catch — one bad tick logs and retries 500 ms later instead of popping an unhandled-exception dialog or killing the timer.
+  - `OnAccountOrderUpdate` (broker event thread) got the same boundary catch, core logic extracted to `OnAccountOrderUpdateCore`.
+  - All other event entry points (`OnBarUpdate`, queue pump, merge, button handlers) already had catches — these two were the only unprotected boundaries.
+- **Validation**: 210/210 tests passing; CompileCheck: 0 errors (existing NT8 reference-conflict/obsolete warnings). Handlers are NT8-runtime-bound (DispatcherTimer/OrderEventArgs/Instrument) and cannot be instantiated in the xunit sandbox; verified via full suite + compile gate + structural boundary check.
+- **Graphify entity mapping**: `KatTradeManagerUI.OnPanelWatchdogTick`, `KatTradeManager.OnAccountOrderUpdate`, `KatTradeManager.OnAccountOrderUpdateCore`, `KatTradeManager.ScheduleAtmBracketMerge`.
 ### [v0.92] — 2026-07-31
 - **Re-audit rounds 3+4 — FIFO stall ceiling, PnL baseline poisoning, cross-account revert, freeze OFF mid-detach**:
   - **Account-operation FIFO stall (round 3)**: a broker state stuck pending (e.g. `ChangePending`/`CancelPending` hang) pinned the serialized queue forever — every later submit/change/cancel, including Close/flatten, starved behind it with no escape. Added a 10 s ceiling: the active operation is timeout-released and a stalled queue head is timeout-skipped (both logged), so the queue always drains.

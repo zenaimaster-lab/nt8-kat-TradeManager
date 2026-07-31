@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.92 (2026-07-31) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.93 (2026-07-31) */
 
 using System;
 using System.Collections.Generic;
@@ -68,50 +68,61 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		private void OnPanelWatchdogTick(object sender, EventArgs e)
 		{
-			if (!IsPanelVisible)
+			// Boundary catch: NT8 property getters (Instrument etc.) can throw transient
+			// IndexOutOfRange while the platform reloads bars/instruments during overnight session
+			// maintenance. One bad tick must never pop an unhandled-exception dialog or kill the
+			// timer — log it and let the next tick (500 ms) retry.
+			try
 			{
-				RemoveWpfControls();
-				return;
+				if (!IsPanelVisible)
+				{
+					RemoveWpfControls();
+					return;
+				}
+				if (isTerminated || ChartControl == null)
+				{
+					StopPanelWatchdog();
+					DetachHotkeyHandler();
+					return;
+				}
+
+				chartGrid = ChartControl.Parent as Grid;
+				if (chartGrid == null) return;
+
+				// Auto-recover account if DataLoaded ran before accounts connected (root cause of "buttons don't work")
+				if (account == null)
+				{
+					SwitchAccount(SelectAccount()); // resets daily-risk baseline for the fresh account
+					if (account != null)
+						Print(string.Format("[KatTradeManager] Account auto-recovered by watchdog: {0}", account.Name));
+				}
+				EnsureAccountEventSubscription();
+				// Pump serialized account mutations; pending broker states are revisited on each watchdog tick.
+				ScheduleAccountOperationPump();
+
+				AttachHotkeyHandler();
+
+				// Evaluate real-time daily risk protection limits
+				EvaluateDailyRiskLimits();
+				TrySubmitPendingRevert();
+				ScheduleAtmBracketMerge();
+
+				// Freeze Trail: take over ATM protection while ON, clean up static exits once flat
+				ProcessFreezeTrail();
+
+
+				// Sync UI control values to thread-safe cached fields
+				SyncCachedValues();
+
+				if (!IsPanelAttached())
+				{
+					RemoveWpfControls();
+					CreateWpfControls();
+				}
 			}
-			if (isTerminated || ChartControl == null)
+			catch (Exception ex)
 			{
-				StopPanelWatchdog();
-				DetachHotkeyHandler();
-				return;
-			}
-
-			chartGrid = ChartControl.Parent as Grid;
-			if (chartGrid == null) return;
-
-			// Auto-recover account if DataLoaded ran before accounts connected (root cause of "buttons don't work")
-			if (account == null)
-			{
-				SwitchAccount(SelectAccount()); // resets daily-risk baseline for the fresh account
-				if (account != null)
-					Print(string.Format("[KatTradeManager] Account auto-recovered by watchdog: {0}", account.Name));
-			}
-			EnsureAccountEventSubscription();
-			// Pump serialized account mutations; pending broker states are revisited on each watchdog tick.
-			ScheduleAccountOperationPump();
-
-			AttachHotkeyHandler();
-
-			// Evaluate real-time daily risk protection limits
-			EvaluateDailyRiskLimits();
-			TrySubmitPendingRevert();
-			ScheduleAtmBracketMerge();
-
-			// Freeze Trail: take over ATM protection while ON, clean up static exits once flat
-			ProcessFreezeTrail();
-
-
-			// Sync UI control values to thread-safe cached fields
-			SyncCachedValues();
-
-			if (!IsPanelAttached())
-			{
-				RemoveWpfControls();
-				CreateWpfControls();
+				Print(string.Format("[KatTradeManager] Watchdog tick error (will retry next tick): {0}", ex.Message));
 			}
 		}
 

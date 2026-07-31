@@ -1,4 +1,4 @@
-/* KatTradeManager.OrderOps.cs - Order execution & position management (partial class) v0.92 (2026-07-31) */
+/* KatTradeManager.OrderOps.cs - Order execution & position management (partial class) v0.93 (2026-07-31) */
 
 using System;
 using System.Collections.Generic;
@@ -1340,6 +1340,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 		}
 
 		private void OnAccountOrderUpdate(object sender, OrderEventArgs e)
+		{
+			// Boundary catch: this runs on the broker event thread — a transient NT8-internal
+			// failure must surface as a log line, not an unhandled-exception dialog.
+			try
+			{
+				OnAccountOrderUpdateCore(e);
+			}
+			catch (Exception ex)
+			{
+				Print(string.Format("[KatTradeManager] Account order-update error: {0}", ex.Message));
+			}
+		}
+
+		private void OnAccountOrderUpdateCore(OrderEventArgs e)
 		{
 			Order observed = e != null ? e.Order : null;
 			if (observed == null)
