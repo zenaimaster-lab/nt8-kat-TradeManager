@@ -1,5 +1,6 @@
-# Deploy-NT8.ps1 — copy ALL KatTradeManager sources into NT8's Indicators folder with overwrite,
-# then verify NT8's file watcher recompiled NinjaTrader.Custom.dll (timestamp newer than deploy).
+# Deploy-NT8.ps1 — copy ALL KatTradeManager sources into NT8's Indicators\KAT subfolder with overwrite,
+# remove stale flat-root copies, then verify NT8's file watcher recompiled NinjaTrader.Custom.dll.
+# The KAT subfolder makes the indicator appear under the "KAT" group in the Add Indicator dialog.
 # Usage:  pwsh scripts/Deploy-NT8.ps1 [-TimeoutSeconds 60]
 param(
     [int]$TimeoutSeconds = 60
@@ -8,6 +9,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $repoRoot   = Split-Path -Parent $PSScriptRoot
 $indicators = Join-Path $env:USERPROFILE 'Documents\NinjaTrader 8\bin\Custom\Indicators'
+$katDir     = Join-Path $indicators 'KAT'
 $customDll  = Join-Path $env:USERPROFILE 'Documents\NinjaTrader 8\bin\Custom\NinjaTrader.Custom.dll'
 
 $files = @(
@@ -21,12 +23,17 @@ $files = @(
     'src\KatAtmXmlParser.cs'
 )
 
+New-Item -ItemType Directory -Path $katDir -Force | Out-Null
+
 $deployTime = Get-Date
 foreach ($f in $files) {
     $src = Join-Path $repoRoot $f
     if (-not (Test-Path $src)) { throw "Missing source: $f" }
-    Copy-Item $src (Join-Path $indicators (Split-Path $f -Leaf)) -Force
-    Write-Host "deployed: $f"
+    $name = Split-Path $f -Leaf
+    Copy-Item $src (Join-Path $katDir $name) -Force
+    $flat = Join-Path $indicators $name
+    if (Test-Path $flat) { Remove-Item $flat -Force }  # NT8 compiles recursively — duplicate class otherwise
+    Write-Host "deployed: KAT\$name"
 }
 
 # NT8 recompiles automatically when NinjaTrader is running. A newer dll = accepted; older = rejected
