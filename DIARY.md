@@ -803,3 +803,10 @@ graph TD
   - Added pending stop placement at High/Low of Previous and Current candles across 30s, 1m, 2m timeframes.
   - Implemented Trailing Stop Loss engine and quick position management actions.
   - Deployed directly to NinjaTrader 8 (`C:\Users\kieuanhtuan\Documents\NinjaTrader 8\bin\Custom\Indicators\KatTradeManager.cs`).
+
+### [v0.96] - 2026-08-01
+- **KAT folder grouping**: moved indicator under `KAT` group in NT8 Add Indicator dialog.
+  - Changed namespace of 6 partial files (main, UI, OrderOps, FreezeTrail, DailyRisk, Properties) from `NinjaTrader.NinjaScript.Indicators` to `NinjaTrader.NinjaScript.Indicators.KAT` (NT8 groups indicators by namespace, mirroring the folder chosen at creation).
+  - Deploy script now copies sources into `bin\Custom\Indicators\KAT\` and removes stale flat-root copies (NT8 compiles recursively — duplicate class otherwise).
+  - Pure files (`KatTradeCalculator`, `KatAtmXmlParser`) stay in parent namespace — parent-namespace lookup keeps main class + tests working unchanged.
+- **Graphify entity mapping**: `KatTradeManager` (namespace `...Indicators.KAT`), `Deploy-NT8.ps1`.

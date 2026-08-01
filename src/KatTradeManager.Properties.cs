@@ -9,7 +9,7 @@ using System.Windows.Input;
 using NinjaTrader.NinjaScript;
 using NinjaTrader.Gui;
 
-namespace NinjaTrader.NinjaScript.Indicators
+namespace NinjaTrader.NinjaScript.Indicators.KAT
 {
 	public sealed class AtmTemplateNameConverter : TypeConverter
 	{

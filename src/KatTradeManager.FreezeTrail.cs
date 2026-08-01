@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NinjaTrader.Cbi;
 
-namespace NinjaTrader.NinjaScript.Indicators
+namespace NinjaTrader.NinjaScript.Indicators.KAT
 {
 	public partial class KatTradeManager
 	{
