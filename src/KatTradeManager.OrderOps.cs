@@ -999,6 +999,15 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					double open  = isCurrentCandle ? cachedCurrentOpen[barIdx]  : cachedPrevOpen[barIdx];
 					double close = isCurrentCandle ? cachedCurrentClose[barIdx] : cachedPrevClose[barIdx];
 
+					if (high <= 0 && CurrentBars[barIdx] >= (isCurrentCandle ? 0 : 1))
+					{
+						int ago = isCurrentCandle ? 0 : 1;
+						high  = Highs[barIdx][ago];
+						low   = Lows[barIdx][ago];
+						open  = Opens[barIdx][ago];
+						close = Closes[barIdx][ago];
+					}
+
 					basePrice = KatTradeCalculator.CalculateCandlePrice(katAction, cachedIsPartialCandle, cachedPartialPercent, high, low, open, close, barIdx == 0 && isRenkoChart, cachedTickSize);
 					currentPx = cachedCurrentPrice > 0 ? cachedCurrentPrice : basePrice;
 				}
@@ -1006,6 +1015,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				if (basePrice <= 0)
 				{
 					Print(string.Format("[KatTradeManager] PlaceOrder aborted: basePrice={0} (no bar data cached yet — wait for live ticks)", basePrice));
+					ShowHudStatus("Order aborted: no price data yet", System.Windows.Media.Brushes.OrangeRed);
 					return;
 				}
 
@@ -1019,7 +1029,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				lock (priceLock)
 				{
 					int barsAgo = isCurrentCandle ? 0 : 1;
-					if (Times != null && barIdx < Times.Length && barsAgo < CurrentBars[barIdx])
+					if (Times != null && barIdx < Times.Length && barsAgo <= CurrentBars[barIdx])
 						lastCandleBarTime = Times[barIdx][barsAgo];
 					else
 						lastCandleBarTime = DateTime.MinValue;
@@ -1140,7 +1150,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				currentEmaTouchIndex = 0;
 				lock (priceLock)
 				{
-					if (Times != null && barIdx < Times.Length && foundBarsAgo >= 0 && foundBarsAgo < CurrentBars[barIdx])
+					if (Times != null && barIdx < Times.Length && foundBarsAgo >= 0 && foundBarsAgo <= CurrentBars[barIdx])
 						lastEmaTouchBarTime = Times[barIdx][foundBarsAgo];
 					else
 						lastEmaTouchBarTime = DateTime.MinValue;
@@ -2152,7 +2162,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 							touchBars.Add(new EmaTouchBarInfo
 							{
 								BarsAgo = barsAgo,
-								Time = Times != null && barIdx < Times.Length && barsAgo < CurrentBars[barIdx] ? Times[barIdx][barsAgo] : DateTime.MinValue,
+								Time = Times != null && barIdx < Times.Length && barsAgo <= CurrentBars[barIdx] ? Times[barIdx][barsAgo] : DateTime.MinValue,
 								High = high,
 								Low = low,
 								Open = Opens[barIdx][barsAgo],
@@ -2278,7 +2288,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 						allBars.Add(new CandleBarInfo
 						{
 							BarsAgo = barsAgo,
-							Time = Times != null && barIdx < Times.Length && barsAgo < CurrentBars[barIdx] ? Times[barIdx][barsAgo] : DateTime.MinValue,
+							Time = Times != null && barIdx < Times.Length && barsAgo <= CurrentBars[barIdx] ? Times[barIdx][barsAgo] : DateTime.MinValue,
 							High = Highs[barIdx][barsAgo],
 							Low = Lows[barIdx][barsAgo],
 							Open = Opens[barIdx][barsAgo],

@@ -23,6 +23,15 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.02] — 2026-08-03
+- **Entry Shift Timestamp Boundary Fix & Previous Candle Order Fallback**:
+  - Corrected `CurrentBars` index boundary checks from `<` to `<=` across all 4 timestamp lookup sites in `KatTradeManager.OrderOps.cs` (`PlaceOrder`, `PlaceEmaOrder`, `ShiftEmaEntry`, `ShiftCandleEntry`). Fixed bug where `barsAgo == CurrentBars` returned `DateTime.MinValue`.
+  - Added fallback previous candle price lookup (`Highs[barIdx][1]`, `Lows[barIdx][1]`, `Opens[barIdx][1]`, `Closes[barIdx][1]`) inside `lock (priceLock)` in `PlaceOrder` when `cachedPrevHigh` is unpopulated.
+  - Fixed swapped button background colors for `BUY previous`/`current` and `SELL previous`/`current` in `KatTradeManagerUI.cs`.
+  - Added HUD visual status alerts (`ShowHudStatus`) when `PlaceOrder` aborts due to missing price data or filter rejections.
+  - Added unit test `CalculateShiftedBarIndex_MaxBarsAgoBoundary_MatchesOldestBarTimestamp` in `KatEntryShiftTests.cs` (221/221 unit tests passing).
+  - **Graphify entity mapping**: `KatTradeManager.OrderOps`, `KatTradeManagerUI`, `KatTradeCalculator.CalculateShiftedBarIndex`, `KatTradeManager.Tests.KatEntryShiftTests`.
+
 ### [v1.01] — 2026-08-03
 - **Entry Shift Domain Modularization & Comprehensive Testing**:
   - Extracted pure calculation logic `CalculateShiftedBarIndex` into [`KatTradeCalculator.cs`](file:///c:/Users/kieuanhtuan/Documents/all.%20Coding/nt8-kat-TradeManager/src/KatTradeCalculator.cs).

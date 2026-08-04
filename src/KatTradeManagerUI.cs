@@ -1077,9 +1077,9 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			SolidColorBrush sellFixedBg = new SolidColorBrush(Color.FromRgb(75, 20, 24));
 
 			StackPanel buyCol = new StackPanel();
-			Button btnBuyPrev = CreateButton("BUY previous", buyCurrBg, (s, ev) => PlaceOrder(OrderAction.Buy, false), 48, 12);
+			Button btnBuyPrev = CreateButton("BUY previous", buyPrevBg, (s, ev) => PlaceOrder(OrderAction.Buy, false), 48, 12);
 			btnBuyPrev.Margin = new Thickness(0, 0, 0, 4);
-			Button btnBuyCurr = CreateButton("BUY current", buyPrevBg, (s, ev) => PlaceOrder(OrderAction.Buy, true), 48, 12);
+			Button btnBuyCurr = CreateButton("BUY current", buyCurrBg, (s, ev) => PlaceOrder(OrderAction.Buy, true), 48, 12);
 			btnBuyCurr.Margin = new Thickness(0, 0, 0, 4);
 			Button btnBuyDist = CreateButton("BUY +distance", buyFixedBg, (s, ev) => PlaceFixedDistanceOrder(OrderAction.Buy), 24, 10);
 
@@ -1089,9 +1089,9 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			Grid.SetColumn(buyCol, 2);
 
 			StackPanel sellCol = new StackPanel();
-			Button btnSellPrev = CreateButton("SELL previous", sellCurrBg, (s, ev) => PlaceOrder(OrderAction.Sell, false), 48, 12);
+			Button btnSellPrev = CreateButton("SELL previous", sellPrevBg, (s, ev) => PlaceOrder(OrderAction.Sell, false), 48, 12);
 			btnSellPrev.Margin = new Thickness(0, 0, 0, 4);
-			Button btnSellCurr = CreateButton("SELL current", sellPrevBg, (s, ev) => PlaceOrder(OrderAction.Sell, true), 48, 12);
+			Button btnSellCurr = CreateButton("SELL current", sellCurrBg, (s, ev) => PlaceOrder(OrderAction.Sell, true), 48, 12);
 			btnSellCurr.Margin = new Thickness(0, 0, 0, 4);
 			Button btnSellDist = CreateButton("SELL -distance", sellFixedBg, (s, ev) => PlaceFixedDistanceOrder(OrderAction.Sell), 24, 10);
 

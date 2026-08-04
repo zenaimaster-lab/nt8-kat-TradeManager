@@ -85,5 +85,18 @@ namespace KatTradeManager.Tests
 			Assert.Equal(2, targetIdx);
 			Assert.Null(boundary);
 		}
+
+		[Fact]
+		public void CalculateShiftedBarIndex_MaxBarsAgoBoundary_MatchesOldestBarTimestamp()
+		{
+			// Verify that when barsAgo equals currentBars index (oldest bar T0 at index 3), timestamp lookup succeeds
+			List<DateTime> times = new List<DateTime> { T3, T2, T1, T0 };
+			int targetIdx = KatTradeCalculator.CalculateShiftedBarIndex(times, T0, 3, true, out string boundary);
+
+			// Shifting forward from oldest bar T0 (index 3) should yield index 2 (T1)
+			Assert.Equal(2, targetIdx);
+			Assert.Equal(T1, times[targetIdx]);
+			Assert.Null(boundary);
+		}
 	}
 }
