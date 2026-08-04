@@ -23,6 +23,13 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v0.98] — 2026-08-03
+- **Entry 89/34 Shift Buttons Audit & Refactoring (`◀ Entry 89/34` & `Entry 89/34 ▶`)**:
+  - Thread-safe historical series scanning: wrapped EMA touch bar scan inside `lock (priceLock)` to prevent data thread race conditions during bar updates.
+  - Bar Timestamp Matching (`lastEmaTouchBarTime`): tracks exact candle timestamp of active entry order, preventing index drift when new bars arrive on chart.
+  - Enhanced HUD feedback: shows target candle `bar #`, `orderType` (Stop vs Limit), and exact `triggerPrice`.
+  - **Graphify entity mapping**: `KatTradeManager.OrderOps` (`ShiftEmaEntry`, `EmaTouchBarInfo`, `lastEmaTouchBarTime`).
+
 ### [v0.97] — 2026-08-03
 - **Entry 89/34 Shift Buttons (`◀ Entry 89/34` & `Entry 89/34 ▶`)**:
   - Added WPF entry shift control panel directly above `SELL last 34` / `BUY last 34` buttons in Section 2, styled identically to SL moving buttons (dark background `#141414`, height 33, font size 12).

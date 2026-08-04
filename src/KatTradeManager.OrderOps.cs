@@ -1126,6 +1126,13 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				lastEmaOrderPeriod = emaPeriod;
 				lastEmaOrderAction = action;
 				currentEmaTouchIndex = 0;
+				lock (priceLock)
+				{
+					if (Times != null && barIdx < Times.Length && foundBarsAgo >= 0 && foundBarsAgo < Times[barIdx].Count)
+						lastEmaTouchBarTime = Times[barIdx][foundBarsAgo];
+					else
+						lastEmaTouchBarTime = DateTime.MinValue;
+				}
 
 				PlaceOrderInternal(action, triggerPrice, orderType, limitPrice, stopPrice, string.Format("placing EMA {0} order", emaPeriod), false);
 			}
@@ -1866,6 +1873,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private int lastEmaOrderPeriod = 0;
 		private OrderAction lastEmaOrderAction = OrderAction.Buy;
 		private int currentEmaTouchIndex = 0;
+		private DateTime lastEmaTouchBarTime = DateTime.MinValue;
 
 		private List<double> GetSwingPoints(MarketPosition position, int maxSwings = 20, int strength = 3)
 		{
@@ -2073,6 +2081,16 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			}
 		}
 
+		private struct EmaTouchBarInfo
+		{
+			public int BarsAgo;
+			public DateTime Time;
+			public double High;
+			public double Low;
+			public double Open;
+			public double Close;
+		}
+
 		private void ShiftEmaEntry(bool isForward)
 		{
 			if (account == null || Instrument == null)
@@ -2103,16 +2121,26 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				EMA targetEma = lastEmaOrderPeriod == 34 ? (ema34Series != null ? ema34Series[barIdx] : null) : (ema89Series != null ? ema89Series[barIdx] : null);
 				if (targetEma == null || CurrentBars[barIdx] < 0) return;
 
-				List<int> touchBars = new List<int>();
-				int maxBars = Math.Min(CurrentBars[barIdx], 500);
-
-				for (int barsAgo = 0; barsAgo < maxBars; barsAgo++)
+				List<EmaTouchBarInfo> touchBars = new List<EmaTouchBarInfo>();
+				lock (priceLock)
 				{
-					double high = Highs[barIdx][barsAgo];
-					double low = Lows[barIdx][barsAgo];
-					if (KatTradeCalculator.IsEmaTouchBar(high, low, targetEma[barsAgo]))
+					int maxBars = Math.Min(CurrentBars[barIdx], 500);
+					for (int barsAgo = 0; barsAgo < maxBars; barsAgo++)
 					{
-						touchBars.Add(barsAgo);
+						double high = Highs[barIdx][barsAgo];
+						double low = Lows[barIdx][barsAgo];
+						if (KatTradeCalculator.IsEmaTouchBar(high, low, targetEma[barsAgo]))
+						{
+							touchBars.Add(new EmaTouchBarInfo
+							{
+								BarsAgo = barsAgo,
+								Time = Times != null && barIdx < Times.Length && barsAgo < Times[barIdx].Count ? Times[barIdx][barsAgo] : DateTime.MinValue,
+								High = high,
+								Low = low,
+								Open = Opens[barIdx][barsAgo],
+								Close = Closes[barIdx][barsAgo]
+							});
+						}
 					}
 				}
 
@@ -2123,7 +2151,17 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					return;
 				}
 
-				int targetIndex = isForward ? currentEmaTouchIndex - 1 : currentEmaTouchIndex + 1;
+				int currentIndex = -1;
+				if (lastEmaTouchBarTime != DateTime.MinValue)
+				{
+					currentIndex = touchBars.FindIndex(t => t.Time == lastEmaTouchBarTime);
+				}
+				if (currentIndex == -1)
+				{
+					currentIndex = currentEmaTouchIndex;
+				}
+
+				int targetIndex = isForward ? currentIndex - 1 : currentIndex + 1;
 				if (targetIndex < 0)
 				{
 					Print("[KatTradeManager] Shift Entry: Already at newest touch candle.");
@@ -2137,21 +2175,17 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					return;
 				}
 
-				int targetBarsAgo = touchBars[targetIndex];
-				double bHigh = Highs[barIdx][targetBarsAgo];
-				double bLow = Lows[barIdx][targetBarsAgo];
-				double bOpen = Opens[barIdx][targetBarsAgo];
-				double bClose = Closes[barIdx][targetBarsAgo];
+				EmaTouchBarInfo targetBar = touchBars[targetIndex];
 				KatOrderAction katAction = ToKatAction(lastEmaOrderAction);
 
 				double basePrice = KatTradeCalculator.CalculateCandlePrice(
 					katAction,
 					cachedIsPartialCandle,
 					cachedPartialPercent,
-					bHigh,
-					bLow,
-					bOpen,
-					bClose,
+					targetBar.High,
+					targetBar.Low,
+					targetBar.Open,
+					targetBar.Close,
 					barIdx == 0 && isRenkoChart,
 					cachedTickSize);
 
@@ -2168,14 +2202,16 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 				CancelWorkingEntryOrders();
 
-				PlaceOrderInternal(lastEmaOrderAction, triggerPrice, orderType, limitPrice, stopPrice, string.Format("shifting EMA {0} order to bar #{1}", lastEmaOrderPeriod, targetBarsAgo), false);
+				PlaceOrderInternal(lastEmaOrderAction, triggerPrice, orderType, limitPrice, stopPrice, string.Format("shifting EMA {0} order to bar #{1}", lastEmaOrderPeriod, targetBar.BarsAgo), false);
 				currentEmaTouchIndex = targetIndex;
+				lastEmaTouchBarTime = targetBar.Time;
 
-				Print(string.Format("[KatTradeManager] Shifted EMA {0} entry: bar #{1} (index {2}/{3}), action={4}, type={5}, trig={6}",
-					lastEmaOrderPeriod, targetBarsAgo, targetIndex, touchBars.Count, lastEmaOrderAction, orderType, triggerPrice));
+				string typeLabel = orderType == OrderType.StopMarket ? "Stop" : (orderType == OrderType.Limit ? "Limit" : orderType.ToString());
+				Print(string.Format("[KatTradeManager] Shifted EMA {0} entry: bar #{1} (time {2}, index {3}/{4}), action={5}, type={6}, trig={7}",
+					lastEmaOrderPeriod, targetBar.BarsAgo, targetBar.Time != DateTime.MinValue ? targetBar.Time.ToString("HH:mm:ss") : "N/A", targetIndex, touchBars.Count, lastEmaOrderAction, typeLabel, triggerPrice));
 
-				ShowHudStatus(string.Format("Shift Entry EMA{0}: bar #{1} ({2})",
-					lastEmaOrderPeriod, targetBarsAgo, orderType == OrderType.StopMarket ? "Stop" : (orderType == OrderType.Limit ? "Limit" : orderType.ToString())),
+				ShowHudStatus(string.Format("Shift Entry EMA{0}: bar #{1} ({2} @ {3})",
+					lastEmaOrderPeriod, targetBar.BarsAgo, typeLabel, triggerPrice),
 					System.Windows.Media.Brushes.LightGreen);
 			}
 			catch (Exception ex)
