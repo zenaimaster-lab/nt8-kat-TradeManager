@@ -23,6 +23,13 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.04] — 2026-08-03
+- **Compile-Error Hotfix: removed nonexistent `OrderState.PendingSubmit` so NT8 can actually load the v1.03 order-flow fixes**:
+  - Root cause of "Buy/Sell previous & last 34/89 place no orders": v1.03 referenced `OrderState.PendingSubmit`, a member that does not exist in NinjaTrader's `Cbi.OrderState` enum. NT8's NinjaScript compiler rejected the whole source, silently kept the last good `NinjaTrader.Custom.dll` (v1.02), so none of the v1.02/v1.03 order-path fixes (previous-candle price fallback, dynamic EMA touch scan, submit-queue eligibility, HUD diagnostics) ever ran.
+  - Removed `|| order.OrderState == OrderState.PendingSubmit` from `IsAccountOperationEligible` in `src/KatTradeManager.OrderOps.cs` (state unreachable in NT8 anyway).
+  - Verified with local compile gate (0 errors) and 222/222 unit tests passing; redeployed all sources to `Indicators\KAT`.
+  - **Graphify entity mapping**: `KatTradeManager.OrderOps.IsAccountOperationEligible`.
+
 ### [v1.03] — 2026-08-03
 - **Order Submit Queue Eligibility & Dynamic EMA Touch Scan Restoration**:
   - Expanded `IsAccountOperationEligible(AccountOperationType.Submit, order)` in `KatTradeManager.OrderOps.cs` to allow non-terminal active states (`Initialized`, `Submitted`, `Accepted`, `AcceptedByRisk`, `Working`, `PendingSubmit`, `TriggerPending`). Prevents queued ATM Strategy orders from being silently skipped/dequeued when NinjaTrader updates order state prior to pump dispatch.

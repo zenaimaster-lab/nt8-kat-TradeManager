@@ -66,7 +66,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 						|| order.OrderState == OrderState.Accepted
 						|| order.OrderState == OrderState.AcceptedByRisk
 						|| order.OrderState == OrderState.Working
-						|| order.OrderState == OrderState.PendingSubmit
 						|| order.OrderState == OrderState.TriggerPending;
 				case AccountOperationType.Change:
 					return order.OrderState == OrderState.Accepted
