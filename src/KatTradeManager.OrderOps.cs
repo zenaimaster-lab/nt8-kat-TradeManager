@@ -43,6 +43,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private const double AtmLifecycleGraceMilliseconds = 3000.0;
 		private DateTime atmLastLifecycleActivityUtc = DateTime.MinValue;
 		private bool atmPositionWasConfirmedThisEpisode;
+		private Order atmDeferLoggedStartup;
 
 		private static bool IsAccountOperationPending(OrderState state)
 		{
@@ -450,6 +451,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			{
 				if (expected == null || SameOrder(atmStartupOrder, expected))
 					atmStartupOrder = null;
+				atmDeferLoggedStartup = null;
 			}
 		}
 
@@ -730,11 +732,19 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 						activityAge,
 						AtmLifecycleGraceMilliseconds))
 					{
-						Print(string.Format(
-							"[KatTradeManager] ATM MERGE flat cleanup deferred: startupPending={0} wasPositionConfirmed={1} activityAgeMs={2:F0}.",
-							startupPending,
-							wasPositionConfirmed,
-							activityAge));
+						// Deferring while our entry works is normal — log once per episode, not per account event.
+						bool logNow;
+						lock (atmScaleInLock)
+						{
+							logNow = !ReferenceEquals(atmDeferLoggedStartup, atmStartupOrder);
+							if (logNow) atmDeferLoggedStartup = atmStartupOrder;
+						}
+						if (logNow)
+							Print(string.Format(
+								"[KatTradeManager] ATM MERGE flat cleanup deferred: startupPending={0} wasPositionConfirmed={1} activityAgeMs={2:F0}.",
+								startupPending,
+								wasPositionConfirmed,
+								activityAge));
 						return;
 					}
 					if (candidates.Count > 0)
@@ -889,6 +899,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				atmStartupOrder = null;
 				atmLastLifecycleActivityUtc = DateTime.MinValue;
 				atmPositionWasConfirmedThisEpisode = false;
+				atmDeferLoggedStartup = null;
 			}
 		}
 

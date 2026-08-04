@@ -23,6 +23,13 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.06] — 2026-08-03
+- **ATM MERGE defer log once per episode instead of per account event**:
+  - Deferring flat cleanup while our ATM entry is still working (until filled/cancelled) is correct behavior; but the defer branch printed on every account order event (~2/sec), flooding the NinjaScript Output.
+  - `MergeAtmBrackets` now logs the defer line once per episode (`atmDeferLoggedStartup` keyed by `atmStartupOrder` reference); flag reset in `ClearAtmStartup` and `ResetAtmScaleInTracking`.
+  - Verified: compile gate 0 errors, 222/222 unit tests passing.
+  - **Graphify entity mapping**: `KatTradeManager.OrderOps.MergeAtmBrackets`, `KatTradeManager.OrderOps.ClearAtmStartup`.
+
 ### [v1.05] — 2026-08-03
 - **Removed all UI-thread series reads (root cause of dead Buy/Sell buttons) + stopped ATM MERGE log spam**:
   - Runtime evidence: `System.ArgumentOutOfRangeException: 'barsAgo' needed to be between 0 and 6001 but was 41` thrown by `Times[barIdx][barsAgo]` inside `PlaceEmaOrder` — NT8 series indexers are only safe on the data thread (v0.11 lesson; regressed when v1.00–v1.03 added shift-state timestamp lookups + UI-thread fallback scans). The exception aborted the handlers BEFORE `PlaceOrderInternal`, so no order was ever submitted.
