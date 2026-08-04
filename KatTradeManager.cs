@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 1.04 (2026-08-03)
+ * Version: 1.05 (2026-08-03)
  * NinjaTrader 8 TradeManager Indicator
  */
  
@@ -69,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "1.04";
+		public const string VERSION = "1.05";
 		public const string RELEASE_DATE = "2026-08-03";
 
 		private volatile Account account;
@@ -198,6 +198,16 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private readonly double[] ema89TouchLow = new double[NUM_SERIES];
 		private readonly double[] ema89TouchOpen = new double[NUM_SERIES];
 		private readonly double[] ema89TouchClose = new double[NUM_SERIES];
+
+		// Bar-time + bar-list snapshots: UI-thread handlers must never touch Times/Highs directly
+		// (NT8 throws ArgumentOutOfRangeException off the data thread — v0.11 lesson, regressed in v1.00-v1.03).
+		private readonly DateTime[] cachedCurrentBarTime = new DateTime[NUM_SERIES];
+		private readonly DateTime[] cachedPrevBarTime = new DateTime[NUM_SERIES];
+		private readonly DateTime[] ema34TouchTime = new DateTime[NUM_SERIES];
+		private readonly DateTime[] ema89TouchTime = new DateTime[NUM_SERIES];
+		private readonly List<EmaTouchBarInfo>[] ema34TouchLists = new List<EmaTouchBarInfo>[NUM_SERIES];
+		private readonly List<EmaTouchBarInfo>[] ema89TouchLists = new List<EmaTouchBarInfo>[NUM_SERIES];
+		private readonly List<CandleBarInfo>[] candleBarLists = new List<CandleBarInfo>[NUM_SERIES];
 		#endregion
 
 		#region Indicator Lifecycle
@@ -468,7 +478,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			}
 		}
 
-		private void UpdateEmaTouchCache(int bip, EMA targetEma, int[] barsAgoCache, double[] highCache, double[] lowCache, double[] openCache, double[] closeCache)
+		private void UpdateEmaTouchCache(int bip, EMA targetEma, int[] barsAgoCache, double[] highCache, double[] lowCache, double[] openCache, double[] closeCache, DateTime[] timeCache, List<EmaTouchBarInfo>[] touchLists)
 		{
 			if (targetEma == null || CurrentBars[bip] < 0) return;
 
@@ -478,6 +488,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			double foundLow = 0;
 			double foundOpen = 0;
 			double foundClose = 0;
+			DateTime foundTime = DateTime.MinValue;
+			List<EmaTouchBarInfo> touchBars = new List<EmaTouchBarInfo>();
 
 			for (int barsAgo = 0; barsAgo < maxBars; barsAgo++)
 			{
@@ -485,12 +497,24 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				double low = Lows[bip][barsAgo];
 				if (!KatTradeCalculator.IsEmaTouchBar(high, low, targetEma[barsAgo])) continue;
 
-				foundBarsAgo = barsAgo;
-				foundHigh = high;
-				foundLow = low;
-				foundOpen = Opens[bip][barsAgo];
-				foundClose = Closes[bip][barsAgo];
-				break;
+				if (foundBarsAgo < 0)
+				{
+					foundBarsAgo = barsAgo;
+					foundHigh = high;
+					foundLow = low;
+					foundOpen = Opens[bip][barsAgo];
+					foundClose = Closes[bip][barsAgo];
+					foundTime = Times[bip][barsAgo];
+				}
+				touchBars.Add(new EmaTouchBarInfo
+				{
+					BarsAgo = barsAgo,
+					Time = Times[bip][barsAgo],
+					High = high,
+					Low = low,
+					Open = Opens[bip][barsAgo],
+					Close = Closes[bip][barsAgo]
+				});
 			}
 
 			lock (priceLock)
@@ -500,6 +524,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				lowCache[bip] = foundLow;
 				openCache[bip] = foundOpen;
 				closeCache[bip] = foundClose;
+				timeCache[bip] = foundTime;
+				touchLists[bip] = touchBars;
 			}
 		}
 		#endregion
@@ -516,21 +542,23 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				{
 					lock (priceLock)
 					{
-						cachedCurrentHigh[bip]  = Highs[bip][0];
-						cachedCurrentLow[bip]   = Lows[bip][0];
-						cachedCurrentOpen[bip]  = Opens[bip][0];
-						cachedCurrentClose[bip] = Closes[bip][0];
-						if (bip == 0)
-						{
-							cachedCurrentPrice = Closes[0][0];
-						}
-						if (CurrentBars[bip] >= 1)
-						{
-							cachedPrevHigh[bip]  = Highs[bip][1];
-							cachedPrevLow[bip]   = Lows[bip][1];
-							cachedPrevOpen[bip]  = Opens[bip][1];
-							cachedPrevClose[bip] = Closes[bip][1];
-						}
+					cachedCurrentHigh[bip]  = Highs[bip][0];
+					cachedCurrentLow[bip]   = Lows[bip][0];
+					cachedCurrentOpen[bip]  = Opens[bip][0];
+					cachedCurrentClose[bip] = Closes[bip][0];
+					cachedCurrentBarTime[bip] = Times[bip][0];
+					if (bip == 0)
+					{
+						cachedCurrentPrice = Closes[0][0];
+					}
+					if (CurrentBars[bip] >= 1)
+					{
+						cachedPrevHigh[bip]  = Highs[bip][1];
+						cachedPrevLow[bip]   = Lows[bip][1];
+						cachedPrevOpen[bip]  = Opens[bip][1];
+						cachedPrevClose[bip] = Closes[bip][1];
+						cachedPrevBarTime[bip] = Times[bip][1];
+					}
 						if (bip == 0)
 						{
 							int maxSwingBars = Math.Min(CurrentBars[0], 500);
@@ -546,8 +574,29 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 				if (bip < NUM_SERIES && ema34Series != null && ema89Series != null)
 				{
-					UpdateEmaTouchCache(bip, ema34Series[bip], ema34TouchBarsAgo, ema34TouchHigh, ema34TouchLow, ema34TouchOpen, ema34TouchClose);
-					UpdateEmaTouchCache(bip, ema89Series[bip], ema89TouchBarsAgo, ema89TouchHigh, ema89TouchLow, ema89TouchOpen, ema89TouchClose);
+					UpdateEmaTouchCache(bip, ema34Series[bip], ema34TouchBarsAgo, ema34TouchHigh, ema34TouchLow, ema34TouchOpen, ema34TouchClose, ema34TouchTime, ema34TouchLists);
+					UpdateEmaTouchCache(bip, ema89Series[bip], ema89TouchBarsAgo, ema89TouchHigh, ema89TouchLow, ema89TouchOpen, ema89TouchClose, ema89TouchTime, ema89TouchLists);
+				}
+				if (bip < NUM_SERIES && CurrentBars[bip] >= 0)
+				{
+					List<CandleBarInfo> candleBars = new List<CandleBarInfo>();
+					int maxCandleBars = Math.Min(CurrentBars[bip], 500);
+					for (int barsAgo = 0; barsAgo < maxCandleBars; barsAgo++)
+					{
+						candleBars.Add(new CandleBarInfo
+						{
+							BarsAgo = barsAgo,
+							Time = Times[bip][barsAgo],
+							High = Highs[bip][barsAgo],
+							Low = Lows[bip][barsAgo],
+							Open = Opens[bip][barsAgo],
+							Close = Closes[bip][barsAgo]
+						});
+					}
+					lock (priceLock)
+					{
+						candleBarLists[bip] = candleBars;
+					}
 				}
 				if (bip < NUM_SERIES && emaPlaceFilterSeries != null && emaAngleFilterSeries != null)
 					UpdateEmaFilterCache(bip);

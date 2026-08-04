@@ -720,7 +720,10 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					double activityAge = lastActivity == DateTime.MinValue
 						? -1
 						: (DateTime.UtcNow - lastActivity).TotalMilliseconds;
-					if (KatTradeCalculator.ShouldDeferAtmFlatCleanup(
+					// No ATM episode ever happened (no startup, no position, no activity): nothing to
+					// defer — skipping avoids an endless "deferred" log spam on every account event.
+					if (lastActivity != DateTime.MinValue
+						&& KatTradeCalculator.ShouldDeferAtmFlatCleanup(
 						startupPending,
 						false,
 						wasPositionConfirmed,
@@ -1004,15 +1007,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					double open  = isCurrentCandle ? cachedCurrentOpen[barIdx]  : cachedPrevOpen[barIdx];
 					double close = isCurrentCandle ? cachedCurrentClose[barIdx] : cachedPrevClose[barIdx];
 
-					if (high <= 0 && CurrentBars[barIdx] >= (isCurrentCandle ? 0 : 1))
-					{
-						int ago = isCurrentCandle ? 0 : 1;
-						high  = Highs[barIdx][ago];
-						low   = Lows[barIdx][ago];
-						open  = Opens[barIdx][ago];
-						close = Closes[barIdx][ago];
-					}
-
 					basePrice = KatTradeCalculator.CalculateCandlePrice(katAction, cachedIsPartialCandle, cachedPartialPercent, high, low, open, close, barIdx == 0 && isRenkoChart, cachedTickSize);
 					currentPx = cachedCurrentPrice > 0 ? cachedCurrentPrice : basePrice;
 				}
@@ -1033,11 +1027,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				currentCandleBarsAgo = isCurrentCandle ? 0 : 1;
 				lock (priceLock)
 				{
-					int barsAgo = isCurrentCandle ? 0 : 1;
-					if (Times != null && barIdx < Times.Length && barsAgo <= CurrentBars[barIdx])
-						lastCandleBarTime = Times[barIdx][barsAgo];
-					else
-						lastCandleBarTime = DateTime.MinValue;
+					lastCandleBarTime = isCurrentCandle ? cachedCurrentBarTime[barIdx] : cachedPrevBarTime[barIdx];
 				}
 
 				PlaceOrderInternal(action, triggerPrice, orderType, limitPrice, stopPrice, "placing order", true);
@@ -1141,39 +1131,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				}
 
 
-				// Dynamic fallback scan if cached touch bar was not found or invalid
-				if (foundBarsAgo < 0 || basePrice <= 0)
-				{
-					EMA targetEma = emaPeriod == 34 ? (ema34Series != null ? ema34Series[barIdx] : null) : (ema89Series != null ? ema89Series[barIdx] : null);
-					if (targetEma != null && CurrentBars[barIdx] >= 0)
-					{
-						lock (priceLock)
-						{
-							int maxBars = Math.Min(CurrentBars[barIdx], 500);
-							for (int barsAgo = 0; barsAgo < maxBars; barsAgo++)
-							{
-								double high = Highs[barIdx][barsAgo];
-								double low = Lows[barIdx][barsAgo];
-								if (KatTradeCalculator.IsEmaTouchBar(high, low, targetEma[barsAgo]))
-								{
-									foundBarsAgo = barsAgo;
-									basePrice = KatTradeCalculator.CalculateCandlePrice(
-										katAction,
-										cachedIsPartialCandle,
-										cachedPartialPercent,
-										high,
-										low,
-										Opens[barIdx][barsAgo],
-										Closes[barIdx][barsAgo],
-										barIdx == 0 && isRenkoChart,
-										cachedTickSize);
-									break;
-								}
-							}
-						}
-					}
-				}
-
 				if (foundBarsAgo < 0 || basePrice <= 0)
 				{
 					Print(string.Format("[KatTradeManager] No candle found touching/crossing EMA {0} on TF index {1}", emaPeriod, barIdx));
@@ -1190,10 +1147,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				currentEmaTouchIndex = 0;
 				lock (priceLock)
 				{
-					if (Times != null && barIdx < Times.Length && foundBarsAgo >= 0 && foundBarsAgo <= CurrentBars[barIdx])
-						lastEmaTouchBarTime = Times[barIdx][foundBarsAgo];
-					else
-						lastEmaTouchBarTime = DateTime.MinValue;
+					lastEmaTouchBarTime = emaPeriod == 34 ? ema34TouchTime[barIdx] : ema89TouchTime[barIdx];
 				}
 
 				PlaceOrderInternal(action, triggerPrice, orderType, limitPrice, stopPrice, string.Format("placing EMA {0} order", emaPeriod), false);
@@ -2187,33 +2141,13 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				int barIdx = GetBarsInProgressIndex();
 				if (barIdx < 0 || barIdx >= NUM_SERIES) return;
 
-				EMA targetEma = lastEmaOrderPeriod == 34 ? (ema34Series != null ? ema34Series[barIdx] : null) : (ema89Series != null ? ema89Series[barIdx] : null);
-				if (targetEma == null || CurrentBars[barIdx] < 0) return;
-
-				List<EmaTouchBarInfo> touchBars = new List<EmaTouchBarInfo>();
+				List<EmaTouchBarInfo> touchBars;
 				lock (priceLock)
 				{
-					int maxBars = Math.Min(CurrentBars[barIdx], 500);
-					for (int barsAgo = 0; barsAgo < maxBars; barsAgo++)
-					{
-						double high = Highs[barIdx][barsAgo];
-						double low = Lows[barIdx][barsAgo];
-						if (KatTradeCalculator.IsEmaTouchBar(high, low, targetEma[barsAgo]))
-						{
-							touchBars.Add(new EmaTouchBarInfo
-							{
-								BarsAgo = barsAgo,
-								Time = Times != null && barIdx < Times.Length && barsAgo <= CurrentBars[barIdx] ? Times[barIdx][barsAgo] : DateTime.MinValue,
-								High = high,
-								Low = low,
-								Open = Opens[barIdx][barsAgo],
-								Close = Closes[barIdx][barsAgo]
-							});
-						}
-					}
+					touchBars = lastEmaOrderPeriod == 34 ? ema34TouchLists[barIdx] : ema89TouchLists[barIdx];
 				}
 
-				if (touchBars.Count == 0)
+				if (touchBars == null || touchBars.Count == 0)
 				{
 					Print(string.Format("[KatTradeManager] Shift Entry: No touch candles found for EMA {0}", lastEmaOrderPeriod));
 					ShowHudStatus(string.Format("Entry: no EMA {0} touch candle", lastEmaOrderPeriod), System.Windows.Media.Brushes.OrangeRed);
@@ -2318,27 +2252,15 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				}
 
 				int barIdx = GetBarsInProgressIndex();
-				if (barIdx < 0 || barIdx >= NUM_SERIES || CurrentBars[barIdx] < 0) return;
+				if (barIdx < 0 || barIdx >= NUM_SERIES) return;
 
-				List<CandleBarInfo> allBars = new List<CandleBarInfo>();
+				List<CandleBarInfo> allBars;
 				lock (priceLock)
 				{
-					int maxBars = Math.Min(CurrentBars[barIdx], 500);
-					for (int barsAgo = 0; barsAgo < maxBars; barsAgo++)
-					{
-						allBars.Add(new CandleBarInfo
-						{
-							BarsAgo = barsAgo,
-							Time = Times != null && barIdx < Times.Length && barsAgo <= CurrentBars[barIdx] ? Times[barIdx][barsAgo] : DateTime.MinValue,
-							High = Highs[barIdx][barsAgo],
-							Low = Lows[barIdx][barsAgo],
-							Open = Opens[barIdx][barsAgo],
-							Close = Closes[barIdx][barsAgo]
-						});
-					}
+					allBars = candleBarLists[barIdx];
 				}
 
-				if (allBars.Count == 0) return;
+				if (allBars == null || allBars.Count == 0) return;
 
 				var barTimes = allBars.Select(b => b.Time).ToList();
 				int targetIndex = KatTradeCalculator.CalculateShiftedBarIndex(barTimes, lastCandleBarTime, currentCandleBarsAgo, isForward, out string boundaryStatus);

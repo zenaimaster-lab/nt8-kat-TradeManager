@@ -23,6 +23,15 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.05] — 2026-08-03
+- **Removed all UI-thread series reads (root cause of dead Buy/Sell buttons) + stopped ATM MERGE log spam**:
+  - Runtime evidence: `System.ArgumentOutOfRangeException: 'barsAgo' needed to be between 0 and 6001 but was 41` thrown by `Times[barIdx][barsAgo]` inside `PlaceEmaOrder` — NT8 series indexers are only safe on the data thread (v0.11 lesson; regressed when v1.00–v1.03 added shift-state timestamp lookups + UI-thread fallback scans). The exception aborted the handlers BEFORE `PlaceOrderInternal`, so no order was ever submitted.
+  - `KatTradeManager.cs` (data thread, `OnBarUpdate`): added `cachedCurrentBarTime`/`cachedPrevBarTime`, `ema34TouchTime`/`ema89TouchTime`, and per-series snapshot lists `ema34TouchLists`/`ema89TouchLists`/`candleBarLists` (rebuilt under `priceLock`, reference-swapped so UI thread reads immutable snapshots).
+  - `KatTradeManager.OrderOps.cs`: `PlaceOrder`, `PlaceEmaOrder`, `ShiftEmaEntry`, `ShiftCandleEntry` now read only cached snapshots; deleted the UI-thread `Highs/Lows/Opens/Closes/Times/EMA` fallback scans.
+  - `MergeAtmBrackets`: skip the defer branch when no ATM episode ever happened (`atmLastLifecycleActivityUtc == DateTime.MinValue`) — previously every account order event printed "ATM MERGE flat cleanup deferred" forever.
+  - Verified: compile gate 0 errors, 222/222 unit tests passing.
+  - **Graphify entity mapping**: `KatTradeManager.UpdateEmaTouchCache`, `KatTradeManager.OnBarUpdate`, `KatTradeManager.OrderOps.PlaceEmaOrder`, `KatTradeManager.OrderOps.MergeAtmBrackets`.
+
 ### [v1.04] — 2026-08-03
 - **Compile-Error Hotfix: removed nonexistent `OrderState.PendingSubmit` so NT8 can actually load the v1.03 order-flow fixes**:
   - Root cause of "Buy/Sell previous & last 34/89 place no orders": v1.03 referenced `OrderState.PendingSubmit`, a member that does not exist in NinjaTrader's `Cbi.OrderState` enum. NT8's NinjaScript compiler rejected the whole source, silently kept the last good `NinjaTrader.Custom.dll` (v1.02), so none of the v1.02/v1.03 order-path fixes (previous-candle price fallback, dynamic EMA touch scan, submit-queue eligibility, HUD diagnostics) ever ran.
