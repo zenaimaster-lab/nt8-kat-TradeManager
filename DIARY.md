@@ -23,6 +23,12 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.00] — 2026-08-03
+- **Entry Shift Controls Re-Audit & Polishing (`v1.00` Milestone)**:
+  - Guarded historical series index checks with `CurrentBars[barIdx]` across all time-based timestamp lookups.
+  - Verified 100% thread-safe `priceLock` isolation and zero bar-drift behavior across both EMA 89/34 and Candle shift modes.
+  - **Graphify entity mapping**: `KatTradeManager.OrderOps` (`ShiftEmaEntry`, `ShiftCandleEntry`).
+
 ### [v0.99] — 2026-08-03
 - **Entry Candle Shift Buttons (`◀ Entry candle` & `Entry candle ▶`)**:
   - Added WPF candle entry shift control panel directly above Buy/Sell current/previous buttons in Section 3, styled identically to SL moving buttons (dark background `#141414`, height 33, font size 12).
