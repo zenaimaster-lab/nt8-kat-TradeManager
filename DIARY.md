@@ -23,6 +23,14 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.03] — 2026-08-03
+- **Order Submit Queue Eligibility & Dynamic EMA Touch Scan Restoration**:
+  - Expanded `IsAccountOperationEligible(AccountOperationType.Submit, order)` in `KatTradeManager.OrderOps.cs` to allow non-terminal active states (`Initialized`, `Submitted`, `Accepted`, `AcceptedByRisk`, `Working`, `PendingSubmit`, `TriggerPending`). Prevents queued ATM Strategy orders from being silently skipped/dequeued when NinjaTrader updates order state prior to pump dispatch.
+  - Added dynamic historical bar fallback scan for `PlaceEmaOrder` (`BUY/SELL last 34`, `BUY/SELL last 89`) when cached touch index is `-1`, ensuring orders are placed even if `OnBarUpdate` cache is unpopulated.
+  - Added visual HUD status notifications (`ShowHudStatus`) on order placement and failure.
+  - Added unit test `FindLastEmaTouchBar_ScansAndFindsTouchCandle` in `KatTradeCalculatorTests.cs` (222/222 unit tests passing).
+  - **Graphify entity mapping**: `KatTradeManager.OrderOps`, `KatTradeManager.IsAccountOperationEligible`, `KatTradeCalculator.FindLastEmaTouchBar`, `KatTradeManager.Tests.KatTradeCalculatorTests`.
+
 ### [v1.02] — 2026-08-03
 - **Entry Shift Timestamp Boundary Fix & Previous Candle Order Fallback**:
   - Corrected `CurrentBars` index boundary checks from `<` to `<=` across all 4 timestamp lookup sites in `KatTradeManager.OrderOps.cs` (`PlaceOrder`, `PlaceEmaOrder`, `ShiftEmaEntry`, `ShiftCandleEntry`). Fixed bug where `barsAgo == CurrentBars` returned `DateTime.MinValue`.

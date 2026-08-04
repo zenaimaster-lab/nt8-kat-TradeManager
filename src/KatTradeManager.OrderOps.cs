@@ -61,7 +61,13 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			switch (type)
 			{
 				case AccountOperationType.Submit:
-					return order.OrderState == OrderState.Initialized;
+					return order.OrderState == OrderState.Initialized
+						|| order.OrderState == OrderState.Submitted
+						|| order.OrderState == OrderState.Accepted
+						|| order.OrderState == OrderState.AcceptedByRisk
+						|| order.OrderState == OrderState.Working
+						|| order.OrderState == OrderState.PendingSubmit
+						|| order.OrderState == OrderState.TriggerPending;
 				case AccountOperationType.Change:
 					return order.OrderState == OrderState.Accepted
 						|| order.OrderState == OrderState.AcceptedByRisk
@@ -1036,6 +1042,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				}
 
 				PlaceOrderInternal(action, triggerPrice, orderType, limitPrice, stopPrice, "placing order", true);
+				ShowHudStatus(string.Format("{0} {1} candle @ {2}", action == OrderAction.Buy ? "BUY" : "SELL", isCurrentCandle ? "curr" : "prev", triggerPrice), System.Windows.Media.Brushes.LightGreen);
 			}
 			catch (Exception ex)
 			{
@@ -1135,9 +1142,43 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				}
 
 
+				// Dynamic fallback scan if cached touch bar was not found or invalid
+				if (foundBarsAgo < 0 || basePrice <= 0)
+				{
+					EMA targetEma = emaPeriod == 34 ? (ema34Series != null ? ema34Series[barIdx] : null) : (ema89Series != null ? ema89Series[barIdx] : null);
+					if (targetEma != null && CurrentBars[barIdx] >= 0)
+					{
+						lock (priceLock)
+						{
+							int maxBars = Math.Min(CurrentBars[barIdx], 500);
+							for (int barsAgo = 0; barsAgo < maxBars; barsAgo++)
+							{
+								double high = Highs[barIdx][barsAgo];
+								double low = Lows[barIdx][barsAgo];
+								if (KatTradeCalculator.IsEmaTouchBar(high, low, targetEma[barsAgo]))
+								{
+									foundBarsAgo = barsAgo;
+									basePrice = KatTradeCalculator.CalculateCandlePrice(
+										katAction,
+										cachedIsPartialCandle,
+										cachedPartialPercent,
+										high,
+										low,
+										Opens[barIdx][barsAgo],
+										Closes[barIdx][barsAgo],
+										barIdx == 0 && isRenkoChart,
+										cachedTickSize);
+									break;
+								}
+							}
+						}
+					}
+				}
+
 				if (foundBarsAgo < 0 || basePrice <= 0)
 				{
 					Print(string.Format("[KatTradeManager] No candle found touching/crossing EMA {0} on TF index {1}", emaPeriod, barIdx));
+					ShowHudStatus(string.Format("No EMA {0} touch candle found", emaPeriod), System.Windows.Media.Brushes.OrangeRed);
 					return;
 				}
 
@@ -1157,6 +1198,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				}
 
 				PlaceOrderInternal(action, triggerPrice, orderType, limitPrice, stopPrice, string.Format("placing EMA {0} order", emaPeriod), false);
+				ShowHudStatus(string.Format("{0} EMA{1} @ {2}", action == OrderAction.Buy ? "BUY" : "SELL", emaPeriod, triggerPrice), System.Windows.Media.Brushes.LightGreen);
 			}
 			catch (Exception ex)
 			{
