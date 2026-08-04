@@ -23,6 +23,15 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v0.99] — 2026-08-03
+- **Entry Candle Shift Buttons (`◀ Entry candle` & `Entry candle ▶`)**:
+  - Added WPF candle entry shift control panel directly above Buy/Sell current/previous buttons in Section 3, styled identically to SL moving buttons (dark background `#141414`, height 33, font size 12).
+  - Records session state for active Candle entry order: `hasCandleOrder`, `lastCandleOrderAction` (Buy/Sell), and `lastCandleBarTime`.
+  - Moving back (`◀ Entry candle`) shifts entry price to older candles infinitely back in chart history; moving forward (`Entry candle ▶`) shifts entry price to newer candles towards current time (stopping at current candle `barsAgo = 0`).
+  - Thread-safe series scanning under `priceLock` and timestamp matching (`lastCandleBarTime`) to prevent bar drift as new candles form.
+  - Automatic Stop-to-Limit conversion via `DetermineOrderType` if price has run past target entry price.
+  - **Graphify entity mapping**: `KatTradeManagerUI` (`candleShiftGrid`, `btnCandleBack`, `btnCandleRedo`), `KatTradeManager.OrderOps` (`ShiftCandleEntry`, `CandleBarInfo`, `hasCandleOrder`, `lastCandleOrderAction`, `currentCandleBarsAgo`, `lastCandleBarTime`).
+
 ### [v0.98] — 2026-08-03
 - **Entry 89/34 Shift Buttons Audit & Refactoring (`◀ Entry 89/34` & `Entry 89/34 ▶`)**:
   - Thread-safe historical series scanning: wrapped EMA touch bar scan inside `lock (priceLock)` to prevent data thread race conditions during bar updates.

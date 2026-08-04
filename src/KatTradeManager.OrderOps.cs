@@ -1013,6 +1013,18 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				KatOrderType katOrderType = KatTradeCalculator.DetermineOrderType(katAction, triggerPrice, currentPx, cachedTickSize, out double limitPrice, out double stopPrice);
 				OrderType orderType = ToNtOrderType(katOrderType);
 
+				hasCandleOrder = true;
+				lastCandleOrderAction = action;
+				currentCandleBarsAgo = isCurrentCandle ? 0 : 1;
+				lock (priceLock)
+				{
+					int barsAgo = isCurrentCandle ? 0 : 1;
+					if (Times != null && barIdx < Times.Length && barsAgo < Times[barIdx].Count)
+						lastCandleBarTime = Times[barIdx][barsAgo];
+					else
+						lastCandleBarTime = DateTime.MinValue;
+				}
+
 				PlaceOrderInternal(action, triggerPrice, orderType, limitPrice, stopPrice, "placing order", true);
 			}
 			catch (Exception ex)
@@ -1875,6 +1887,12 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private int currentEmaTouchIndex = 0;
 		private DateTime lastEmaTouchBarTime = DateTime.MinValue;
 
+		// ponytail: Regular Candle Entry shift tracking state
+		private bool hasCandleOrder = false;
+		private OrderAction lastCandleOrderAction = OrderAction.Buy;
+		private int currentCandleBarsAgo = 0;
+		private DateTime lastCandleBarTime = DateTime.MinValue;
+
 		private List<double> GetSwingPoints(MarketPosition position, int maxSwings = 20, int strength = 3)
 		{
 			List<double> empty = new List<double>();
@@ -2217,6 +2235,132 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			catch (Exception ex)
 			{
 				Print(string.Format("[KatTradeManager] Error shifting EMA entry order: {0}", ex.ToString()));
+			}
+		}
+
+		private struct CandleBarInfo
+		{
+			public int BarsAgo;
+			public DateTime Time;
+			public double High;
+			public double Low;
+			public double Open;
+			public double Close;
+		}
+
+		private void ShiftCandleEntry(bool isForward)
+		{
+			if (account == null || Instrument == null)
+			{
+				if (account == null) Print("[KatTradeManager] No account — watchdog auto-recovering. Retry in a moment.");
+				return;
+			}
+			try
+			{
+				Position pos = GetInstrumentPosition();
+				if (pos != null && pos.MarketPosition != MarketPosition.Flat)
+				{
+					Print("[KatTradeManager] Shift Candle Entry: Position active — cannot shift entry order while in position.");
+					ShowHudStatus("Entry shift: position already active", System.Windows.Media.Brushes.OrangeRed);
+					return;
+				}
+
+				if (!hasCandleOrder)
+				{
+					Print("[KatTradeManager] Shift Candle Entry: No previous Candle order placed in this session.");
+					ShowHudStatus("Entry: place Candle order first", System.Windows.Media.Brushes.OrangeRed);
+					return;
+				}
+
+				int barIdx = GetBarsInProgressIndex();
+				if (barIdx < 0 || barIdx >= NUM_SERIES || CurrentBars[barIdx] < 0) return;
+
+				List<CandleBarInfo> allBars = new List<CandleBarInfo>();
+				lock (priceLock)
+				{
+					int maxBars = Math.Min(CurrentBars[barIdx], 500);
+					for (int barsAgo = 0; barsAgo < maxBars; barsAgo++)
+					{
+						allBars.Add(new CandleBarInfo
+						{
+							BarsAgo = barsAgo,
+							Time = Times != null && barIdx < Times.Length && barsAgo < Times[barIdx].Count ? Times[barIdx][barsAgo] : DateTime.MinValue,
+							High = Highs[barIdx][barsAgo],
+							Low = Lows[barIdx][barsAgo],
+							Open = Opens[barIdx][barsAgo],
+							Close = Closes[barIdx][barsAgo]
+						});
+					}
+				}
+
+				if (allBars.Count == 0) return;
+
+				int currentIndex = -1;
+				if (lastCandleBarTime != DateTime.MinValue)
+				{
+					currentIndex = allBars.FindIndex(b => b.Time == lastCandleBarTime);
+				}
+				if (currentIndex == -1)
+				{
+					currentIndex = currentCandleBarsAgo;
+				}
+
+				int targetIndex = isForward ? currentIndex - 1 : currentIndex + 1;
+				if (targetIndex < 0)
+				{
+					Print("[KatTradeManager] Shift Candle Entry: Already at current candle.");
+					ShowHudStatus("Entry: already at current candle", System.Windows.Media.Brushes.OrangeRed);
+					return;
+				}
+				if (targetIndex >= allBars.Count)
+				{
+					Print(string.Format("[KatTradeManager] Shift Candle Entry: No older candle found (total: {0}).", allBars.Count));
+					ShowHudStatus("Entry: no older candle found", System.Windows.Media.Brushes.OrangeRed);
+					return;
+				}
+
+				CandleBarInfo targetBar = allBars[targetIndex];
+				KatOrderAction katAction = ToKatAction(lastCandleOrderAction);
+
+				double basePrice = KatTradeCalculator.CalculateCandlePrice(
+					katAction,
+					cachedIsPartialCandle,
+					cachedPartialPercent,
+					targetBar.High,
+					targetBar.Low,
+					targetBar.Open,
+					targetBar.Close,
+					barIdx == 0 && isRenkoChart,
+					cachedTickSize);
+
+				if (basePrice <= 0)
+				{
+					Print("[KatTradeManager] Shift Candle Entry: Invalid base price calculated.");
+					return;
+				}
+
+				double currentPx = cachedCurrentPrice > 0 ? cachedCurrentPrice : basePrice;
+				double triggerPrice = KatTradeCalculator.CalculateTriggerPrice(katAction, basePrice, cachedBufferTicks, cachedTickSize);
+				KatOrderType katOrderType = KatTradeCalculator.DetermineOrderType(katAction, triggerPrice, currentPx, cachedTickSize, out double limitPrice, out double stopPrice);
+				OrderType orderType = ToNtOrderType(katOrderType);
+
+				CancelWorkingEntryOrders();
+
+				PlaceOrderInternal(lastCandleOrderAction, triggerPrice, orderType, limitPrice, stopPrice, string.Format("shifting Candle order to bar #{0}", targetBar.BarsAgo), true);
+				currentCandleBarsAgo = targetBar.BarsAgo;
+				lastCandleBarTime = targetBar.Time;
+
+				string typeLabel = orderType == OrderType.StopMarket ? "Stop" : (orderType == OrderType.Limit ? "Limit" : orderType.ToString());
+				Print(string.Format("[KatTradeManager] Shifted Candle entry: bar #{0} (time {1}, index {2}/{3}), action={4}, type={5}, trig={6}",
+					targetBar.BarsAgo, targetBar.Time != DateTime.MinValue ? targetBar.Time.ToString("HH:mm:ss") : "N/A", targetIndex, allBars.Count, lastCandleOrderAction, typeLabel, triggerPrice));
+
+				ShowHudStatus(string.Format("Shift Entry Candle: bar #{0} ({1} @ {2})",
+					targetBar.BarsAgo, typeLabel, triggerPrice),
+					System.Windows.Media.Brushes.LightGreen);
+			}
+			catch (Exception ex)
+			{
+				Print(string.Format("[KatTradeManager] Error shifting Candle entry order: {0}", ex.ToString()));
 			}
 		}
 		#endregion

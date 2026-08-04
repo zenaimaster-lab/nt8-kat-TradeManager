@@ -1045,6 +1045,24 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			sec3Panel.Children.Add(dailyRiskGrid);
 
+			// --- Candle Entry Shift Controls ---
+			Grid candleShiftGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
+			candleShiftGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			candleShiftGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
+			candleShiftGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+			SolidColorBrush candleShiftBg = new SolidColorBrush(Color.FromRgb(20, 20, 20)); // Same dark color as SL moving buttons
+
+			Button btnCandleBack = CreateButton("◀ Entry candle", candleShiftBg, (s, ev) => ShiftCandleEntry(false), 33, 12);
+			Grid.SetColumn(btnCandleBack, 0);
+			candleShiftGrid.Children.Add(btnCandleBack);
+
+			Button btnCandleRedo = CreateButton("Entry candle ▶", candleShiftBg, (s, ev) => ShiftCandleEntry(true), 33, 12);
+			Grid.SetColumn(btnCandleRedo, 2);
+			candleShiftGrid.Children.Add(btnCandleRedo);
+
+			sec3Panel.Children.Add(candleShiftGrid);
+
 
 			Grid orderBtnGrid = new Grid { Margin = new Thickness(0, 0, 0, 0) };
 			orderBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
