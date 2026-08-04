@@ -2169,27 +2169,21 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					return;
 				}
 
-				int currentIndex = -1;
-				if (lastEmaTouchBarTime != DateTime.MinValue)
-				{
-					currentIndex = touchBars.FindIndex(t => t.Time == lastEmaTouchBarTime);
-				}
-				if (currentIndex == -1)
-				{
-					currentIndex = currentEmaTouchIndex;
-				}
+				var barTimes = touchBars.Select(t => t.Time).ToList();
+				int targetIndex = KatTradeCalculator.CalculateShiftedBarIndex(barTimes, lastEmaTouchBarTime, currentEmaTouchIndex, isForward, out string boundaryStatus);
 
-				int targetIndex = isForward ? currentIndex - 1 : currentIndex + 1;
 				if (targetIndex < 0)
 				{
-					Print("[KatTradeManager] Shift Entry: Already at newest touch candle.");
-					ShowHudStatus("Entry: already at newest touch candle", System.Windows.Media.Brushes.OrangeRed);
-					return;
-				}
-				if (targetIndex >= touchBars.Count)
-				{
-					Print(string.Format("[KatTradeManager] Shift Entry: No older EMA {0} touch candle found (total: {1}).", lastEmaOrderPeriod, touchBars.Count));
-					ShowHudStatus("Entry: no older touch candle found", System.Windows.Media.Brushes.OrangeRed);
+					if (boundaryStatus == "REACHED_NEWEST")
+					{
+						Print("[KatTradeManager] Shift Entry: Already at newest touch candle.");
+						ShowHudStatus("Entry: already at newest touch candle", System.Windows.Media.Brushes.OrangeRed);
+					}
+					else if (boundaryStatus == "REACHED_OLDEST")
+					{
+						Print(string.Format("[KatTradeManager] Shift Entry: No older EMA {0} touch candle found (total: {1}).", lastEmaOrderPeriod, touchBars.Count));
+						ShowHudStatus("Entry: no older touch candle found", System.Windows.Media.Brushes.OrangeRed);
+					}
 					return;
 				}
 
@@ -2295,27 +2289,21 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 				if (allBars.Count == 0) return;
 
-				int currentIndex = -1;
-				if (lastCandleBarTime != DateTime.MinValue)
-				{
-					currentIndex = allBars.FindIndex(b => b.Time == lastCandleBarTime);
-				}
-				if (currentIndex == -1)
-				{
-					currentIndex = currentCandleBarsAgo;
-				}
+				var barTimes = allBars.Select(b => b.Time).ToList();
+				int targetIndex = KatTradeCalculator.CalculateShiftedBarIndex(barTimes, lastCandleBarTime, currentCandleBarsAgo, isForward, out string boundaryStatus);
 
-				int targetIndex = isForward ? currentIndex - 1 : currentIndex + 1;
 				if (targetIndex < 0)
 				{
-					Print("[KatTradeManager] Shift Candle Entry: Already at current candle.");
-					ShowHudStatus("Entry: already at current candle", System.Windows.Media.Brushes.OrangeRed);
-					return;
-				}
-				if (targetIndex >= allBars.Count)
-				{
-					Print(string.Format("[KatTradeManager] Shift Candle Entry: No older candle found (total: {0}).", allBars.Count));
-					ShowHudStatus("Entry: no older candle found", System.Windows.Media.Brushes.OrangeRed);
+					if (boundaryStatus == "REACHED_NEWEST")
+					{
+						Print("[KatTradeManager] Shift Candle Entry: Already at current candle.");
+						ShowHudStatus("Entry: already at current candle", System.Windows.Media.Brushes.OrangeRed);
+					}
+					else if (boundaryStatus == "REACHED_OLDEST")
+					{
+						Print(string.Format("[KatTradeManager] Shift Candle Entry: No older candle found (total: {0}).", allBars.Count));
+						ShowHudStatus("Entry: no older candle found", System.Windows.Media.Brushes.OrangeRed);
+					}
 					return;
 				}
 

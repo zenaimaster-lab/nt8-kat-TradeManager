@@ -23,6 +23,12 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.01] — 2026-08-03
+- **Entry Shift Domain Modularization & Comprehensive Testing**:
+  - Extracted pure calculation logic `CalculateShiftedBarIndex` into [`KatTradeCalculator.cs`](file:///c:/Users/kieuanhtuan/Documents/all.%20Coding/nt8-kat-TradeManager/src/KatTradeCalculator.cs).
+  - Added dedicated unit test suite [`KatEntryShiftTests.cs`](file:///c:/Users/kieuanhtuan/Documents/all.%20Coding/nt8-kat-TradeManager/tests/KatTradeManager.Tests/KatEntryShiftTests.cs) covering forward/backward index shifting, timestamp matching across live bar arrivals, boundary condition handling (`REACHED_NEWEST`, `REACHED_OLDEST`), and fallback index handling (220/220 unit tests passing).
+  - **Graphify entity mapping**: `KatTradeCalculator.CalculateShiftedBarIndex`, `KatTradeManager.Tests.KatEntryShiftTests`.
+
 ### [v1.00] — 2026-08-03
 - **Entry Shift Controls Re-Audit & Polishing (`v1.00` Milestone)**:
   - Guarded historical series index checks with `CurrentBars[barIdx]` across all time-based timestamp lookups.

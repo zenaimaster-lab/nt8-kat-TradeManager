@@ -109,6 +109,60 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return -1;
 		}
 
+		/// <summary>
+		/// Calculates target bar index when shifting entry orders backward or forward.
+		/// Uses bar timestamps to accurately track current position even when new bars arrive on chart.
+		/// Returns target index in barTimes list, or -1 if boundary reached (status string output).
+		/// </summary>
+		public static int CalculateShiftedBarIndex(
+			System.Collections.Generic.IList<DateTime> barTimes,
+			DateTime currentBarTime,
+			int fallbackIndex,
+			bool isForward,
+			out string boundaryStatus)
+		{
+			boundaryStatus = null;
+			if (barTimes == null || barTimes.Count == 0)
+			{
+				boundaryStatus = "EMPTY";
+				return -1;
+			}
+
+			int currentIndex = -1;
+			if (currentBarTime != DateTime.MinValue)
+			{
+				for (int i = 0; i < barTimes.Count; i++)
+				{
+					if (barTimes[i] == currentBarTime)
+					{
+						currentIndex = i;
+						break;
+					}
+				}
+			}
+
+			if (currentIndex == -1)
+			{
+				currentIndex = fallbackIndex;
+			}
+
+			int targetIndex = isForward ? currentIndex - 1 : currentIndex + 1;
+
+			if (targetIndex < 0)
+			{
+				boundaryStatus = "REACHED_NEWEST";
+				return -1;
+			}
+
+			if (targetIndex >= barTimes.Count)
+			{
+				boundaryStatus = "REACHED_OLDEST";
+				return -1;
+			}
+
+			return targetIndex;
+		}
+
 
 		public static double CalculateTriggerPrice(KatOrderAction action, double basePrice, int bufferTicks, double tickSize)
 		{
