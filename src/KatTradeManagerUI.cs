@@ -859,6 +859,22 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			SolidColorBrush sell34Bg = new SolidColorBrush(Color.FromRgb(175, 75, 25));
 			SolidColorBrush buy89Bg  = new SolidColorBrush(Color.FromRgb(35, 95, 110));
 			SolidColorBrush sell89Bg = new SolidColorBrush(Color.FromRgb(130, 35, 95));
+			SolidColorBrush entryShiftBg = new SolidColorBrush(Color.FromRgb(20, 20, 20));
+
+			Grid entryShiftGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
+			entryShiftGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			entryShiftGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
+			entryShiftGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+			Button btnEntryBack = CreateButton("◀ Entry 89/34", entryShiftBg, (s, ev) => ShiftEmaEntry(false), 33, 12);
+			Grid.SetColumn(btnEntryBack, 0);
+			entryShiftGrid.Children.Add(btnEntryBack);
+
+			Button btnEntryRedo = CreateButton("Entry 89/34 ▶", entryShiftBg, (s, ev) => ShiftEmaEntry(true), 33, 12);
+			Grid.SetColumn(btnEntryRedo, 2);
+			entryShiftGrid.Children.Add(btnEntryRedo);
+
+			sec2Panel.Children.Add(entryShiftGrid);
 
 			Grid ema34Grid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
 			ema34Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });

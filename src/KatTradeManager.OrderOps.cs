@@ -1123,6 +1123,10 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				KatOrderType katOrderType = KatTradeCalculator.DetermineOrderType(katAction, triggerPrice, currentPx, cachedTickSize, out double limitPrice, out double stopPrice);
 				OrderType orderType = ToNtOrderType(katOrderType);
 
+				lastEmaOrderPeriod = emaPeriod;
+				lastEmaOrderAction = action;
+				currentEmaTouchIndex = 0;
+
 				PlaceOrderInternal(action, triggerPrice, orderType, limitPrice, stopPrice, string.Format("placing EMA {0} order", emaPeriod), false);
 			}
 			catch (Exception ex)
@@ -1858,6 +1862,11 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private MarketPosition slTrackedPosition = MarketPosition.Flat;
 		private double slTrackedEntryPrice = 0;
 
+		// ponytail: EMA Entry shift tracking state
+		private int lastEmaOrderPeriod = 0;
+		private OrderAction lastEmaOrderAction = OrderAction.Buy;
+		private int currentEmaTouchIndex = 0;
+
 		private List<double> GetSwingPoints(MarketPosition position, int maxSwings = 20, int strength = 3)
 		{
 			List<double> empty = new List<double>();
@@ -2041,6 +2050,137 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			catch (Exception ex)
 			{
 				Print(string.Format("[KatTradeManager] Error shifting Swing SL: {0}", ex.ToString()));
+			}
+		}
+
+		private void CancelWorkingEntryOrders()
+		{
+			if (account == null || Instrument == null) return;
+			try
+			{
+				var workingEntries = GetAccountOrdersSnapshot().Where(o => o.Instrument == Instrument
+					&& IsActiveOrderState(o.OrderState)
+					&& (o.Name == "Entry" || o.Name == "MarketBuy" || o.Name == "MarketSell")).ToArray();
+				if (workingEntries.Length > 0)
+				{
+					QueueAccountOperation(AccountOperationType.Cancel, workingEntries, "entry shift cancellation");
+				}
+				entryOrder = null;
+			}
+			catch (Exception ex)
+			{
+				Print(string.Format("[KatTradeManager] Error cancelling working entry orders: {0}", ex.ToString()));
+			}
+		}
+
+		private void ShiftEmaEntry(bool isForward)
+		{
+			if (account == null || Instrument == null)
+			{
+				if (account == null) Print("[KatTradeManager] No account — watchdog auto-recovering. Retry in a moment.");
+				return;
+			}
+			try
+			{
+				Position pos = GetInstrumentPosition();
+				if (pos != null && pos.MarketPosition != MarketPosition.Flat)
+				{
+					Print("[KatTradeManager] Shift Entry: Position active — cannot shift entry order while in position.");
+					ShowHudStatus("Entry shift: position already active", System.Windows.Media.Brushes.OrangeRed);
+					return;
+				}
+
+				if (lastEmaOrderPeriod != 34 && lastEmaOrderPeriod != 89)
+				{
+					Print("[KatTradeManager] Shift Entry: No previous EMA 34/89 order placed in this session.");
+					ShowHudStatus("Entry: place EMA 34/89 order first", System.Windows.Media.Brushes.OrangeRed);
+					return;
+				}
+
+				int barIdx = GetBarsInProgressIndex();
+				if (barIdx < 0 || barIdx >= NUM_SERIES) return;
+
+				EMA targetEma = lastEmaOrderPeriod == 34 ? (ema34Series != null ? ema34Series[barIdx] : null) : (ema89Series != null ? ema89Series[barIdx] : null);
+				if (targetEma == null || CurrentBars[barIdx] < 0) return;
+
+				List<int> touchBars = new List<int>();
+				int maxBars = Math.Min(CurrentBars[barIdx], 500);
+
+				for (int barsAgo = 0; barsAgo < maxBars; barsAgo++)
+				{
+					double high = Highs[barIdx][barsAgo];
+					double low = Lows[barIdx][barsAgo];
+					if (KatTradeCalculator.IsEmaTouchBar(high, low, targetEma[barsAgo]))
+					{
+						touchBars.Add(barsAgo);
+					}
+				}
+
+				if (touchBars.Count == 0)
+				{
+					Print(string.Format("[KatTradeManager] Shift Entry: No touch candles found for EMA {0}", lastEmaOrderPeriod));
+					ShowHudStatus(string.Format("Entry: no EMA {0} touch candle", lastEmaOrderPeriod), System.Windows.Media.Brushes.OrangeRed);
+					return;
+				}
+
+				int targetIndex = isForward ? currentEmaTouchIndex - 1 : currentEmaTouchIndex + 1;
+				if (targetIndex < 0)
+				{
+					Print("[KatTradeManager] Shift Entry: Already at newest touch candle.");
+					ShowHudStatus("Entry: already at newest touch candle", System.Windows.Media.Brushes.OrangeRed);
+					return;
+				}
+				if (targetIndex >= touchBars.Count)
+				{
+					Print(string.Format("[KatTradeManager] Shift Entry: No older EMA {0} touch candle found (total: {1}).", lastEmaOrderPeriod, touchBars.Count));
+					ShowHudStatus("Entry: no older touch candle found", System.Windows.Media.Brushes.OrangeRed);
+					return;
+				}
+
+				int targetBarsAgo = touchBars[targetIndex];
+				double bHigh = Highs[barIdx][targetBarsAgo];
+				double bLow = Lows[barIdx][targetBarsAgo];
+				double bOpen = Opens[barIdx][targetBarsAgo];
+				double bClose = Closes[barIdx][targetBarsAgo];
+				KatOrderAction katAction = ToKatAction(lastEmaOrderAction);
+
+				double basePrice = KatTradeCalculator.CalculateCandlePrice(
+					katAction,
+					cachedIsPartialCandle,
+					cachedPartialPercent,
+					bHigh,
+					bLow,
+					bOpen,
+					bClose,
+					barIdx == 0 && isRenkoChart,
+					cachedTickSize);
+
+				if (basePrice <= 0)
+				{
+					Print("[KatTradeManager] Shift Entry: Invalid base price calculated.");
+					return;
+				}
+
+				double currentPx = cachedCurrentPrice > 0 ? cachedCurrentPrice : basePrice;
+				double triggerPrice = KatTradeCalculator.CalculateTriggerPrice(katAction, basePrice, cachedBufferTicks, cachedTickSize);
+				KatOrderType katOrderType = KatTradeCalculator.DetermineOrderType(katAction, triggerPrice, currentPx, cachedTickSize, out double limitPrice, out double stopPrice);
+				OrderType orderType = ToNtOrderType(katOrderType);
+
+				CancelWorkingEntryOrders();
+
+				PlaceOrderInternal(lastEmaOrderAction, triggerPrice, orderType, limitPrice, stopPrice, string.Format("shifting EMA {0} order to bar #{1}", lastEmaOrderPeriod, targetBarsAgo), false);
+				currentEmaTouchIndex = targetIndex;
+
+				Print(string.Format("[KatTradeManager] Shifted EMA {0} entry: bar #{1} (index {2}/{3}), action={4}, type={5}, trig={6}",
+					lastEmaOrderPeriod, targetBarsAgo, targetIndex, touchBars.Count, lastEmaOrderAction, orderType, triggerPrice));
+
+				ShowHudStatus(string.Format("Shift Entry EMA{0}: bar #{1} ({2})",
+					lastEmaOrderPeriod, targetBarsAgo, orderType == OrderType.StopMarket ? "Stop" : (orderType == OrderType.Limit ? "Limit" : orderType.ToString())),
+					System.Windows.Media.Brushes.LightGreen);
+			}
+			catch (Exception ex)
+			{
+				Print(string.Format("[KatTradeManager] Error shifting EMA entry order: {0}", ex.ToString()));
 			}
 		}
 		#endregion

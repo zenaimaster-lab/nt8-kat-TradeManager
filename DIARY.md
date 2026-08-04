@@ -23,6 +23,15 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v0.97] — 2026-08-03
+- **Entry 89/34 Shift Buttons (`◀ Entry 89/34` & `Entry 89/34 ▶`)**:
+  - Added WPF entry shift control panel directly above `SELL last 34` / `BUY last 34` buttons in Section 2, styled identically to SL moving buttons (dark background `#141414`, height 33, font size 12).
+  - Records session state for active EMA entry order: `lastEmaOrderPeriod` (34 or 89) and `lastEmaOrderAction` (Buy or Sell).
+  - Moving back (`◀ Entry 89/34`) shifts entry price to older EMA touch candles in chart history; moving forward (`Entry 89/34 ▶`) shifts entry price to newer EMA touch candles towards current time.
+  - Automatic Stop-to-Limit conversion: evaluates target entry price against current market price (`DetermineOrderType`), automatically converting StopMarket to Limit order when price has passed the entry.
+  - Cancels active working entry order before placing the shifted order.
+  - **Graphify entity mapping**: `KatTradeManagerUI` (`entryShiftGrid`, `btnEntryBack`, `btnEntryRedo`), `KatTradeManager.OrderOps` (`ShiftEmaEntry`, `CancelWorkingEntryOrders`, `lastEmaOrderPeriod`, `lastEmaOrderAction`, `currentEmaTouchIndex`).
+
 ### [v0.95] — 2026-07-31
 - **ATM Quick Set buttons (A–F) distribution fix**:
   - Replaced asymmetric left margin grid column distribution with an 11-column Grid layout using 5 explicit 2px fixed column spacers and 0-margin buttons.
