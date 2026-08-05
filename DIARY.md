@@ -23,6 +23,16 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.10] — 2026-08-04
+- **Removed Partial Candle, EMA Angle, and Freeze Trail features; Max DD forced ON per session**:
+  - **Partial Candle**: toggle button, `cachedIsPartialCandle`/`cachedPartialPercent`, `DefaultPartialCandlePercent` property, `CalculatePartialCandlePrice`/`CalculateHalfCandlePrice` deleted. `CalculateCandlePrice` simplified to `(action, high, low)` — candle orders always anchor at full High/Low. All 5 call sites updated.
+  - **EMA Angle**: toggle button, `cachedIsEmaAngle`, angle series/caches (`emaAngleFilterSeries`, `cachedEmaAngleCurrent/Previous`), 12 `EmaAngle*` indicator properties, `CalculateEmaAngle`/`ValidateEmaAngle`, and the Validation-2 block in `PlaceOrderInternal` deleted. EMA Place filter remains.
+  - **Freeze Trail**: entire `src/KatTradeManager.FreezeTrail.cs` partial deleted (ATM detach, KAT_FRZ static exits, quantity reconcile, orphan cleanup), plus HUD button, watchdog hook, `cachedIsFreezeTrail`, freeze-only calculator helpers (`IsPreferredFreezePrice`, `ShouldAdjustFreezeQuantity`, `ShouldCancelFreezeOrphans`, `ShouldSubmitFreezeLeg`, `IsLimitOnValidSide`), MERGE freeze-gates, and `freezeDetachInFlight` queue reset. Deploy script now sweeps the stale file from NT8; CompileCheck csproj updated (7 files).
+  - **Max DD**: always starts ON every session — `State.DataLoaded` forces `DailyMaxDDEnabled = true` before caching; the in-session toggle still persists but never survives a reload. Max Profit persistence unchanged.
+  - **HUD toggle section** now 4 buttons / 2 rows: `Stop-Limit | Ema place`, `Max DD | Max Profit`.
+  - **Tests**: 222 → **170 passing** (deleted `KatFreezeTrailTests.cs`, angle/partial/half-candle tests across 4 files; remaining candle-price tests updated to the new signature). Compile gate 0 errors.
+  - **Graphify entity mapping**: `KatTradeCalculator.CalculateCandlePrice` (simplified), `KatTradeManager.OrderOps.PlaceOrderInternal` (EMA Place only), `KatTradeManagerUI.CreateWpfControls` (4-button toggle card), `KatTradeManager.OnStateChange` (Max DD force-ON), `Deploy-NT8.ps1` (stale sweep).
+
 ### [v1.09] — 2026-08-04
 - **HUD layout reorganization (execution vs toggles)**:
   - All ON/OFF toggle buttons (Partial Candle, Ema place/angle, Max DD, Max Profit, Freeze Trail, Stop-Limit) moved into one dedicated toggle section at the bottom of the HUD.

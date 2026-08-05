@@ -16,14 +16,22 @@ $files = @(
     'KatTradeManager.cs',
     'src\KatTradeManagerUI.cs',
     'src\KatTradeManager.OrderOps.cs',
-    'src\KatTradeManager.FreezeTrail.cs',
     'src\KatTradeManager.DailyRisk.cs',
     'src\KatTradeManager.Properties.cs',
     'src\KatTradeCalculator.cs',
     'src\KatAtmXmlParser.cs'
 )
 
+# Removed sources that must not linger in NT8 (it compiles the folder recursively).
+$stale = @('KatTradeManager.FreezeTrail.cs')
+
 New-Item -ItemType Directory -Path $katDir -Force | Out-Null
+
+foreach ($name in $stale) {
+    foreach ($p in @((Join-Path $katDir $name), (Join-Path $indicators $name))) {
+        if (Test-Path $p) { Remove-Item $p -Force; Write-Host "removed stale: $name" }
+    }
+}
 
 $deployTime = Get-Date
 foreach ($f in $files) {

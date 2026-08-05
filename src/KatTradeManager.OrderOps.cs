@@ -373,8 +373,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			}
 			System.Threading.Interlocked.Exchange(ref accountOperationPumpScheduled, 0);
 			System.Threading.Interlocked.Exchange(ref closeOperationQueued, 0);
-			// Detach completions are dropped with the queue — release the guard or freeze stops detaching.
-			System.Threading.Interlocked.Exchange(ref freezeDetachInFlight, 0);
 			ClearFlattenCloseTracking();
 		}
 
@@ -648,8 +646,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 		private void ScheduleAtmBracketMerge()
 		{
-			// Freeze takes ownership of protective exits; MERGE would race it for the same orders.
-			if (cachedIsFreezeTrail || !IsHudAtmActive() || account == null || Instrument == null) return;
+			if (!IsHudAtmActive() || account == null || Instrument == null) return;
 			if (System.Threading.Interlocked.CompareExchange(ref atmMergeScheduled, 1, 0) != 0) return;
 
 			Action merge = () =>
@@ -683,7 +680,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 		private void MergeAtmBrackets()
 		{
-			if (cachedIsFreezeTrail || !IsHudAtmActive() || account == null || Instrument == null) return;
+			if (!IsHudAtmActive() || account == null || Instrument == null) return;
 
 			try
 			{
@@ -1015,10 +1012,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				{
 					double high  = isCurrentCandle ? cachedCurrentHigh[barIdx]  : cachedPrevHigh[barIdx];
 					double low   = isCurrentCandle ? cachedCurrentLow[barIdx]   : cachedPrevLow[barIdx];
-					double open  = isCurrentCandle ? cachedCurrentOpen[barIdx]  : cachedPrevOpen[barIdx];
-					double close = isCurrentCandle ? cachedCurrentClose[barIdx] : cachedPrevClose[barIdx];
 
-					basePrice = KatTradeCalculator.CalculateCandlePrice(katAction, cachedIsPartialCandle, cachedPartialPercent, high, low, open, close, barIdx == 0 && isRenkoChart, cachedTickSize);
+					basePrice = KatTradeCalculator.CalculateCandlePrice(katAction, high, low);
 					currentPx = cachedCurrentPrice > 0 ? cachedCurrentPrice : basePrice;
 				}
 
@@ -1074,30 +1069,12 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					if (emaPeriod == 34)
 					{
 						foundBarsAgo = ema34TouchBarsAgo[barIdx];
-						basePrice = KatTradeCalculator.CalculateCandlePrice(
-							katAction,
-							cachedIsPartialCandle,
-							cachedPartialPercent,
-							ema34TouchHigh[barIdx],
-							ema34TouchLow[barIdx],
-							ema34TouchOpen[barIdx],
-							ema34TouchClose[barIdx],
-							barIdx == 0 && isRenkoChart,
-							cachedTickSize);
+						basePrice = KatTradeCalculator.CalculateCandlePrice(katAction, ema34TouchHigh[barIdx], ema34TouchLow[barIdx]);
 					}
 					else if (emaPeriod == 89)
 					{
 						foundBarsAgo = ema89TouchBarsAgo[barIdx];
-						basePrice = KatTradeCalculator.CalculateCandlePrice(
-							katAction,
-							cachedIsPartialCandle,
-							cachedPartialPercent,
-							ema89TouchHigh[barIdx],
-							ema89TouchLow[barIdx],
-							ema89TouchOpen[barIdx],
-							ema89TouchClose[barIdx],
-							barIdx == 0 && isRenkoChart,
-							cachedTickSize);
+						basePrice = KatTradeCalculator.CalculateCandlePrice(katAction, ema89TouchHigh[barIdx], ema89TouchLow[barIdx]);
 					}
 					currentPx = cachedCurrentPrice > 0 ? cachedCurrentPrice : basePrice;
 				}
@@ -1173,41 +1150,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 						{
 							Print(string.Format("[KatTradeManager] Order REJECTED by EMA Place: {0}", errPlace));
 							ShowHudStatus(string.Format("EMA Place blocked: {0}", errPlace), System.Windows.Media.Brushes.OrangeRed);
-							return;
-						}
-					}
-
-					// Validation 2: EMA Angle Check
-					if (applyEmaFilters && cachedIsEmaAngle)
-					{
-						double[] currEmas = new double[3];
-						double[] prevEmas = new double[3];
-						double[] minAngles = new double[3];
-						int angleCount = 0;
-
-						if (EmaAngle1Enabled && cachedEmaAngleCurrent[0] > 0 && cachedEmaAnglePrevious[0] > 0)
-						{
-							currEmas[angleCount] = cachedEmaAngleCurrent[0];
-							prevEmas[angleCount] = cachedEmaAnglePrevious[0];
-							minAngles[angleCount++] = EmaAngle1MinAngle;
-						}
-						if (EmaAngle2Enabled && cachedEmaAngleCurrent[1] > 0 && cachedEmaAnglePrevious[1] > 0)
-						{
-							currEmas[angleCount] = cachedEmaAngleCurrent[1];
-							prevEmas[angleCount] = cachedEmaAnglePrevious[1];
-							minAngles[angleCount++] = EmaAngle2MinAngle;
-						}
-						if (EmaAngle3Enabled && cachedEmaAngleCurrent[2] > 0 && cachedEmaAnglePrevious[2] > 0)
-						{
-							currEmas[angleCount] = cachedEmaAngleCurrent[2];
-							prevEmas[angleCount] = cachedEmaAnglePrevious[2];
-							minAngles[angleCount++] = EmaAngle3MinAngle;
-						}
-
-						if (angleCount > 0 && !KatTradeCalculator.ValidateEmaAngle(katAction, currEmas.Take(angleCount).ToArray(), prevEmas.Take(angleCount).ToArray(), minAngles.Take(angleCount).ToArray(), cachedTickSize, out string errAngle))
-						{
-							Print(string.Format("[KatTradeManager] Order REJECTED by EMA Angle: {0}", errAngle));
-							ShowHudStatus(string.Format("EMA Angle blocked: {0}", errAngle), System.Windows.Media.Brushes.OrangeRed);
 							return;
 						}
 					}
@@ -1849,8 +1791,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			}
 		}
 
-		// ponytail: Freeze Trail extracted to src/KatTradeManager.FreezeTrail.cs (partial class)
-
 		// ponytail: Swing SL shift tracking state
 		private List<double> slMoveHistory = new List<double>();
 		private int currentSlHistoryIndex = -1;
@@ -2146,16 +2086,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				EmaTouchBarInfo targetBar = touchBars[targetIndex];
 				KatOrderAction katAction = ToKatAction(lastEmaOrderAction);
 
-				double basePrice = KatTradeCalculator.CalculateCandlePrice(
-					katAction,
-					cachedIsPartialCandle,
-					cachedPartialPercent,
-					targetBar.High,
-					targetBar.Low,
-					targetBar.Open,
-					targetBar.Close,
-					barIdx == 0 && isRenkoChart,
-					cachedTickSize);
+				double basePrice = KatTradeCalculator.CalculateCandlePrice(katAction, targetBar.High, targetBar.Low);
 
 				if (basePrice <= 0)
 				{
@@ -2254,16 +2185,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				CandleBarInfo targetBar = allBars[targetIndex];
 				KatOrderAction katAction = ToKatAction(lastCandleOrderAction);
 
-				double basePrice = KatTradeCalculator.CalculateCandlePrice(
-					katAction,
-					cachedIsPartialCandle,
-					cachedPartialPercent,
-					targetBar.High,
-					targetBar.Low,
-					targetBar.Open,
-					targetBar.Close,
-					barIdx == 0 && isRenkoChart,
-					cachedTickSize);
+				double basePrice = KatTradeCalculator.CalculateCandlePrice(katAction, targetBar.High, targetBar.Low);
 
 				if (basePrice <= 0)
 				{

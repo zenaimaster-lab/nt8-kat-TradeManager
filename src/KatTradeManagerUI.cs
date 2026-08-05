@@ -110,10 +110,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				TrySubmitPendingRevert();
 				ScheduleAtmBracketMerge();
 
-				// Freeze Trail: take over ATM protection while ON, clean up static exits once flat
-				ProcessFreezeTrail();
-
-
 				// Sync UI control values to thread-safe cached fields
 				SyncCachedValues();
 
@@ -139,7 +135,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			cachedTfIndex = (int)DefaultTimeframe;
 			cachedBufferTicks = DefaultBufferTicks;
-			cachedPartialPercent = DefaultPartialCandlePercent > 0 ? DefaultPartialCandlePercent : 30;
 			cachedHudLeftInset = Math.Max(0, HudLeftInset);
 			bool wasHudDragEnabled = cachedHudDragEnabled;
 			cachedHudDragEnabled = HudDragEnabled;
@@ -909,117 +904,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			// --- SECTION 3: Market & Candle Orders + Position Management ---
 			StackPanel sec3Panel = new StackPanel();
 
-			SolidColorBrush partialOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
-			SolidColorBrush partialOnBg  = new SolidColorBrush(Color.FromRgb(0, 122, 204));
-			string partialOnText  = string.Format("⚡ Partial {0}%: ON", cachedPartialPercent);
-			string partialOffText = "Partial Candle: OFF";
-
-			Button btnPartialCandle = CreateButton(cachedIsPartialCandle ? partialOnText : partialOffText,
-				cachedIsPartialCandle ? partialOnBg : partialOffBg, null, 24, 11);
-			btnPartialCandle.Foreground = cachedIsPartialCandle ? Brushes.White : Brushes.LightGray;
-			btnPartialCandle.Margin = new Thickness(0, 0, 0, 4);
-
-			btnPartialCandle.Click += (s, ev) =>
-			{
-				cachedIsPartialCandle = !cachedIsPartialCandle;
-				if (cachedIsPartialCandle)
-				{
-					btnPartialCandle.Content = string.Format("⚡ Partial {0}%: ON", cachedPartialPercent);
-					btnPartialCandle.Background = partialOnBg;
-					btnPartialCandle.Foreground = Brushes.White;
-				}
-				else
-				{
-					btnPartialCandle.Content = "Partial Candle: OFF";
-					btnPartialCandle.Background = partialOffBg;
-					btnPartialCandle.Foreground = Brushes.LightGray;
-				}
-			};
-
-			// --- EMA Place & EMA Angle filter buttons (side-by-side below Partial Candle) ---
-			Grid emaFilterGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
-			emaFilterGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			emaFilterGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
-			emaFilterGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-			SolidColorBrush emaOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
-			SolidColorBrush emaOnBg  = new SolidColorBrush(Color.FromRgb(12, 35, 75)); // Very dark blue
-
-			Button btnEmaPlace = CreateButton(cachedIsEmaPlace ? "Ema place: ON" : "Ema place: OFF",
-				cachedIsEmaPlace ? emaOnBg : emaOffBg, null, 24, 10);
-			btnEmaPlace.Foreground = cachedIsEmaPlace ? Brushes.White : Brushes.LightGray;
-
-			btnEmaPlace.Click += (s, ev) =>
-			{
-				cachedIsEmaPlace = !cachedIsEmaPlace;
-				btnEmaPlace.Content = cachedIsEmaPlace ? "Ema place: ON" : "Ema place: OFF";
-				btnEmaPlace.Background = cachedIsEmaPlace ? emaOnBg : emaOffBg;
-				btnEmaPlace.Foreground = cachedIsEmaPlace ? Brushes.White : Brushes.LightGray;
-			};
-			Grid.SetColumn(btnEmaPlace, 0);
-			emaFilterGrid.Children.Add(btnEmaPlace);
-
-			Button btnEmaAngle = CreateButton(cachedIsEmaAngle ? "Ema angle: ON" : "Ema angle: OFF",
-				cachedIsEmaAngle ? emaOnBg : emaOffBg, null, 24, 10);
-			btnEmaAngle.Foreground = cachedIsEmaAngle ? Brushes.White : Brushes.LightGray;
-
-			btnEmaAngle.Click += (s, ev) =>
-			{
-				cachedIsEmaAngle = !cachedIsEmaAngle;
-				btnEmaAngle.Content = cachedIsEmaAngle ? "Ema angle: ON" : "Ema angle: OFF";
-				btnEmaAngle.Background = cachedIsEmaAngle ? emaOnBg : emaOffBg;
-				btnEmaAngle.Foreground = cachedIsEmaAngle ? Brushes.White : Brushes.LightGray;
-			};
-			Grid.SetColumn(btnEmaAngle, 2);
-			emaFilterGrid.Children.Add(btnEmaAngle);
-
-			// --- Daily Max DD & Daily Max Profit toggle buttons (side-by-side below EMA Filter) ---
-			Grid dailyRiskGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
-			dailyRiskGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			dailyRiskGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
-			dailyRiskGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-			SolidColorBrush dailyOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
-			SolidColorBrush dailyOnBg  = new SolidColorBrush(Color.FromRgb(58, 19, 107)); // Darker purple (#3A136B)
-
-			Button btnDailyMaxDD = CreateButton(cachedIsDailyMaxDD ? "Max DD: ON" : "Max DD: OFF",
-				cachedIsDailyMaxDD ? dailyOnBg : dailyOffBg, null, 24, 10);
-			btnDailyMaxDD.Foreground = cachedIsDailyMaxDD ? Brushes.White : Brushes.LightGray;
-
-			btnDailyMaxDD.Click += (s, ev) =>
-			{
-				cachedIsDailyMaxDD = !cachedIsDailyMaxDD;
-				// Persist to the NinjaScript property — a script refresh/reload re-reads the property,
-				// so a volatile-only OFF was silently re-enabled and could flatten on the next breach.
-				DailyMaxDDEnabled = cachedIsDailyMaxDD;
-				btnDailyMaxDD.Content = cachedIsDailyMaxDD ? "Max DD: ON" : "Max DD: OFF";
-				btnDailyMaxDD.Background = cachedIsDailyMaxDD ? dailyOnBg : dailyOffBg;
-				btnDailyMaxDD.Foreground = cachedIsDailyMaxDD ? Brushes.White : Brushes.LightGray;
-
-				// Instant effect on HUD click (Requirement 4)
-				EvaluateDailyRiskLimits();
-			};
-			Grid.SetColumn(btnDailyMaxDD, 0);
-			dailyRiskGrid.Children.Add(btnDailyMaxDD);
-
-			Button btnDailyMaxProfit = CreateButton(cachedIsDailyMaxProfit ? "Max Profit: ON" : "Max Profit: OFF",
-				cachedIsDailyMaxProfit ? dailyOnBg : dailyOffBg, null, 24, 10);
-			btnDailyMaxProfit.Foreground = cachedIsDailyMaxProfit ? Brushes.White : Brushes.LightGray;
-
-			btnDailyMaxProfit.Click += (s, ev) =>
-			{
-				cachedIsDailyMaxProfit = !cachedIsDailyMaxProfit;
-				DailyMaxProfitEnabled = cachedIsDailyMaxProfit; // persist — survives script refresh/reload
-				btnDailyMaxProfit.Content = cachedIsDailyMaxProfit ? "Max Profit: ON" : "Max Profit: OFF";
-				btnDailyMaxProfit.Background = cachedIsDailyMaxProfit ? dailyOnBg : dailyOffBg;
-				btnDailyMaxProfit.Foreground = cachedIsDailyMaxProfit ? Brushes.White : Brushes.LightGray;
-
-				// Instant effect on HUD click (Requirement 4)
-				EvaluateDailyRiskLimits();
-			};
-			Grid.SetColumn(btnDailyMaxProfit, 2);
-			dailyRiskGrid.Children.Add(btnDailyMaxProfit);
-
 			// --- Market Orders (top of execution section) ---
 			Grid mktBtnGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
 			mktBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -1121,50 +1005,90 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			// --- SECTION 4: ON/OFF Toggles ---
 			StackPanel sec4Panel = new StackPanel();
 
-			// Freeze Trail + Stop-Limit side-by-side
-			Grid freezeStopGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
-			freezeStopGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			freezeStopGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
-			freezeStopGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			// Stop-Limit + EMA Place side-by-side
+			Grid modeToggleGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
+			modeToggleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			modeToggleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
+			modeToggleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-			SolidColorBrush freezeOffBg = new SolidColorBrush(Color.FromRgb(35, 40, 52)); // Darker gray than Partial Candle (45,50,65)
-			SolidColorBrush freezeOnBg  = new SolidColorBrush(Color.FromRgb(180, 90, 20));  // Dark amber accent when active
-
-			Button btnFreezeTrail = CreateButton(cachedIsFreezeTrail ? "⚡ Freeze Trail: ON" : "Freeze Trail: OFF",
-				cachedIsFreezeTrail ? freezeOnBg : freezeOffBg, null, 24, 10);
-			btnFreezeTrail.Foreground = cachedIsFreezeTrail ? Brushes.White : Brushes.LightGray;
-
-			btnFreezeTrail.Click += (s, ev) =>
-			{
-				cachedIsFreezeTrail = !cachedIsFreezeTrail;
-				btnFreezeTrail.Content = cachedIsFreezeTrail ? "⚡ Freeze Trail: ON" : "Freeze Trail: OFF";
-				btnFreezeTrail.Background = cachedIsFreezeTrail ? freezeOnBg : freezeOffBg;
-				btnFreezeTrail.Foreground = cachedIsFreezeTrail ? Brushes.White : Brushes.LightGray;
-
-				if (cachedIsFreezeTrail)
-					FreezeCurrentStopLoss();
-				else
-					ShowHudStatus("Freeze OFF: static SL/TP kept — new entries use ATM again", Brushes.LightGray);
-			};
-			Grid.SetColumn(btnFreezeTrail, 0);
-			freezeStopGrid.Children.Add(btnFreezeTrail);
+			SolidColorBrush toggleOffBg   = new SolidColorBrush(Color.FromRgb(45, 50, 65));
+			SolidColorBrush stopLimitOnBg = new SolidColorBrush(Color.FromRgb(180, 90, 20)); // Dark amber accent when active
+			SolidColorBrush emaPlaceOnBg  = new SolidColorBrush(Color.FromRgb(12, 35, 75));  // Very dark blue
 
 			Button btnStopLimit = CreateButton(cachedIsStopLimit ? "Stop-Limit: ON" : "Stop-Limit: OFF",
-				cachedIsStopLimit ? freezeOnBg : freezeOffBg, null, 24, 10);
+				cachedIsStopLimit ? stopLimitOnBg : toggleOffBg, null, 24, 10);
 			btnStopLimit.Foreground = cachedIsStopLimit ? Brushes.White : Brushes.LightGray;
 			btnStopLimit.Click += (s, ev) =>
 			{
 				cachedIsStopLimit = !cachedIsStopLimit;
 				btnStopLimit.Content = cachedIsStopLimit ? "Stop-Limit: ON" : "Stop-Limit: OFF";
-				btnStopLimit.Background = cachedIsStopLimit ? freezeOnBg : freezeOffBg;
+				btnStopLimit.Background = cachedIsStopLimit ? stopLimitOnBg : toggleOffBg;
 				btnStopLimit.Foreground = cachedIsStopLimit ? Brushes.White : Brushes.LightGray;
 			};
-			Grid.SetColumn(btnStopLimit, 2);
-			freezeStopGrid.Children.Add(btnStopLimit);
+			Grid.SetColumn(btnStopLimit, 0);
+			modeToggleGrid.Children.Add(btnStopLimit);
 
-			sec4Panel.Children.Add(freezeStopGrid);
-			sec4Panel.Children.Add(btnPartialCandle);
-			sec4Panel.Children.Add(emaFilterGrid);
+			Button btnEmaPlace = CreateButton(cachedIsEmaPlace ? "Ema place: ON" : "Ema place: OFF",
+				cachedIsEmaPlace ? emaPlaceOnBg : toggleOffBg, null, 24, 10);
+			btnEmaPlace.Foreground = cachedIsEmaPlace ? Brushes.White : Brushes.LightGray;
+			btnEmaPlace.Click += (s, ev) =>
+			{
+				cachedIsEmaPlace = !cachedIsEmaPlace;
+				btnEmaPlace.Content = cachedIsEmaPlace ? "Ema place: ON" : "Ema place: OFF";
+				btnEmaPlace.Background = cachedIsEmaPlace ? emaPlaceOnBg : toggleOffBg;
+				btnEmaPlace.Foreground = cachedIsEmaPlace ? Brushes.White : Brushes.LightGray;
+			};
+			Grid.SetColumn(btnEmaPlace, 2);
+			modeToggleGrid.Children.Add(btnEmaPlace);
+
+			sec4Panel.Children.Add(modeToggleGrid);
+
+			// Daily Max DD + Daily Max Profit side-by-side
+			Grid dailyRiskGrid = new Grid { Margin = new Thickness(0, 0, 0, 0) };
+			dailyRiskGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			dailyRiskGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
+			dailyRiskGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+			SolidColorBrush dailyOnBg = new SolidColorBrush(Color.FromRgb(58, 19, 107)); // Darker purple (#3A136B)
+
+			Button btnDailyMaxDD = CreateButton(cachedIsDailyMaxDD ? "Max DD: ON" : "Max DD: OFF",
+				cachedIsDailyMaxDD ? dailyOnBg : toggleOffBg, null, 24, 10);
+			btnDailyMaxDD.Foreground = cachedIsDailyMaxDD ? Brushes.White : Brushes.LightGray;
+
+			btnDailyMaxDD.Click += (s, ev) =>
+			{
+				cachedIsDailyMaxDD = !cachedIsDailyMaxDD;
+				// Persist to the NinjaScript property — a script refresh/reload re-reads the property,
+				// so a volatile-only OFF was silently re-enabled and could flatten on the next breach.
+				DailyMaxDDEnabled = cachedIsDailyMaxDD;
+				btnDailyMaxDD.Content = cachedIsDailyMaxDD ? "Max DD: ON" : "Max DD: OFF";
+				btnDailyMaxDD.Background = cachedIsDailyMaxDD ? dailyOnBg : toggleOffBg;
+				btnDailyMaxDD.Foreground = cachedIsDailyMaxDD ? Brushes.White : Brushes.LightGray;
+
+				// Instant effect on HUD click (Requirement 4)
+				EvaluateDailyRiskLimits();
+			};
+			Grid.SetColumn(btnDailyMaxDD, 0);
+			dailyRiskGrid.Children.Add(btnDailyMaxDD);
+
+			Button btnDailyMaxProfit = CreateButton(cachedIsDailyMaxProfit ? "Max Profit: ON" : "Max Profit: OFF",
+				cachedIsDailyMaxProfit ? dailyOnBg : toggleOffBg, null, 24, 10);
+			btnDailyMaxProfit.Foreground = cachedIsDailyMaxProfit ? Brushes.White : Brushes.LightGray;
+
+			btnDailyMaxProfit.Click += (s, ev) =>
+			{
+				cachedIsDailyMaxProfit = !cachedIsDailyMaxProfit;
+				DailyMaxProfitEnabled = cachedIsDailyMaxProfit; // persist — survives script refresh/reload
+				btnDailyMaxProfit.Content = cachedIsDailyMaxProfit ? "Max Profit: ON" : "Max Profit: OFF";
+				btnDailyMaxProfit.Background = cachedIsDailyMaxProfit ? dailyOnBg : toggleOffBg;
+				btnDailyMaxProfit.Foreground = cachedIsDailyMaxProfit ? Brushes.White : Brushes.LightGray;
+
+				// Instant effect on HUD click (Requirement 4)
+				EvaluateDailyRiskLimits();
+			};
+			Grid.SetColumn(btnDailyMaxProfit, 2);
+			dailyRiskGrid.Children.Add(btnDailyMaxProfit);
+
 			sec4Panel.Children.Add(dailyRiskGrid);
 
 			mainPanel.Children.Add(CreateSectionCard(sec4Panel, 0));

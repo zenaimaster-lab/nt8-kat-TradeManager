@@ -53,48 +53,6 @@ namespace KatTradeManager.Tests
 		}
 		#endregion
 
-		#region ValidateEmaAngle — defensive edges
-		[Fact]
-		public void ValidateEmaAngle_NullArrays_AlwaysValid()
-		{
-			Assert.True(KatTradeCalculator.ValidateEmaAngle(KatOrderAction.Buy, null, null, null, 0.25, out string err));
-			Assert.Null(err);
-		}
-
-		[Fact]
-		public void ValidateEmaAngle_ZeroMinAngle_SkipsCheck()
-		{
-			// Flat EMA would fail any positive threshold, but 0° requirement = disabled
-			Assert.True(KatTradeCalculator.ValidateEmaAngle(KatOrderAction.Buy,
-				new[] { 100.0 }, new[] { 100.0 }, new[] { 0.0 }, 0.25, out _));
-		}
-
-		[Fact]
-		public void ValidateEmaAngle_MismatchedArrayLengths_UsesShortest()
-		{
-			// Extra entries beyond shortest length are ignored, no out-of-range
-			Assert.True(KatTradeCalculator.ValidateEmaAngle(KatOrderAction.Buy,
-				new[] { 100.25, 1.0 }, new[] { 100.0 }, new[] { 30.0, 99.0, 99.0 }, 0.25, out _));
-		}
-		#endregion
-
-		#region CalculateEmaAngle — fallback & exact values
-		[Fact]
-		public void CalculateEmaAngle_OneTickPerBar_Returns45Degrees()
-		{
-			double angle = KatTradeCalculator.CalculateEmaAngle(100.25, 100.0, 0.25);
-			Assert.Equal(45.0, angle);
-		}
-
-		[Fact]
-		public void CalculateEmaAngle_ZeroTickSize_FallsBackToQuarterTick()
-		{
-			// 0.25 rise with fallback tick 0.25 -> atan(1) = 45°
-			double angle = KatTradeCalculator.CalculateEmaAngle(100.25, 100.0, 0.0);
-			Assert.Equal(45.0, angle);
-		}
-		#endregion
-
 		#region IsAccountAllowed — separator edges
 		[Fact]
 		public void IsAccountAllowed_SemicolonSeparator_WorksLikeComma()
@@ -108,24 +66,6 @@ namespace KatTradeManager.Tests
 		public void IsAccountAllowed_WhitespaceOnlyFilter_AllowsAll()
 		{
 			Assert.True(KatTradeCalculator.IsAccountAllowed("Sim101", "  , ; ,  "));
-		}
-		#endregion
-
-		#region CalculatePartialCandlePrice — percent edges
-		[Fact]
-		public void CalculatePartialCandlePrice_ZeroOrNegativePercent_DefaultsTo30()
-		{
-			double expected = KatTradeCalculator.CalculatePartialCandlePrice(KatOrderAction.Buy, 110.0, 100.0, 30.0, 0.25);
-			Assert.Equal(expected, KatTradeCalculator.CalculatePartialCandlePrice(KatOrderAction.Buy, 110.0, 100.0, 0.0, 0.25));
-			Assert.Equal(expected, KatTradeCalculator.CalculatePartialCandlePrice(KatOrderAction.Buy, 110.0, 100.0, -15.0, 0.25));
-		}
-
-		[Fact]
-		public void CalculatePartialCandlePrice_PercentAbove100_ExtrapolatesBeyondRange()
-		{
-			// Buy 150%: high - range * 1.5 = 110 - 15 = 95 (below the low) — formula must not clamp
-			double price = KatTradeCalculator.CalculatePartialCandlePrice(KatOrderAction.Buy, 110.0, 100.0, 150.0, 0.25);
-			Assert.Equal(95.0, price);
 		}
 		#endregion
 
@@ -198,15 +138,6 @@ namespace KatTradeManager.Tests
 		}
 		#endregion
 
-		#region CalculatePartialCandlePrice — full pullback boundary
-		[Fact]
-		public void CalculatePartialCandlePrice_FullPullback_BuyAtLowSellAtHigh()
-		{
-			Assert.Equal(100.0, KatTradeCalculator.CalculatePartialCandlePrice(KatOrderAction.Buy, 110.0, 100.0, 100.0, 0.25));
-			Assert.Equal(110.0, KatTradeCalculator.CalculatePartialCandlePrice(KatOrderAction.Sell, 110.0, 100.0, 100.0, 0.25));
-		}
-		#endregion
-
 		#region GetLineStartBar — zero bar
 		[Fact]
 		public void GetLineStartBar_ZeroCurrentBar_ReturnsZero()
@@ -267,14 +198,6 @@ namespace KatTradeManager.Tests
 		}
 		#endregion
 
-		#region CalculateEmaAngle — negative ticksize fallback
-		[Fact]
-		public void CalculateEmaAngle_NegativeTickSize_FallsBackToQuarterTick()
-		{
-			Assert.Equal(45.0, KatTradeCalculator.CalculateEmaAngle(100.25, 100.0, -1.0));
-		}
-		#endregion
-
 		#region AtmXmlParser — whitespace-padded numbers
 		[Fact]
 		public void ParseXml_WhitespacePaddedNumbers_ParsedCorrectly()
@@ -300,28 +223,10 @@ namespace KatTradeManager.Tests
 
 		#region Doji & degenerate candles
 		[Fact]
-		public void CalculatePartialCandlePrice_DojiCandle_ReturnsSamePrice()
-		{
-			// high == low -> range 0 -> pullback lands exactly on that price, both directions
-			Assert.Equal(100.0, KatTradeCalculator.CalculatePartialCandlePrice(KatOrderAction.Buy, 100.0, 100.0, 30.0, 0.25));
-			Assert.Equal(100.0, KatTradeCalculator.CalculatePartialCandlePrice(KatOrderAction.Sell, 100.0, 100.0, 30.0, 0.25));
-		}
-
-		[Fact]
 		public void IsEmaTouchBar_NaNEma_ReturnsFalse()
 		{
 			// NaN comparisons are always false -> no phantom touch from an uninitialized EMA
 			Assert.False(KatTradeCalculator.IsEmaTouchBar(200.0, 100.0, double.NaN));
-		}
-		#endregion
-
-		#region ValidateEmaAngle — flat slope fails positive threshold
-		[Fact]
-		public void ValidateEmaAngle_FlatEma_FailsPositiveThreshold()
-		{
-			Assert.False(KatTradeCalculator.ValidateEmaAngle(KatOrderAction.Buy,
-				new[] { 100.0 }, new[] { 100.0 }, new[] { 15.0 }, 0.25, out string err));
-			Assert.NotNull(err);
 		}
 		#endregion
 
@@ -338,16 +243,6 @@ namespace KatTradeManager.Tests
 			var lows = KatTradeCalculator.FindSwingPoints(series, true, 20, 3, 0.25);
 			Assert.Single(lows);
 			Assert.Equal(90.0, lows[0]);
-		}
-		#endregion
-
-		#region CalculatePartialCandlePrice — no tick rounding when tickSize unknown
-		[Fact]
-		public void CalculatePartialCandlePrice_ZeroTickSize_ReturnsUnroundedPrice()
-		{
-			// 110 high, 100 low, 33% buy pullback: 110 - 10*0.33 = 106.7 (unrounded)
-			double price = KatTradeCalculator.CalculatePartialCandlePrice(KatOrderAction.Buy, 110.0, 100.0, 33.0, 0.0);
-			Assert.Equal(106.7, price, 6);
 		}
 		#endregion
 
@@ -371,15 +266,6 @@ namespace KatTradeManager.Tests
 			Assert.Equal(0, data.StopLoss);
 			Assert.Equal(0, data.Target);
 			Assert.Equal(4, data.Quantity);
-		}
-		#endregion
-
-		#region CalculateEmaAngle — exact multi-tick slope
-		[Fact]
-		public void CalculateEmaAngle_TwoTicksPerBar_Returns63Point43()
-		{
-			// atan(2) = 63.4349...° -> rounded to 63.43
-			Assert.Equal(63.43, KatTradeCalculator.CalculateEmaAngle(100.5, 100.0, 0.25));
 		}
 		#endregion
 

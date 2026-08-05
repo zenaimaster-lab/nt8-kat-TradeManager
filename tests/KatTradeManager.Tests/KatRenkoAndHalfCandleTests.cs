@@ -6,60 +6,11 @@ namespace KatTradeManager.Tests
 {
 	public class KatRenkoAndHalfCandleTests
 	{
-		[Theory]
-		[InlineData(100.0, 90.0, 0.25, 95.0)]
-		[InlineData(100.50, 90.0, 0.25, 95.25)]
-		[InlineData(2000.0, 1990.0, 0.25, 1995.0)]
-		public void CalculateHalfCandlePrice_ReturnsExpectedMidpoint(double high, double low, double tickSize, double expectedMid)
-		{
-			double result = KatTradeCalculator.CalculateHalfCandlePrice(high, low, tickSize);
-			Assert.Equal(expectedMid, result, 4);
-		}
-
-		[Theory]
-		[InlineData(KatOrderAction.Buy, 100.0, 90.0, 30.0, 0.25, 97.0)]
-		[InlineData(KatOrderAction.Sell, 100.0, 90.0, 30.0, 0.25, 93.0)]
-		[InlineData(KatOrderAction.Buy, 100.0, 90.0, 50.0, 0.25, 95.0)]
-		[InlineData(KatOrderAction.Sell, 100.0, 90.0, 50.0, 0.25, 95.0)]
-		[InlineData(KatOrderAction.Buy, 100.0, 90.0, 10.0, 0.25, 99.0)]
-		[InlineData(KatOrderAction.Sell, 100.0, 90.0, 10.0, 0.25, 91.0)]
-		[InlineData(KatOrderAction.Buy, 100.0, 90.0, 33.0, 0.25, 96.75)] // 100 - 3.3 = 96.7 -> rounded to 96.75
-		[InlineData(KatOrderAction.Sell, 100.0, 90.0, 17.0, 0.25, 91.75)] // 90 + 1.7 = 91.7 -> rounded to 91.75
-		public void CalculatePartialCandlePrice_CalculatesCorrectPullback(KatOrderAction action, double high, double low, double pct, double tickSize, double expected)
-		{
-			double result = KatTradeCalculator.CalculatePartialCandlePrice(action, high, low, pct, tickSize);
-			Assert.Equal(expected, result, 4);
-		}
-
-
-		[Fact]
-		public void CalculateCandlePrice_PartialCandle_Returns30PercentPullbackByDefault()
-		{
-			double high = 100.0;
-			double low = 90.0;
-			double open = 92.0;
-			double close = 98.0;
-			double tickSize = 0.25;
-
-			double buyPrice = KatTradeCalculator.CalculateCandlePrice(KatOrderAction.Buy, true, 30.0, high, low, open, close, false, tickSize);
-			double sellPrice = KatTradeCalculator.CalculateCandlePrice(KatOrderAction.Sell, true, 30.0, high, low, open, close, false, tickSize);
-
-			Assert.Equal(97.0, buyPrice, 4);
-			Assert.Equal(93.0, sellPrice, 4);
-		}
-
-
 		[Fact]
 		public void CalculateCandlePrice_StandardCandle_ReturnsHighOrLow()
 		{
-			double high = 100.0;
-			double low = 90.0;
-			double open = 92.0;
-			double close = 98.0;
-			double tickSize = 0.25;
-
-			double buyPrice = KatTradeCalculator.CalculateCandlePrice(KatOrderAction.Buy, false, high, low, open, close, false, tickSize);
-			double sellPrice = KatTradeCalculator.CalculateCandlePrice(KatOrderAction.Sell, false, high, low, open, close, false, tickSize);
+			double buyPrice = KatTradeCalculator.CalculateCandlePrice(KatOrderAction.Buy, 100.0, 90.0);
+			double sellPrice = KatTradeCalculator.CalculateCandlePrice(KatOrderAction.Sell, 100.0, 90.0);
 
 			Assert.Equal(100.0, buyPrice, 4);
 			Assert.Equal(90.0, sellPrice, 4);
@@ -68,14 +19,9 @@ namespace KatTradeManager.Tests
 		[Fact]
 		public void CalculateCandlePrice_RenkoCandle_UsesRenkoBoxHighLow()
 		{
-			double high = 102.0;
-			double low = 88.0;
-			double open = 90.0;
-			double close = 100.0;
-			double tickSize = 0.25;
-
-			double buyPrice = KatTradeCalculator.CalculateCandlePrice(KatOrderAction.Buy, false, high, low, open, close, true, tickSize);
-			double sellPrice = KatTradeCalculator.CalculateCandlePrice(KatOrderAction.Sell, false, high, low, open, close, true, tickSize);
+			// Renko bricks have no wicks: the box high/low IS the anchor (same formula as standard candles)
+			double buyPrice = KatTradeCalculator.CalculateCandlePrice(KatOrderAction.Buy, 102.0, 88.0);
+			double sellPrice = KatTradeCalculator.CalculateCandlePrice(KatOrderAction.Sell, 102.0, 88.0);
 
 			Assert.Equal(102.0, buyPrice, 4);
 			Assert.Equal(88.0, sellPrice, 4);

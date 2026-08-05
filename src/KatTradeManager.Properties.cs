@@ -117,11 +117,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		[Display(Name="Default ATM Template", Order=5, GroupName="Parameters")]
 		public string DefaultAtmTemplate { get; set; }
 
-		[NinjaScriptProperty]
-		[Range(1, 99)]
-		[Display(Name="Partial Candle Pullback (%)", Order=7, GroupName="Parameters")]
-		public int DefaultPartialCandlePercent { get; set; }
-
 		#region ATM Quick Set Properties
 		private string atmSet1Name = "A";
 		private string atmSet2Name = "B";
@@ -275,62 +270,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		[NinjaScriptProperty]
 		[Display(Name="3rd EMA Place Timeframe", Order=18, GroupName="EMA Place Filter")]
 		public KatEmaTimeframe EmaPlace3Timeframe { get; set; }
-		#endregion
-
-		#region EMA Angle Filter Properties
-		[NinjaScriptProperty]
-		[Display(Name="1st EMA Angle Enabled", Order=20, GroupName="EMA Angle Filter")]
-		public bool EmaAngle1Enabled { get; set; }
-
-		[NinjaScriptProperty]
-		[Range(1, 500)]
-		[Display(Name="1st EMA Angle Period", Order=21, GroupName="EMA Angle Filter")]
-		public int EmaAngle1Period { get; set; }
-
-		[NinjaScriptProperty]
-		[Display(Name="1st EMA Angle Timeframe", Order=22, GroupName="EMA Angle Filter")]
-		public KatEmaTimeframe EmaAngle1Timeframe { get; set; }
-
-		[NinjaScriptProperty]
-		[Range(0.0, 90.0)]
-		[Display(Name="1st EMA Angle Min Angle (°)", Order=23, GroupName="EMA Angle Filter")]
-		public double EmaAngle1MinAngle { get; set; }
-
-		[NinjaScriptProperty]
-		[Display(Name="2nd EMA Angle Enabled", Order=24, GroupName="EMA Angle Filter")]
-		public bool EmaAngle2Enabled { get; set; }
-
-		[NinjaScriptProperty]
-		[Range(1, 500)]
-		[Display(Name="2nd EMA Angle Period", Order=25, GroupName="EMA Angle Filter")]
-		public int EmaAngle2Period { get; set; }
-
-		[NinjaScriptProperty]
-		[Display(Name="2nd EMA Angle Timeframe", Order=26, GroupName="EMA Angle Filter")]
-		public KatEmaTimeframe EmaAngle2Timeframe { get; set; }
-
-		[NinjaScriptProperty]
-		[Range(0.0, 90.0)]
-		[Display(Name="2nd EMA Angle Min Angle (°)", Order=27, GroupName="EMA Angle Filter")]
-		public double EmaAngle2MinAngle { get; set; }
-
-		[NinjaScriptProperty]
-		[Display(Name="3rd EMA Angle Enabled", Order=28, GroupName="EMA Angle Filter")]
-		public bool EmaAngle3Enabled { get; set; }
-
-		[NinjaScriptProperty]
-		[Range(1, 500)]
-		[Display(Name="3rd EMA Angle Period", Order=29, GroupName="EMA Angle Filter")]
-		public int EmaAngle3Period { get; set; }
-
-		[NinjaScriptProperty]
-		[Display(Name="3rd EMA Angle Timeframe", Order=30, GroupName="EMA Angle Filter")]
-		public KatEmaTimeframe EmaAngle3Timeframe { get; set; }
-
-		[NinjaScriptProperty]
-		[Range(0.0, 90.0)]
-		[Display(Name="3rd EMA Angle Min Angle (°)", Order=31, GroupName="EMA Angle Filter")]
-		public double EmaAngle3MinAngle { get; set; }
 		#endregion
 
 		#region Hotkey Properties

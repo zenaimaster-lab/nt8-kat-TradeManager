@@ -48,7 +48,6 @@ On every code change, BEFORE closing session:
    - `KatTradeManager.cs`
    - `src\KatTradeManagerUI.cs`
    - `src\KatTradeManager.OrderOps.cs`
-   - `src\KatTradeManager.FreezeTrail.cs`
    - `src\KatTradeManager.DailyRisk.cs`
    - `src\KatTradeManager.Properties.cs`
    - `src\KatTradeCalculator.cs`

@@ -107,55 +107,19 @@ namespace KatTradeManager.Tests
 		}
 
 		[Fact]
-		public void CalculateCandlePrice_HalfCandleWithRenko_StillReturnsMidpoint()
+		public void CalculateCandlePrice_RenkoBrick_ReturnsHighForBuy()
 		{
-			double result = KatTradeCalculator.CalculateCandlePrice(
-				KatOrderAction.Buy, true, 50.0, 100.0, 90.0, 92.0, 98.0, true, 0.25);
-
-			Assert.Equal(95.0, result, 4);
-		}
-
-
-		[Fact]
-		public void CalculateCandlePrice_RenkoBrickNoHalf_ReturnsHighForBuy()
-		{
-			double buyResult = KatTradeCalculator.CalculateCandlePrice(
-				KatOrderAction.Buy, false, 102.0, 98.0, 98.0, 102.0, true, 0.25);
+			double buyResult = KatTradeCalculator.CalculateCandlePrice(KatOrderAction.Buy, 102.0, 98.0);
 
 			Assert.Equal(102.0, buyResult, 4);
 		}
 
 		[Fact]
-		public void CalculateCandlePrice_RenkoBrickNoHalf_ReturnsLowForSell()
+		public void CalculateCandlePrice_RenkoBrick_ReturnsLowForSell()
 		{
-			double sellResult = KatTradeCalculator.CalculateCandlePrice(
-				KatOrderAction.Sell, false, 102.0, 98.0, 102.0, 98.0, true, 0.25);
+			double sellResult = KatTradeCalculator.CalculateCandlePrice(KatOrderAction.Sell, 102.0, 98.0);
 
 			Assert.Equal(98.0, sellResult, 4);
-		}
-
-		[Fact]
-		public void CalculateCandlePrice_StandardAndRenko_GiveSameResult()
-		{
-			double high = 105.0;
-			double low = 100.0;
-			double open = 101.0;
-			double close = 104.0;
-			double tickSize = 0.25;
-
-			double buyStandard = KatTradeCalculator.CalculateCandlePrice(
-				KatOrderAction.Buy, false, high, low, open, close, false, tickSize);
-			double buyRenko = KatTradeCalculator.CalculateCandlePrice(
-				KatOrderAction.Buy, false, high, low, open, close, true, tickSize);
-
-			Assert.Equal(buyStandard, buyRenko, 4);
-
-			double sellStandard = KatTradeCalculator.CalculateCandlePrice(
-				KatOrderAction.Sell, false, high, low, open, close, false, tickSize);
-			double sellRenko = KatTradeCalculator.CalculateCandlePrice(
-				KatOrderAction.Sell, false, high, low, open, close, true, tickSize);
-
-			Assert.Equal(sellStandard, sellRenko, 4);
 		}
 
 		[Fact]

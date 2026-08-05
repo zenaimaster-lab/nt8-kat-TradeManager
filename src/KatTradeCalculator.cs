@@ -191,71 +191,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 				: triggerPrice - tickSize;
 		}
 
-		/// <summary>
-		/// Picks the price a freeze takeover should keep when several ATM brackets are collapsed into one:
-		/// Long keeps the HIGHER price, Short the LOWER. Applied to stops that is the TIGHTEST protection,
-		/// applied to targets the FARTHEST exit, so detaching an ATM never loosens the stop and never
-		/// closes earlier than the original ATM plan. Non-positive candidates are ignored.
-		/// </summary>
-		public static bool IsPreferredFreezePrice(bool isLongPosition, double candidate, double current)
+		// Renko bricks have no wicks: high == max(open,close), low == min(open,close),
+		// so the standard Buy=high / Sell=low anchor works identically for Renko.
+		public static double CalculateCandlePrice(KatOrderAction action, double high, double low)
 		{
-			if (candidate <= 0 || double.IsNaN(candidate) || double.IsInfinity(candidate)) return false;
-			if (current <= 0) return true;
-			return isLongPosition ? candidate > current : candidate < current;
-		}
-
-		/// <summary>Static freeze exits must mirror live position quantity across scale-in and scale-out.</summary>
-		public static bool ShouldAdjustFreezeQuantity(int orderQuantity, int positionQuantity)
-		{
-			return positionQuantity > 0 && orderQuantity != positionQuantity;
-		}
-
-		/// <summary>
-		/// Freeze-owned exits are cancelled once the position is really gone — a leftover static stop would
-		/// OPEN a reverse position if it triggered. NT8 reports transient Flat snapshots during scale-out,
-		/// so cleanup waits out a grace window first.
-		/// </summary>
-		public static bool ShouldCancelFreezeOrphans(bool isFlat, double flatAgeMilliseconds, double graceMilliseconds)
-		{
-			if (!isFlat || flatAgeMilliseconds < 0) return false;
-			return flatAgeMilliseconds >= graceMilliseconds;
-		}
-
-
-		public static double CalculateHalfCandlePrice(double high, double low, double tickSize)
-		{
-			return CalculatePartialCandlePrice(KatOrderAction.Buy, high, low, 50.0, tickSize);
-		}
-
-		public static double CalculatePartialCandlePrice(KatOrderAction action, double high, double low, double pullbackPercent, double tickSize)
-		{
-			if (pullbackPercent <= 0) pullbackPercent = 30.0;
-			double range = high - low;
-			double pct = pullbackPercent / 100.0;
-			double rawPrice = action == KatOrderAction.Buy
-				? high - (range * pct)
-				: low + (range * pct);
-
-			if (tickSize <= 0) return rawPrice;
-			double rounded = Math.Round(rawPrice / tickSize) * tickSize;
-			return Math.Round(rounded, 8);
-		}
-
-
-		public static double CalculateCandlePrice(KatOrderAction action, bool isPartialCandle, double high, double low, double open, double close, bool isRenko, double tickSize)
-		{
-			return CalculateCandlePrice(action, isPartialCandle, 30.0, high, low, open, close, isRenko, tickSize);
-		}
-
-		public static double CalculateCandlePrice(KatOrderAction action, bool isPartialCandle, double pullbackPercent, double high, double low, double open, double close, bool isRenko, double tickSize)
-		{
-			if (isPartialCandle)
-			{
-				return CalculatePartialCandlePrice(action, high, low, pullbackPercent, tickSize);
-			}
-
-			// Renko bricks have no wicks: high == max(open,close), low == min(open,close)
-			// Standard logic (Buy=high, Sell=low) works identically for Renko
 			return action == KatOrderAction.Buy ? high : low;
 		}
 
@@ -343,19 +282,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 		}
 
 		/// <summary>
-		/// Calculates EMA slope angle in degrees relative to tick size.
-		/// Positive for upward slope, negative for downward slope.
-		/// </summary>
-		public static double CalculateEmaAngle(double emaCurrent, double emaPrev, double tickSize)
-		{
-			// ponytail: Math.Atan of tick change per bar converted to degrees
-			if (tickSize <= 0) tickSize = 0.25;
-			double deltaTicks = (emaCurrent - emaPrev) / tickSize;
-			double radians = Math.Atan(deltaTicks);
-			return Math.Round(radians * (180.0 / Math.PI), 2);
-		}
-
-		/// <summary>
 		/// Validates if entry price is strictly above (Buy) or below (Sell) all enabled EMA values.
 		/// </summary>
 		public static bool ValidateEmaPlace(KatOrderAction action, double entryPrice, double[] emaValues, out string errorReason)
@@ -383,36 +309,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 		}
 
 		/// <summary>
-		/// Validates if current EMA slope angles satisfy minimum degree thresholds for all enabled EMAs.
-		/// </summary>
-		public static bool ValidateEmaAngle(KatOrderAction action, double[] currentEmas, double[] prevEmas, double[] minAngles, double tickSize, out string errorReason)
-		{
-			errorReason = null;
-			if (currentEmas == null || prevEmas == null || minAngles == null) return true;
-
-			int count = Math.Min(currentEmas.Length, Math.Min(prevEmas.Length, minAngles.Length));
-			for (int i = 0; i < count; i++)
-			{
-				if (minAngles[i] <= 0) continue;
-
-				double curr = currentEmas[i];
-				double prev = prevEmas[i];
-				if (curr <= 0 || prev <= 0) continue;
-
-				double angle = action == KatOrderAction.Buy
-					? CalculateEmaAngle(curr, prev, tickSize)
-					: CalculateEmaAngle(prev, curr, tickSize);
-
-				if (angle < minAngles[i])
-				{
-					errorReason = string.Format("EMA slope angle {0:F1}° < required {1}°", angle, minAngles[i]);
-					return false;
-				}
-			}
-			return true;
-		}
-
-		/// <summary>
 		/// A protective stop for a LONG position must sit BELOW current market; for SHORT, ABOVE.
 		/// Placing it on the wrong side gets rejected by the broker (rejections still count toward order rate).
 		/// </summary>
@@ -420,26 +316,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			if (stopPrice <= 0 || currentPrice <= 0) return false;
 			return isLongPosition ? stopPrice < currentPrice : stopPrice > currentPrice;
-		}
-
-		/// <summary>
-		/// A profit-target limit for a LONG position must sit ABOVE current market; for SHORT, BELOW.
-		/// Freeze takeover uses this to skip captured targets the market has already passed.
-		/// </summary>
-		public static bool IsLimitOnValidSide(bool isLongPosition, double limitPrice, double currentPrice)
-		{
-			if (limitPrice <= 0 || currentPrice <= 0) return false;
-			return isLongPosition ? limitPrice > currentPrice : limitPrice < currentPrice;
-		}
-
-		/// <summary>
-		/// Freeze takeover submits a static leg only when no frozen leg of that kind is already working,
-		/// a price was captured, and that price is still on the valid side of the market. Prevents the
-		/// duplicate SL/TP stack that appeared every time the ATM re-created its trailing stops.
-		/// </summary>
-		public static bool ShouldSubmitFreezeLeg(bool hasActiveFrozenLeg, bool hasCapturedPrice, bool priceValidVsMarket)
-		{
-			return !hasActiveFrozenLeg && hasCapturedPrice && priceValidVsMarket;
 		}
 
 		/// <summary>

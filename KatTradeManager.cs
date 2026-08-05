@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 1.09 (2026-08-04)
+ * Version: 1.10 (2026-08-04)
  * NinjaTrader 8 TradeManager Indicator
  */
  
@@ -69,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "1.09";
+		public const string VERSION = "1.10";
 		public const string RELEASE_DATE = "2026-08-04";
 
 		private volatile Account account;
@@ -96,18 +96,13 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private EMA[] ema34Series;
 		private EMA[] ema89Series;
 
-		// EMA series and series bar indices for EMA Place & EMA Angle filter validation
+		// EMA series and series bar indices for EMA Place filter validation
 		private EMA[] emaPlaceFilterSeries;
 		private int[] emaPlaceFilterBarIdx;
-		private EMA[] emaAngleFilterSeries;
-		private int[] emaAngleFilterBarIdx;
 		private readonly double[] cachedEmaPlaceValues = new double[3];
-		private readonly double[] cachedEmaAngleCurrent = new double[3];
-		private readonly double[] cachedEmaAnglePrevious = new double[3];
 
-		// HUD toggle state for EMA Place & EMA Angle (default OFF)
+		// HUD toggle state for EMA Place (default OFF)
 		private volatile bool cachedIsEmaPlace = false;
-		private volatile bool cachedIsEmaAngle = false;
 
 		// Pending stop order mode (default OFF = StopMarket)
 		private volatile bool cachedIsStopLimit = false;
@@ -158,10 +153,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private int pendingAtmSL1Trigger;
 		private int pendingAtmSL2Trigger;
 
-		// Partial Candle & Freeze Trail toggle state, Pullback %, & Renko chart detection
-		private volatile bool cachedIsPartialCandle = false;
-		private volatile int cachedPartialPercent = 30;
-		private volatile bool cachedIsFreezeTrail = false;
+		// Renko chart detection
 		private bool isRenkoChart = false;
 
 		// Thread synchronization lock for bar price caching
@@ -229,12 +221,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				{
 					if (emaPlaceFilterBarIdx[i] == bip && emaPlaceFilterSeries[i] != null && CurrentBars[bip] >= 0)
 						cachedEmaPlaceValues[i] = emaPlaceFilterSeries[i][0];
-
-					if (emaAngleFilterBarIdx[i] == bip && emaAngleFilterSeries[i] != null && CurrentBars[bip] >= 1)
-					{
-						cachedEmaAngleCurrent[i] = emaAngleFilterSeries[i][0];
-						cachedEmaAnglePrevious[i] = emaAngleFilterSeries[i][1];
-					}
 				}
 			}
 		}
@@ -282,7 +268,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				DefaultTimeframe                    = KatTimeframe.ChartTF;
 				DefaultBufferTicks                  = 2;
 				DefaultAtmTemplate                  = "Sim101_ATM";
-				DefaultPartialCandlePercent         = 30;
 
 				// Daily Risk Control Defaults
 				DailyMaxDDEnabled                   = true;
@@ -301,20 +286,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				EmaPlace3Enabled                    = true;
 				EmaPlace3Period                     = 89;
 				EmaPlace3Timeframe                  = KatEmaTimeframe.Min5;
-
-				// EMA Angle Filter Defaults
-				EmaAngle1Enabled                    = true;
-				EmaAngle1Period                     = 9;
-				EmaAngle1Timeframe                  = KatEmaTimeframe.Min5;
-				EmaAngle1MinAngle                   = 35.0;
-				EmaAngle2Enabled                    = true;
-				EmaAngle2Period                     = 34;
-				EmaAngle2Timeframe                  = KatEmaTimeframe.Min5;
-				EmaAngle2MinAngle                   = 30.0;
-				EmaAngle3Enabled                    = true;
-				EmaAngle3Period                     = 89;
-				EmaAngle3Timeframe                  = KatEmaTimeframe.Min5;
-				EmaAngle3MinAngle                   = 15.0;
 
 				// Hotkey Defaults
 				HotkeyEnabled                       = true;
@@ -353,7 +324,9 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				cachedAtmTemplate = DefaultAtmTemplate;
 				cachedHudLeftInset = Math.Max(0, HudLeftInset);
 				cachedHudDragEnabled = HudDragEnabled;
-				cachedIsDailyMaxDD = DailyMaxDDEnabled;
+				// Max DD always starts ON every session regardless of the persisted toggle.
+				DailyMaxDDEnabled = true;
+				cachedIsDailyMaxDD = true;
 				cachedDailyMaxDD = DailyMaxDD;
 				cachedIsDailyMaxProfit = DailyMaxProfitEnabled;
 				cachedDailyMaxProfit = DailyMaxProfit;
@@ -393,29 +366,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					int idx = GetBarsArraySeriesIndex(EmaPlace3Timeframe);
 					emaPlaceFilterSeries[2] = EMA(BarsArray[idx], EmaPlace3Period);
 					emaPlaceFilterBarIdx[2] = idx;
-				}
-
-				// Initialize per-EMA series and series bar indices for EMA Angle filter
-				emaAngleFilterSeries = new EMA[3];
-				emaAngleFilterBarIdx = new int[3];
-
-				if (EmaAngle1Enabled)
-				{
-					int idx = GetBarsArraySeriesIndex(EmaAngle1Timeframe);
-					emaAngleFilterSeries[0] = EMA(BarsArray[idx], EmaAngle1Period);
-					emaAngleFilterBarIdx[0] = idx;
-				}
-				if (EmaAngle2Enabled)
-				{
-					int idx = GetBarsArraySeriesIndex(EmaAngle2Timeframe);
-					emaAngleFilterSeries[1] = EMA(BarsArray[idx], EmaAngle2Period);
-					emaAngleFilterBarIdx[1] = idx;
-				}
-				if (EmaAngle3Enabled)
-				{
-					int idx = GetBarsArraySeriesIndex(EmaAngle3Timeframe);
-					emaAngleFilterSeries[2] = EMA(BarsArray[idx], EmaAngle3Period);
-					emaAngleFilterBarIdx[2] = idx;
 				}
 
 				Print(string.Format("[KatTradeManager] v{0} loaded — cached mode active (Renko: {1})", VERSION, isRenkoChart));
@@ -587,7 +537,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 						candleBarLists[bip] = candleBars;
 					}
 				}
-				if (bip < NUM_SERIES && emaPlaceFilterSeries != null && emaAngleFilterSeries != null)
+				if (bip < NUM_SERIES && emaPlaceFilterSeries != null)
 					UpdateEmaFilterCache(bip);
 				if (bip != 0 || account == null || Instrument == null) return;
 

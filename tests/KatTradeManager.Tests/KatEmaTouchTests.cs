@@ -44,18 +44,16 @@ namespace KatTradeManager.Tests
 		}
 
 		[Fact]
-		public void EmaOrderPrice_HalfCandleOff_GeneratesStopMarketOrders()
+		public void EmaOrderPrice_CandleAnchors_GenerateStopMarketOrders()
 		{
 			double high = 110.0;
 			double low = 100.0;
-			double open = 102.0;
-			double close = 108.0;
 			double tickSize = 0.25;
 			int bufferTicks = 2; // +0.50
 			double currentPrice = 105.0;
 
 			// Buy: Base = High (110.0), Trigger = 110.50 -> StopMarket (110.50 > 105.0)
-			double buyBase = KatTradeCalculator.CalculateCandlePrice(KatOrderAction.Buy, false, high, low, open, close, false, tickSize);
+			double buyBase = KatTradeCalculator.CalculateCandlePrice(KatOrderAction.Buy, high, low);
 			double buyTrigger = KatTradeCalculator.CalculateTriggerPrice(KatOrderAction.Buy, buyBase, bufferTicks, tickSize);
 			KatOrderType buyType = KatTradeCalculator.DetermineOrderType(KatOrderAction.Buy, buyTrigger, currentPrice, tickSize, out double buyLimit, out double buyStop);
 
@@ -66,7 +64,7 @@ namespace KatTradeManager.Tests
 			Assert.Equal(0, buyLimit);
 
 			// Sell: Base = Low (100.0), Trigger = 99.50 -> StopMarket (99.50 < 105.0)
-			double sellBase = KatTradeCalculator.CalculateCandlePrice(KatOrderAction.Sell, false, high, low, open, close, false, tickSize);
+			double sellBase = KatTradeCalculator.CalculateCandlePrice(KatOrderAction.Sell, high, low);
 			double sellTrigger = KatTradeCalculator.CalculateTriggerPrice(KatOrderAction.Sell, sellBase, bufferTicks, tickSize);
 			KatOrderType sellType = KatTradeCalculator.DetermineOrderType(KatOrderAction.Sell, sellTrigger, currentPrice, tickSize, out double sellLimit, out double sellStop);
 
@@ -75,42 +73,6 @@ namespace KatTradeManager.Tests
 			Assert.Equal(KatOrderType.StopMarket, sellType);
 			Assert.Equal(99.50, sellStop);
 			Assert.Equal(0, sellLimit);
-		}
-
-		[Fact]
-		public void EmaOrderPrice_HalfCandleOn_ConvertsToLimitOrder_WhenTriggerPassesCurrentPrice()
-		{
-			double high = 110.0;
-			double low = 100.0;
-			double open = 102.0;
-			double close = 108.0;
-			double tickSize = 0.25;
-			int bufferTicks = 2; // +0.50
-
-			// Half candle base (50% pullback) = (110 + 100) / 2 = 105.0
-			double halfBase = KatTradeCalculator.CalculateCandlePrice(KatOrderAction.Buy, true, 50.0, high, low, open, close, false, tickSize);
-			Assert.Equal(105.0, halfBase);
-
-
-			// Buy: Trigger = 105.50. If currentPrice = 108.0 (price ran above midpoint)
-			// Trigger (105.50) <= Current (108.0) -> Limit order at 105.50
-			double buyTrigger = KatTradeCalculator.CalculateTriggerPrice(KatOrderAction.Buy, halfBase, bufferTicks, tickSize);
-			KatOrderType buyType = KatTradeCalculator.DetermineOrderType(KatOrderAction.Buy, buyTrigger, 108.0, tickSize, out double buyLimit, out double buyStop);
-
-			Assert.Equal(105.50, buyTrigger);
-			Assert.Equal(KatOrderType.Limit, buyType);
-			Assert.Equal(105.50, buyLimit);
-			Assert.Equal(0, buyStop);
-
-			// Sell: Trigger = 104.50. If currentPrice = 102.0 (price ran below midpoint)
-			// Trigger (104.50) >= Current (102.0) -> Limit order at 104.50
-			double sellTrigger = KatTradeCalculator.CalculateTriggerPrice(KatOrderAction.Sell, halfBase, bufferTicks, tickSize);
-			KatOrderType sellType = KatTradeCalculator.DetermineOrderType(KatOrderAction.Sell, sellTrigger, 102.0, tickSize, out double sellLimit, out double sellStop);
-
-			Assert.Equal(104.50, sellTrigger);
-			Assert.Equal(KatOrderType.Limit, sellType);
-			Assert.Equal(104.50, sellLimit);
-			Assert.Equal(0, sellStop);
 		}
 	}
 }
