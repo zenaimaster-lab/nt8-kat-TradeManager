@@ -23,6 +23,11 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.13] — 2026-08-04
+- **Bulenox account sync fix (HUD → Chart Trader)**:
+  - Root cause: Chart Trader renders Rithmic/Bulenox accounts as `BX45272-51!Bulenox!Bulenox` while `Account.Name` is `BX45272-51` — exact-match lookup in `SyncChartTraderAccount` never matched, so picking a Bulenox account on the HUD left Chart Trader on the old account.
+  - Fix in `KatTradeManagerUI.SyncChartTraderAccount` (src/KatTradeManagerUI.cs): two-tier match per combo — exact `Account.Name` first, then `name!` prefix fallback. Prefix requires the `!` delimiter so short account names cannot false-match longer ones.
+  - Graphify entities: `KatTradeManagerUI.SyncChartTraderAccount`, `GetChartTraderControl`, `Account.All`.
 ### [v1.12] — 2026-08-04
 - **Post-removal re-audit: dead-code purge after v1.07–v1.11 feature cuts**:
   - **ATM XML Quantity**: `AtmTemplateData.Quantity` + `EntryQuantity`/bracket-`Quantity` parsing deleted (no production consumer since the Contracts row was removed in v1.07). Parser now extracts only SL/TP/BE/trail levels. 6 quantity-only tests deleted, quantity asserts stripped from 6 more.

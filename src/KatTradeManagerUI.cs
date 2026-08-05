@@ -271,13 +271,22 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				FindAllVisualChildren<ComboBox>(ctControl, combos);
 				foreach (ComboBox combo in combos)
 				{
+					// Bulenox: Chart Trader renders Rithmic accounts as "BX45272-51!Bulenox!Bulenox"
+					// while Account.Name is "BX45272-51" — exact match first, then "name!" prefix.
+					object exactMatch = null;
+					object prefixMatch = null;
 					foreach (object item in combo.Items)
 					{
-						if (item == null || !accountName.Equals(item.ToString(), StringComparison.OrdinalIgnoreCase)) continue;
-						if (!ReferenceEquals(combo.SelectedItem, item))
-							combo.SelectedItem = item;
-						return;
+						if (item == null) continue;
+						string text = item.ToString();
+						if (accountName.Equals(text, StringComparison.OrdinalIgnoreCase)) { exactMatch = item; break; }
+						if (prefixMatch == null && text.StartsWith(accountName + "!", StringComparison.OrdinalIgnoreCase)) prefixMatch = item;
 					}
+					object match = exactMatch ?? prefixMatch;
+					if (match == null) continue;
+					if (!ReferenceEquals(combo.SelectedItem, match))
+						combo.SelectedItem = match;
+					return;
 				}
 			}
 			catch (Exception ex)
