@@ -23,6 +23,14 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.09] — 2026-08-04
+- **HUD layout reorganization (execution vs toggles)**:
+  - All ON/OFF toggle buttons (Partial Candle, Ema place/angle, Max DD, Max Profit, Freeze Trail, Stop-Limit) moved into one dedicated toggle section at the bottom of the HUD.
+  - Freeze Trail + Stop-Limit now share one row (side-by-side half-width buttons) instead of two full-width rows.
+  - Execution section (single card) order top→bottom: BUY/SELL market row, Entry-candle shift row, BUY/SELL current + previous rows, BE | Revert row, Close/flatten. Market buttons moved above the entry-candle shift row; BE/Revert/Close moved directly below BUY/SELL previous.
+  - README updated (Freeze Trail / Stop-Limit bullet placement wording).
+  - **Graphify entity mapping**: `KatTradeManagerUI.CreateWpfControls` (section 3 execution card, section 4 toggle card, `freezeStopGrid`).
+
 ### [v1.08] — 2026-08-04
 - **HUD: full-width account dropdown + ATM Bracket permanently MERGE**:
   - Account selector is now a full-width row (same layout as the ATM dropdown); the `Acc:` label and its 2-column `paramGrid` wrapper were removed along with the now-orphaned `AddGridRow` helper.

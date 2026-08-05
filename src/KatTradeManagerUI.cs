@@ -906,7 +906,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			mainPanel.Children.Add(CreateSectionCard(sec2Panel, 6));
 
 
-			// --- SECTION 3: Partial Candle & Candle Pending Orders ---
+			// --- SECTION 3: Market & Candle Orders + Position Management ---
 			StackPanel sec3Panel = new StackPanel();
 
 			SolidColorBrush partialOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
@@ -935,7 +935,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					btnPartialCandle.Foreground = Brushes.LightGray;
 				}
 			};
-			sec3Panel.Children.Add(btnPartialCandle);
 
 			// --- EMA Place & EMA Angle filter buttons (side-by-side below Partial Candle) ---
 			Grid emaFilterGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
@@ -973,8 +972,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			};
 			Grid.SetColumn(btnEmaAngle, 2);
 			emaFilterGrid.Children.Add(btnEmaAngle);
-
-			sec3Panel.Children.Add(emaFilterGrid);
 
 			// --- Daily Max DD & Daily Max Profit toggle buttons (side-by-side below EMA Filter) ---
 			Grid dailyRiskGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
@@ -1023,7 +1020,24 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			Grid.SetColumn(btnDailyMaxProfit, 2);
 			dailyRiskGrid.Children.Add(btnDailyMaxProfit);
 
-			sec3Panel.Children.Add(dailyRiskGrid);
+			// --- Market Orders (top of execution section) ---
+			Grid mktBtnGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
+			mktBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			mktBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
+			mktBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+			SolidColorBrush buyMktBg  = new SolidColorBrush(Color.FromRgb(12, 48, 25)); // Deep dark green
+			SolidColorBrush sellMktBg = new SolidColorBrush(Color.FromRgb(55, 15, 18)); // Deep dark red
+
+			Button btnSellMkt = CreateButton("SELL market", sellMktBg, (s, ev) => PlaceMarketOrder(OrderAction.Sell), 48, 12);
+			Grid.SetColumn(btnSellMkt, 0);
+			mktBtnGrid.Children.Add(btnSellMkt);
+
+			Button btnBuyMkt = CreateButton("BUY market", buyMktBg, (s, ev) => PlaceMarketOrder(OrderAction.Buy), 48, 12);
+			Grid.SetColumn(btnBuyMkt, 2);
+			mktBtnGrid.Children.Add(btnBuyMkt);
+
+			sec3Panel.Children.Add(mktBtnGrid);
 
 			// --- Candle Entry Shift Controls ---
 			Grid candleShiftGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
@@ -1077,30 +1091,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			orderBtnGrid.Children.Add(sellCol);
 			orderBtnGrid.Children.Add(buyCol);
 			sec3Panel.Children.Add(orderBtnGrid);
-			mainPanel.Children.Add(CreateSectionCard(sec3Panel, 6));
 
-
-			// --- SECTION 4: Market Orders & Position Management ---
-			StackPanel sec4Panel = new StackPanel();
-
-			Grid mktBtnGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
-			mktBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			mktBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
-			mktBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-			SolidColorBrush buyMktBg  = new SolidColorBrush(Color.FromRgb(12, 48, 25)); // Deep dark green
-			SolidColorBrush sellMktBg = new SolidColorBrush(Color.FromRgb(55, 15, 18)); // Deep dark red
-
-			Button btnSellMkt = CreateButton("SELL market", sellMktBg, (s, ev) => PlaceMarketOrder(OrderAction.Sell), 48, 12);
-			Grid.SetColumn(btnSellMkt, 0);
-			mktBtnGrid.Children.Add(btnSellMkt);
-
-			Button btnBuyMkt = CreateButton("BUY market", buyMktBg, (s, ev) => PlaceMarketOrder(OrderAction.Buy), 48, 12);
-			Grid.SetColumn(btnBuyMkt, 2);
-			mktBtnGrid.Children.Add(btnBuyMkt);
-
-			sec4Panel.Children.Add(mktBtnGrid);
-
+			// --- BE / Revert row below BUY/SELL previous ---
 			Grid beRevertGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
 			beRevertGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 			beRevertGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
@@ -1117,7 +1109,23 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			Grid.SetColumn(btnRevert, 2);
 			beRevertGrid.Children.Add(btnRevert);
 
-			sec4Panel.Children.Add(beRevertGrid);
+			sec3Panel.Children.Add(beRevertGrid);
+
+			SolidColorBrush closeBg = new SolidColorBrush(Color.FromRgb(20, 20, 20)); // Very dark gray (almost black)
+			Button btnClose = CreateButton("Close/flatten", closeBg, (s, ev) => FlattenAllPositions(), 33, 15);
+			sec3Panel.Children.Add(btnClose);
+
+			mainPanel.Children.Add(CreateSectionCard(sec3Panel, 6));
+
+
+			// --- SECTION 4: ON/OFF Toggles ---
+			StackPanel sec4Panel = new StackPanel();
+
+			// Freeze Trail + Stop-Limit side-by-side
+			Grid freezeStopGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
+			freezeStopGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			freezeStopGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
+			freezeStopGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
 			SolidColorBrush freezeOffBg = new SolidColorBrush(Color.FromRgb(35, 40, 52)); // Darker gray than Partial Candle (45,50,65)
 			SolidColorBrush freezeOnBg  = new SolidColorBrush(Color.FromRgb(180, 90, 20));  // Dark amber accent when active
@@ -1125,7 +1133,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			Button btnFreezeTrail = CreateButton(cachedIsFreezeTrail ? "⚡ Freeze Trail: ON" : "Freeze Trail: OFF",
 				cachedIsFreezeTrail ? freezeOnBg : freezeOffBg, null, 24, 10);
 			btnFreezeTrail.Foreground = cachedIsFreezeTrail ? Brushes.White : Brushes.LightGray;
-			btnFreezeTrail.Margin = new Thickness(0, 0, 0, 4);
 
 			btnFreezeTrail.Click += (s, ev) =>
 			{
@@ -1139,12 +1146,12 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				else
 					ShowHudStatus("Freeze OFF: static SL/TP kept — new entries use ATM again", Brushes.LightGray);
 			};
-			sec4Panel.Children.Add(btnFreezeTrail);
+			Grid.SetColumn(btnFreezeTrail, 0);
+			freezeStopGrid.Children.Add(btnFreezeTrail);
 
 			Button btnStopLimit = CreateButton(cachedIsStopLimit ? "Stop-Limit: ON" : "Stop-Limit: OFF",
 				cachedIsStopLimit ? freezeOnBg : freezeOffBg, null, 24, 10);
 			btnStopLimit.Foreground = cachedIsStopLimit ? Brushes.White : Brushes.LightGray;
-			btnStopLimit.Margin = new Thickness(0, 0, 0, 4);
 			btnStopLimit.Click += (s, ev) =>
 			{
 				cachedIsStopLimit = !cachedIsStopLimit;
@@ -1152,12 +1159,13 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				btnStopLimit.Background = cachedIsStopLimit ? freezeOnBg : freezeOffBg;
 				btnStopLimit.Foreground = cachedIsStopLimit ? Brushes.White : Brushes.LightGray;
 			};
-			sec4Panel.Children.Add(btnStopLimit);
+			Grid.SetColumn(btnStopLimit, 2);
+			freezeStopGrid.Children.Add(btnStopLimit);
 
-			SolidColorBrush closeBg = new SolidColorBrush(Color.FromRgb(20, 20, 20)); // Very dark gray (almost black)
-			Button btnClose = CreateButton("Close/flatten", closeBg, (s, ev) => FlattenAllPositions(), 33, 15);
-			sec4Panel.Children.Add(btnClose);
-
+			sec4Panel.Children.Add(freezeStopGrid);
+			sec4Panel.Children.Add(btnPartialCandle);
+			sec4Panel.Children.Add(emaFilterGrid);
+			sec4Panel.Children.Add(dailyRiskGrid);
 
 			mainPanel.Children.Add(CreateSectionCard(sec4Panel, 0));
 
