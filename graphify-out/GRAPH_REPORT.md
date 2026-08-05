@@ -1,16 +1,16 @@
 # Graph Report - nt8-kat-TradeManager  (2026-08-04)
 
 ## Corpus Check
-- 32 files · ~40,472 words
+- 32 files · ~40,702 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 539 nodes · 914 edges · 35 communities (18 shown, 17 thin omitted)
+- 540 nodes · 917 edges · 34 communities (17 shown, 17 thin omitted)
 - Extraction: 89% EXTRACTED · 11% INFERRED · 0% AMBIGUOUS · INFERRED: 99 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `436cc76c`
+- Built from commit: `382d57fb`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -30,6 +30,7 @@
 - [[_COMMUNITY_Community 12|Community 12]]
 - [[_COMMUNITY_Community 13|Community 13]]
 - [[_COMMUNITY_Community 14|Community 14]]
+- [[_COMMUNITY_Community 15|Community 15]]
 - [[_COMMUNITY_Community 16|Community 16]]
 - [[_COMMUNITY_Community 17|Community 17]]
 - [[_COMMUNITY_Community 18|Community 18]]
@@ -39,11 +40,10 @@
 - [[_COMMUNITY_Community 22|Community 22]]
 - [[_COMMUNITY_Community 23|Community 23]]
 - [[_COMMUNITY_Community 24|Community 24]]
-- [[_COMMUNITY_Community 25|Community 25]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `KatTradeManager` - 95 edges
-2. `KatTradeManager` - 52 edges
+2. `KatTradeManager` - 53 edges
 3. `KatTradeManager` - 49 edges
 4. `KatCalculatorGapTests` - 44 edges
 5. `KatTradeCalculator` - 37 edges
@@ -65,10 +65,10 @@
 - `KatTradeManager` --references--> `object`  [EXTRACTED]
   KatTradeManager.cs → src/KatTradeManager.OrderOps.cs
 
-## Communities (35 total, 17 thin omitted)
+## Communities (34 total, 17 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.07
+Cohesion: 0.09
 Nodes (4): OrderAction, Queue, KatTradeManager, KatTradeManager
 
 ### Community 1 - "Community 1"
@@ -79,11 +79,15 @@ Nodes (25): Account, AccountOperationType, Action, AtmLevels, bool, Border, Comb
 Cohesion: 0.07
 Nodes (12): Brush, Button, Canvas, IInputElement, Point, SolidColorBrush, KatTradeManager, NinjaTrader.NinjaScript.Indicators (+4 more)
 
-### Community 9 - "Community 9"
+### Community 4 - "Community 4"
+Cohesion: 0.12
+Nodes (3): KatTradeManager, NinjaTrader.NinjaScript.Indicators, NinjaTrader.NinjaScript.Indicators.KAT
+
+### Community 10 - "Community 10"
 Cohesion: 0.14
 Nodes (6): AtmTemplateNameConverter, KatTradeManager, NinjaTrader.NinjaScript.Indicators, NinjaTrader.NinjaScript.Indicators.KAT, string, TypeConverter
 
-### Community 14 - "Community 14"
+### Community 15 - "Community 15"
 Cohesion: 0.18
 Nodes (3): DateTime, KatEntryShiftTests, KatTradeManager.Tests
 
@@ -91,11 +95,7 @@ Nodes (3): DateTime, KatEntryShiftTests, KatTradeManager.Tests
 Cohesion: 0.38
 Nodes (3): AtmTemplateData, KatAtmXmlParser, NinjaTrader.NinjaScript.Indicators
 
-### Community 19 - "Community 19"
-Cohesion: 0.38
-Nodes (3): KatTradeManager, NinjaTrader.NinjaScript.Indicators, NinjaTrader.NinjaScript.Indicators.KAT
-
-### Community 25 - "Community 25"
+### Community 24 - "Community 24"
 Cohesion: 0.33
 Nodes (5): double, OrderType, FreezeExitCapture, NinjaTrader.NinjaScript.Indicators, NinjaTrader.NinjaScript.Indicators.KAT
 
@@ -107,16 +107,16 @@ Nodes (5): double, OrderType, FreezeExitCapture, NinjaTrader.NinjaScript.Indicat
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `KatTradeManager` connect `Community 0` to `Community 1`, `Community 2`, `Community 9`, `Community 14`, `Community 15`, `Community 25`?**
+- **Why does `KatTradeManager` connect `Community 0` to `Community 1`, `Community 2`, `Community 4`, `Community 10`, `Community 15`, `Community 24`?**
   _High betweenness centrality (0.117) - this node is a cross-community bridge._
-- **Why does `string` connect `Community 9` to `Community 0`, `Community 1`, `Community 2`, `Community 4`?**
+- **Why does `string` connect `Community 10` to `Community 0`, `Community 1`, `Community 2`, `Community 5`?**
   _High betweenness centrality (0.097) - this node is a cross-community bridge._
-- **Why does `KatTradeCalculator` connect `Community 4` to `Community 9`?**
+- **Why does `KatTradeCalculator` connect `Community 5` to `Community 10`?**
   _High betweenness centrality (0.066) - this node is a cross-community bridge._
 - **What connects `NinjaTrader.NinjaScript.Indicators.KAT`, `Account`, `Grid` to the rest of the system?**
   _53 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.07 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.09 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
   _Cohesion score 0.07 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**

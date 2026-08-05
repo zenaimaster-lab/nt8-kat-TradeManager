@@ -256,6 +256,36 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			return null;
 		}
 
+		// Mirrors the HUD account pick into Chart Trader's own account selector so chart order
+		// rendering follows the HUD account. Locates the selector by item content (account names),
+		// which survives NT8 template/layout changes better than hardcoded names.
+		private void SyncChartTraderAccount(string accountName)
+		{
+			try
+			{
+				if (string.IsNullOrEmpty(accountName)) return;
+				DependencyObject ctControl = GetChartTraderControl();
+				if (ctControl == null) return;
+
+				List<ComboBox> combos = new List<ComboBox>();
+				FindAllVisualChildren<ComboBox>(ctControl, combos);
+				foreach (ComboBox combo in combos)
+				{
+					foreach (object item in combo.Items)
+					{
+						if (item == null || !accountName.Equals(item.ToString(), StringComparison.OrdinalIgnoreCase)) continue;
+						if (!ReferenceEquals(combo.SelectedItem, item))
+							combo.SelectedItem = item;
+						return;
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				Print(string.Format("[KatTradeManager] Chart Trader account sync failed: {0}", ex.Message));
+			}
+		}
+
 		private DependencyObject FindVisualChildByTypeName(DependencyObject parent, string typeName)
 		{
 			if (parent == null) return null;
@@ -760,6 +790,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					// realized PnL stays as the baseline (phantom daily PnL -> false/missed risk breach).
 					SwitchAccount(Account.All.FirstOrDefault(a => a.Name == selectedName));
 					AccountName = selectedName;
+					// NT8 only renders chart orders for the account selected in Chart Trader — mirror the pick there.
+					SyncChartTraderAccount(selectedName);
 					Print(string.Format("[KatTradeManager] Account changed via UI to: {0}", selectedName));
 				}
 			};
@@ -996,7 +1028,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			sec3Panel.Children.Add(beRevertGrid);
 
 			SolidColorBrush closeBg = new SolidColorBrush(Color.FromRgb(20, 20, 20)); // Very dark gray (almost black)
-			Button btnClose = CreateButton("Close/flatten", closeBg, (s, ev) => FlattenAllPositions(), 33, 15);
+			Button btnClose = CreateButton("Close/flatten", closeBg, (s, ev) => FlattenAllPositions(), 66, 15);
 			sec3Panel.Children.Add(btnClose);
 
 			mainPanel.Children.Add(CreateSectionCard(sec3Panel, 6));

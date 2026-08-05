@@ -23,6 +23,12 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.11] — 2026-08-04
+- **Close/flatten double height + HUD→Chart Trader account sync**:
+  - `Close/flatten` button height doubled (33 → 66px) for a bigger flatten target.
+  - Selecting an account in the HUD now also selects it in Chart Trader's own account selector (`SyncChartTraderAccount`): the selector is located by scanning Chart Trader's visual-tree ComboBoxes for the account name (layout-resilient), then `SelectedItem` is set so NT8 renders that account's orders on the chart. Sync runs on explicit HUD selection only (not on watchdog rebuilds) and fails soft with an Output log line.
+  - **Graphify entity mapping**: `KatTradeManagerUI.SyncChartTraderAccount`, `KatTradeManagerUI.CreateWpfControls` (acc selector handler, btnClose height).
+
 ### [v1.10] — 2026-08-04
 - **Removed Partial Candle, EMA Angle, and Freeze Trail features; Max DD forced ON per session**:
   - **Partial Candle**: toggle button, `cachedIsPartialCandle`/`cachedPartialPercent`, `DefaultPartialCandlePercent` property, `CalculatePartialCandlePrice`/`CalculateHalfCandlePrice` deleted. `CalculateCandlePrice` simplified to `(action, high, low)` — candle orders always anchor at full High/Low. All 5 call sites updated.
