@@ -1050,45 +1050,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			}
 		}
 
-		private void PlaceFixedDistanceOrder(OrderAction action)
-		{
-			if (account == null || Instrument == null)
-			{
-				if (account == null) Print("[KatTradeManager] No account — watchdog auto-recovering. Retry in a moment.");
-				return;
-			}
-
-			try
-			{
-				double currentPx = 0;
-				lock (priceLock)
-				{
-					currentPx = cachedCurrentPrice;
-					if (currentPx <= 0)
-					{
-						int barIdx = GetBarsInProgressIndex();
-						if (barIdx >= 0 && barIdx < NUM_SERIES)
-							currentPx = cachedCurrentClose[barIdx] > 0 ? cachedCurrentClose[barIdx] : 0;
-					}
-				}
-
-				if (currentPx <= 0) return;
-
-				int distTicks = cachedDistanceTicks > 0 ? cachedDistanceTicks : DefaultDistanceTicks;
-				KatOrderAction katAction = ToKatAction(action);
-				double triggerPrice = KatTradeCalculator.CalculateFixedDistanceTriggerPrice(katAction, currentPx, distTicks, cachedTickSize);
-
-				KatOrderType katOrderType = KatTradeCalculator.DetermineOrderType(katAction, triggerPrice, currentPx, cachedTickSize, out double limitPrice, out double stopPrice);
-				OrderType orderType = ToNtOrderType(katOrderType);
-
-				PlaceOrderInternal(action, triggerPrice, orderType, limitPrice, stopPrice, "placing fixed distance order", true);
-			}
-			catch (Exception ex)
-			{
-				Print(string.Format("[KatTradeManager] Error placing fixed distance order: {0}", ex.ToString()));
-			}
-		}
-
 		private void PlaceEmaOrder(OrderAction action, int emaPeriod)
 		{
 			Print(string.Format("[KatTradeManager] PlaceEmaOrder click: {0} EMA{1}", action, emaPeriod));
@@ -1282,7 +1243,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				limitPrice = liveLimitPrice;
 				stopPrice = liveStopPrice;
 
-				int qty = cachedQuantity > 0 ? cachedQuantity : DefaultQuantity;
+				int qty = DefaultQuantity;
 				string entryName = "Entry";
 
 				entryOrder = account.CreateOrder(Instrument, action, orderType, OrderEntry.Manual, TimeInForce.Gtc, qty, limitPrice, stopPrice, "", entryName, NinjaTrader.Core.Globals.MaxDate, null);
@@ -1696,7 +1657,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			{
 				int qty = quantityOverride > 0
 					? quantityOverride
-					: (cachedQuantity > 0 ? cachedQuantity : DefaultQuantity);
+					: DefaultQuantity;
 				// NinjaTrader ATM contract: CreateOrder name MUST be "Entry".
 				// A custom name leaves StartAtmStrategy stuck at Initialized.
 				string entryName = HasAtmTemplate(cachedAtmTemplate) ? "Entry" : (action == OrderAction.Buy ? "MarketBuy" : "MarketSell");

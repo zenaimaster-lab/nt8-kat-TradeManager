@@ -23,6 +23,14 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.07] — 2026-08-04
+- **HUD slim-down: removed Contracts row, single-line status, removed Buy/Sell distance feature**:
+  - Removed the `Contracts:` input row from the HUD and its ATM quantity sync (`LoadAtmTemplateSettings` no longer reads ATM `<EntryQuantity>` into the HUD). Order quantity now comes solely from the `Default Quantity` indicator property; removed orphaned `txtQuantity`, `cachedQuantity`, and `atmQuantity` fields.
+  - HUD status slot reduced from a reserved 2-line (32px, wrapping) area to a single 16px line with `TextTrimming.CharacterEllipsis`.
+  - Removed the fixed-distance feature entirely: `BUY +distance` / `SELL -distance` HUD buttons, `HotkeyBuyDist`/`HotkeySellDist` hotkeys, `DefaultDistanceTicks` property, `PlaceFixedDistanceOrder`, `cachedDistanceTicks`, and `KatTradeCalculator.CalculateFixedDistanceTriggerPrice` (+7 orphaned unit tests across 4 test files).
+  - README updated (hotkey count 15→13, Stop-Limit/EMA filter route wording, status slot description).
+  - **Graphify entity mapping**: `KatTradeManagerUI.CreateWpfControls` (Contracts row/distance buttons removed), `KatTradeManagerUI.SyncCachedValues`, `KatTradeManager.LoadAtmTemplateSettings` (qty sync removed), `KatTradeManager.OrderOps.PlaceOrderInternal` (sole candle/EMA entry path).
+
 ### [v1.06] — 2026-08-03
 - **ATM MERGE defer log once per episode instead of per account event**:
   - Deferring flat cleanup while our ATM entry is still working (until filled/cancelled) is correct behavior; but the defer branch printed on every account order event (~2/sec), flooding the NinjaScript Output.

@@ -118,11 +118,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		public string DefaultAtmTemplate { get; set; }
 
 		[NinjaScriptProperty]
-		[Range(1, 10000)]
-		[Display(Name="Default Distance (Ticks)", Order=6, GroupName="Parameters")]
-		public int DefaultDistanceTicks { get; set; }
-
-		[NinjaScriptProperty]
 		[Range(1, 99)]
 		[Display(Name="Partial Candle Pullback (%)", Order=7, GroupName="Parameters")]
 		public int DefaultPartialCandlePercent { get; set; }
@@ -374,14 +369,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		[NinjaScriptProperty]
 		[Display(Name="Sell Current Candle", Order=48, GroupName="Hotkeys")]
 		public Key HotkeySellCurr { get; set; }
-
-		[NinjaScriptProperty]
-		[Display(Name="Buy +Distance", Order=49, GroupName="Hotkeys")]
-		public Key HotkeyBuyDist { get; set; }
-
-		[NinjaScriptProperty]
-		[Display(Name="Sell -Distance", Order=50, GroupName="Hotkeys")]
-		public Key HotkeySellDist { get; set; }
 
 		[NinjaScriptProperty]
 		[Display(Name="Buy Market", Order=51, GroupName="Hotkeys")]

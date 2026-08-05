@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 1.06 (2026-08-03)
+ * Version: 1.07 (2026-08-04)
  * NinjaTrader 8 TradeManager Indicator
  */
  
@@ -69,15 +69,14 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "1.06";
-		public const string RELEASE_DATE = "2026-08-03";
+		public const string VERSION = "1.07";
+		public const string RELEASE_DATE = "2026-08-04";
 
 		private volatile Account account;
 		private Account subscribedAccount;
 		private Grid chartGrid;
 		private Border panelBorder;
 		private StackPanel mainPanel;
-		private TextBox txtQuantity;
 		private ComboBox atmSelector;
 		private System.Windows.Threading.DispatcherTimer panelWatchdog;
 		private volatile bool isTerminated;
@@ -132,10 +131,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private int atmMergeScheduled;
 
 		// Thread-safe cached values from UI controls (synced by watchdog on UI thread)
-		private volatile int cachedQuantity;
 		private volatile int cachedTfIndex;
 		private volatile int cachedBufferTicks;
-		private volatile int cachedDistanceTicks;
 		private volatile string cachedAtmTemplate = "";
 		private volatile int cachedHudLeftInset = 10;
 		private volatile bool cachedHudDragEnabled = true;
@@ -149,7 +146,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private int atmBETrigger = 0;
 		private int atmSL1Trigger = 0;
 		private int atmSL2Trigger = 0;
-		private int atmQuantity = 1;
 
 		private bool isExpectedLinesDrawn = false;
 
@@ -287,7 +283,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				AccountFilter						= "";
 				DefaultTimeframe                    = KatTimeframe.ChartTF;
 				DefaultBufferTicks                  = 2;
-				DefaultDistanceTicks                = 320; // Default 80 points = 320 ticks
 				DefaultAtmTemplate                  = "Sim101_ATM";
 				DefaultPartialCandlePercent         = 30;
 
@@ -333,8 +328,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				HotkeySellPrev                      = Key.None;
 				HotkeyBuyCurr                       = Key.None;
 				HotkeySellCurr                      = Key.None;
-				HotkeyBuyDist                       = Key.None;
-				HotkeySellDist                      = Key.None;
 				HotkeyBuyMarket                     = Key.None;
 				HotkeySellMarket                    = Key.None;
 				HotkeyBE                            = Key.None;
@@ -356,11 +349,9 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			else if (State == State.DataLoaded)
 			{
 				isTerminated = false;
-				cachedQuantity = DefaultQuantity;
 				cachedTfIndex = (int)DefaultTimeframe;
 				cachedTickSize = TickSize;
 				cachedBufferTicks = DefaultBufferTicks;
-				cachedDistanceTicks = DefaultDistanceTicks;
 				cachedAtmTemplate = DefaultAtmTemplate;
 				cachedHudLeftInset = Math.Max(0, HudLeftInset);
 				cachedHudDragEnabled = HudDragEnabled;
@@ -666,7 +657,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			atmBETrigger = 0;
 			atmSL1Trigger = 0;
 			atmSL2Trigger = 0;
-			atmQuantity = 0;
 
 			if (string.IsNullOrEmpty(templateName)) return;
 
@@ -680,13 +670,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				atmBETrigger = data.BETrigger;
 				atmSL1Trigger = data.SL1Trigger;
 				atmSL2Trigger = data.SL2Trigger;
-				atmQuantity = data.Quantity;
-
-				if (txtQuantity != null && atmQuantity > 0)
-				{
-					txtQuantity.Text = atmQuantity.ToString();
-					cachedQuantity = atmQuantity;
-				}
 			}
 			catch (Exception ex)
 			{

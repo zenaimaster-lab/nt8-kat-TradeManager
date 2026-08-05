@@ -131,8 +131,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 		private void SyncCachedValues()
 		{
-			if (txtQuantity != null)
-				cachedQuantity = int.TryParse(txtQuantity.Text, out int q) ? q : DefaultQuantity;
 			if (atmSelector != null && atmSelector.SelectedItem != null)
 			{
 				string selectedAtm = atmSelector.SelectedItem.ToString();
@@ -141,7 +139,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			cachedTfIndex = (int)DefaultTimeframe;
 			cachedBufferTicks = DefaultBufferTicks;
-			cachedDistanceTicks = DefaultDistanceTicks;
 			cachedPartialPercent = DefaultPartialCandlePercent > 0 ? DefaultPartialCandlePercent : 30;
 			cachedHudLeftInset = Math.Max(0, HudLeftInset);
 			bool wasHudDragEnabled = cachedHudDragEnabled;
@@ -717,10 +714,11 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				Margin = new Thickness(0, 0, 0, 6),
 				HorizontalAlignment = HorizontalAlignment.Left,
 				VerticalAlignment = VerticalAlignment.Top,
-				Height = 32,
-				MinHeight = 32,
-				MaxHeight = 32,
-				TextWrapping = TextWrapping.Wrap,
+				Height = 16,
+				MinHeight = 16,
+				MaxHeight = 16,
+				TextWrapping = TextWrapping.NoWrap,
+				TextTrimming = TextTrimming.CharacterEllipsis,
 				Visibility = Visibility.Visible,
 				Text = string.Empty
 			};
@@ -775,18 +773,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				}
 			};
 			AddGridRow(paramGrid, "Acc:", accSelector);
-
-			txtQuantity = new TextBox { Text = DefaultQuantity.ToString(), FontSize = 11, Height = 22, Background = Brushes.Black, Foreground = Brushes.White, BorderBrush = Brushes.Gray, Padding = new Thickness(4, 0, 4, 0), VerticalContentAlignment = VerticalAlignment.Center };
-			txtQuantity.PreviewKeyDown += (s, ev) =>
-			{
-				if (ev.Key == Key.Enter)
-				{
-					SyncCachedValues();
-					if (ChartControl != null) ChartControl.Focus();
-					ev.Handled = true;
-				}
-			};
-			AddGridRow(paramGrid, "Contracts:", txtQuantity);
 
 			sec1Panel.Children.Add(paramGrid);
 
@@ -1071,21 +1057,17 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			SolidColorBrush buyPrevBg  = new SolidColorBrush(Color.FromRgb(34, 112, 62));
 			SolidColorBrush buyCurrBg  = new SolidColorBrush(Color.FromRgb(24, 82, 45));
-			SolidColorBrush buyFixedBg = new SolidColorBrush(Color.FromRgb(16, 56, 30));
 			SolidColorBrush sellPrevBg = new SolidColorBrush(Color.FromRgb(148, 48, 54));
 			SolidColorBrush sellCurrBg = new SolidColorBrush(Color.FromRgb(110, 32, 38));
-			SolidColorBrush sellFixedBg = new SolidColorBrush(Color.FromRgb(75, 20, 24));
 
 			StackPanel buyCol = new StackPanel();
 			Button btnBuyPrev = CreateButton("BUY previous", buyPrevBg, (s, ev) => PlaceOrder(OrderAction.Buy, false), 48, 12);
 			btnBuyPrev.Margin = new Thickness(0, 0, 0, 4);
 			Button btnBuyCurr = CreateButton("BUY current", buyCurrBg, (s, ev) => PlaceOrder(OrderAction.Buy, true), 48, 12);
 			btnBuyCurr.Margin = new Thickness(0, 0, 0, 4);
-			Button btnBuyDist = CreateButton("BUY +distance", buyFixedBg, (s, ev) => PlaceFixedDistanceOrder(OrderAction.Buy), 24, 10);
 
 			buyCol.Children.Add(btnBuyCurr);
 			buyCol.Children.Add(btnBuyPrev);
-			buyCol.Children.Add(btnBuyDist);
 			Grid.SetColumn(buyCol, 2);
 
 			StackPanel sellCol = new StackPanel();
@@ -1093,11 +1075,9 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			btnSellPrev.Margin = new Thickness(0, 0, 0, 4);
 			Button btnSellCurr = CreateButton("SELL current", sellCurrBg, (s, ev) => PlaceOrder(OrderAction.Sell, true), 48, 12);
 			btnSellCurr.Margin = new Thickness(0, 0, 0, 4);
-			Button btnSellDist = CreateButton("SELL -distance", sellFixedBg, (s, ev) => PlaceFixedDistanceOrder(OrderAction.Sell), 24, 10);
 
 			sellCol.Children.Add(btnSellCurr);
 			sellCol.Children.Add(btnSellPrev);
-			sellCol.Children.Add(btnSellDist);
 			Grid.SetColumn(sellCol, 0);
 
 			orderBtnGrid.Children.Add(sellCol);
@@ -1106,7 +1086,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			mainPanel.Children.Add(CreateSectionCard(sec3Panel, 6));
 
 
-			// --- SECTION 4: Market Orders & Position Management (Darker than BUY/SELL Distance) ---
+			// --- SECTION 4: Market Orders & Position Management ---
 			StackPanel sec4Panel = new StackPanel();
 
 			Grid mktBtnGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
@@ -1114,8 +1094,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			mktBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
 			mktBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-			SolidColorBrush buyMktBg  = new SolidColorBrush(Color.FromRgb(12, 48, 25)); // Deep dark green (darker than BUY Distance 16,56,30)
-			SolidColorBrush sellMktBg = new SolidColorBrush(Color.FromRgb(55, 15, 18)); // Deep dark red (darker than SELL Distance 75,20,24)
+			SolidColorBrush buyMktBg  = new SolidColorBrush(Color.FromRgb(12, 48, 25)); // Deep dark green
+			SolidColorBrush sellMktBg = new SolidColorBrush(Color.FromRgb(55, 15, 18)); // Deep dark red
 
 			Button btnSellMkt = CreateButton("SELL market", sellMktBg, (s, ev) => PlaceMarketOrder(OrderAction.Sell), 48, 12);
 			Grid.SetColumn(btnSellMkt, 0);
@@ -1265,7 +1245,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 				hudStatusText.Text = message;
 				hudStatusText.Foreground = foreground ?? Brushes.White;
-				hudStatusText.TextWrapping = TextWrapping.Wrap;
 				hudStatusText.Visibility = Visibility.Visible;
 
 				if (hudStatusTimer == null)
@@ -1425,16 +1404,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			else if (key == HotkeySellCurr && HotkeySellCurr != Key.None)
 			{
 				PlaceOrder(OrderAction.Sell, true);
-				handled = true;
-			}
-			else if (key == HotkeyBuyDist && HotkeyBuyDist != Key.None)
-			{
-				PlaceFixedDistanceOrder(OrderAction.Buy);
-				handled = true;
-			}
-			else if (key == HotkeySellDist && HotkeySellDist != Key.None)
-			{
-				PlaceFixedDistanceOrder(OrderAction.Sell);
 				handled = true;
 			}
 			else if (key == HotkeyBuyMarket && HotkeyBuyMarket != Key.None)

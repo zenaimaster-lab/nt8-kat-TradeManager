@@ -67,36 +67,6 @@ namespace KatTradeManager.Tests
 		}
 
 		[Fact]
-		public void CalculateFixedDistanceTriggerPrice_BuyOrder_AddsDistance()
-		{
-			// Arrange
-			double currentPrice = 20000.0;
-			int distanceTicks = 320;
-			double tickSize = 0.25;
-
-			// Act
-			double triggerPrice = KatTradeCalculator.CalculateFixedDistanceTriggerPrice(KatOrderAction.Buy, currentPrice, distanceTicks, tickSize);
-
-			// Assert
-			Assert.Equal(20080.0, triggerPrice, 4);
-		}
-
-		[Fact]
-		public void CalculateFixedDistanceTriggerPrice_SellOrder_SubtractsDistance()
-		{
-			// Arrange
-			double currentPrice = 20000.0;
-			int distanceTicks = 320;
-			double tickSize = 0.25;
-
-			// Act
-			double triggerPrice = KatTradeCalculator.CalculateFixedDistanceTriggerPrice(KatOrderAction.Sell, currentPrice, distanceTicks, tickSize);
-
-			// Assert
-			Assert.Equal(19920.0, triggerPrice, 4);
-		}
-
-		[Fact]
 		public void CalculateMergedOrderQuantity_SumsPositiveBracketQuantities()
 		{
 			int merged = KatTradeCalculator.CalculateMergedOrderQuantity(new[] { 1, 1, 2, -1, 0 });

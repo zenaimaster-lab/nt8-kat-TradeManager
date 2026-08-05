@@ -182,19 +182,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return CalculateTriggerPrice(action, entryPrice, bufferTicks, tickSize);
 		}
 
-		public static double CalculateFixedDistanceTriggerPrice(KatOrderAction action, double currentPrice, int distanceTicks, double tickSize)
-		{
-			if (tickSize <= 0) return currentPrice;
-			if (distanceTicks < 0) distanceTicks = Math.Abs(distanceTicks);
-
-			double price = action == KatOrderAction.Buy
-				? currentPrice + (distanceTicks * tickSize)
-				: currentPrice - (distanceTicks * tickSize);
-
-			double rounded = Math.Round(price / tickSize) * tickSize;
-			return Math.Round(rounded, 8);
-		}
-
 		public static void CalculateStopLimitPrices(KatOrderAction action, double triggerPrice, double tickSize, out double limitPrice, out double stopPrice)
 		{
 			if (tickSize <= 0) tickSize = 0.01;

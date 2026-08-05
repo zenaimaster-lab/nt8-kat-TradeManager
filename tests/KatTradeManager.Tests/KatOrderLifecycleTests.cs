@@ -179,26 +179,6 @@ namespace KatTradeManager.Tests
 		}
 
 		[Fact]
-		public void CalculateFixedDistanceTriggerPrice_NegativeDistance_ClampedToPositive()
-		{
-			double buy = KatTradeCalculator.CalculateFixedDistanceTriggerPrice(KatOrderAction.Buy, 2000.0, -10, 0.25);
-			double sell = KatTradeCalculator.CalculateFixedDistanceTriggerPrice(KatOrderAction.Sell, 2000.0, -10, 0.25);
-
-			Assert.Equal(2002.5, buy, 4);
-			Assert.Equal(1997.5, sell, 4);
-		}
-
-		[Fact]
-		public void CalculateFixedDistanceTriggerPrice_ZeroTicks_ReturnsCurrentPrice()
-		{
-			double buy = KatTradeCalculator.CalculateFixedDistanceTriggerPrice(KatOrderAction.Buy, 2000.0, 0, 0.25);
-			double sell = KatTradeCalculator.CalculateFixedDistanceTriggerPrice(KatOrderAction.Sell, 2000.0, 0, 0.25);
-
-			Assert.Equal(2000.0, buy, 4);
-			Assert.Equal(2000.0, sell, 4);
-		}
-
-		[Fact]
 		public void CalculateStopLimitPrices_BuyUsesOneTickAboveTrigger()
 		{
 			KatTradeCalculator.CalculateStopLimitPrices(KatOrderAction.Buy, 1000.0, 0.25, out double limitPrice, out double stopPrice);

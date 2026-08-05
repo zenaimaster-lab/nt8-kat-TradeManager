@@ -267,15 +267,6 @@ namespace KatTradeManager.Tests
 		}
 		#endregion
 
-		#region CalculateFixedDistanceTriggerPrice — zero distance
-		[Fact]
-		public void CalculateFixedDistanceTriggerPrice_ZeroDistance_EqualsCurrentPrice()
-		{
-			Assert.Equal(100.0, KatTradeCalculator.CalculateFixedDistanceTriggerPrice(KatOrderAction.Buy, 100.0, 0, 0.25));
-			Assert.Equal(100.0, KatTradeCalculator.CalculateFixedDistanceTriggerPrice(KatOrderAction.Sell, 100.0, 0, 0.25));
-		}
-		#endregion
-
 		#region CalculateEmaAngle — negative ticksize fallback
 		[Fact]
 		public void CalculateEmaAngle_NegativeTickSize_FallsBackToQuarterTick()

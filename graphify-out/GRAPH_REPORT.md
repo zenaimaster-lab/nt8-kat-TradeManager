@@ -1,16 +1,16 @@
-# Graph Report - nt8-kat-TradeManager  (2026-08-03)
+# Graph Report - nt8-kat-TradeManager  (2026-08-04)
 
 ## Corpus Check
-- 34 files · ~45,441 words
+- 34 files · ~44,818 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 536 nodes · 911 edges · 33 communities (16 shown, 17 thin omitted)
+- 536 nodes · 911 edges · 32 communities (15 shown, 17 thin omitted)
 - Extraction: 89% EXTRACTED · 11% INFERRED · 0% AMBIGUOUS · INFERRED: 99 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `89850078`
+- Built from commit: `eb33f927`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -38,7 +38,6 @@
 - [[_COMMUNITY_Community 20|Community 20]]
 - [[_COMMUNITY_Community 21|Community 21]]
 - [[_COMMUNITY_Community 22|Community 22]]
-- [[_COMMUNITY_Community 23|Community 23]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `KatTradeManager` - 95 edges
@@ -64,7 +63,7 @@
 - `KatTradeManager` --references--> `DateTime`  [EXTRACTED]
   KatTradeManager.cs → tests/KatTradeManager.Tests/KatEntryShiftTests.cs
 
-## Communities (33 total, 17 thin omitted)
+## Communities (32 total, 17 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.05
@@ -72,15 +71,15 @@ Nodes (25): Account, AtmLevels, Border, Brush, Button, Canvas, ComboBox, Dispatc
 
 ### Community 1 - "Community 1"
 Cohesion: 0.08
-Nodes (4): OrderAction, Queue, KatTradeManager, KatTradeManager
+Nodes (6): OrderAction, Queue, KatTradeManager, NinjaTrader.NinjaScript.Indicators, NinjaTrader.NinjaScript.Indicators.KAT, KatTradeManager
 
 ### Community 4 - "Community 4"
-Cohesion: 0.15
-Nodes (3): KatTradeManager, NinjaTrader.NinjaScript.Indicators, NinjaTrader.NinjaScript.Indicators.KAT
-
-### Community 5 - "Community 5"
 Cohesion: 0.07
 Nodes (18): AccountOperationType, Action, bool, int, List, AtmScaleInState, NinjaTrader.NinjaScript.Indicators, NinjaTrader.NinjaScript.Indicators.KAT (+10 more)
+
+### Community 6 - "Community 6"
+Cohesion: 0.14
+Nodes (6): double, OrderType, FreezeExitCapture, KatTradeManager, NinjaTrader.NinjaScript.Indicators, NinjaTrader.NinjaScript.Indicators.KAT
 
 ### Community 14 - "Community 14"
 Cohesion: 0.18
@@ -90,10 +89,6 @@ Nodes (3): DateTime, KatEntryShiftTests, KatTradeManager.Tests
 Cohesion: 0.38
 Nodes (3): AtmTemplateData, KatAtmXmlParser, NinjaTrader.NinjaScript.Indicators
 
-### Community 21 - "Community 21"
-Cohesion: 0.33
-Nodes (5): double, OrderType, FreezeExitCapture, NinjaTrader.NinjaScript.Indicators, NinjaTrader.NinjaScript.Indicators.KAT
-
 ## Knowledge Gaps
 - **53 isolated node(s):** `NinjaTrader.NinjaScript.Indicators.KAT`, `Account`, `Grid`, `Border`, `StackPanel` (+48 more)
   These have ≤1 connection - possible missing edges or undocumented components.
@@ -102,11 +97,11 @@ Nodes (5): double, OrderType, FreezeExitCapture, NinjaTrader.NinjaScript.Indicat
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `KatTradeManager` connect `Community 1` to `Community 0`, `Community 4`, `Community 5`, `Community 14`, `Community 21`?**
+- **Why does `KatTradeManager` connect `Community 1` to `Community 0`, `Community 4`, `Community 14`, `Community 6`?**
   _High betweenness centrality (0.119) - this node is a cross-community bridge._
-- **Why does `string` connect `Community 5` to `Community 0`, `Community 1`, `Community 3`?**
+- **Why does `string` connect `Community 4` to `Community 0`, `Community 1`, `Community 3`, `Community 6`?**
   _High betweenness centrality (0.098) - this node is a cross-community bridge._
-- **Why does `KatTradeCalculator` connect `Community 3` to `Community 5`?**
+- **Why does `KatTradeCalculator` connect `Community 3` to `Community 4`?**
   _High betweenness centrality (0.067) - this node is a cross-community bridge._
 - **What connects `NinjaTrader.NinjaScript.Indicators.KAT`, `Account`, `Grid` to the rest of the system?**
   _53 weakly-connected nodes found - possible documentation gaps or missing edges._
