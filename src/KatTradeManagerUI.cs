@@ -733,11 +733,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				pendingHudStatusBrush = null;
 			}
 
-			Grid paramGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
-			paramGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(85) });
-			paramGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-			ComboBox accSelector = new ComboBox { FontSize = 11, Height = 22 };
+			ComboBox accSelector = new ComboBox { FontSize = 11, Height = 22, Margin = new Thickness(0, 0, 0, 4), HorizontalAlignment = HorizontalAlignment.Stretch };
 			if (Account.All != null)
 			{
 				var allowedAccs = Account.All.Where(a => IsAccountAllowed(a.Name)).ToList();
@@ -772,9 +768,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					Print(string.Format("[KatTradeManager] Account changed via UI to: {0}", selectedName));
 				}
 			};
-			AddGridRow(paramGrid, "Acc:", accSelector);
-
-			sec1Panel.Children.Add(paramGrid);
+			sec1Panel.Children.Add(accSelector);
 
 			atmSelector = new ComboBox
 			{
@@ -1160,21 +1154,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			};
 			sec4Panel.Children.Add(btnStopLimit);
 
-			Button btnAtmMerge = CreateButton(cachedIsAtmMerge ? "ATM Bracket: MERGE" : "ATM Bracket: SPLIT",
-				cachedIsAtmMerge ? freezeOnBg : freezeOffBg, null, 24, 10);
-			btnAtmMerge.Foreground = cachedIsAtmMerge ? Brushes.White : Brushes.LightGray;
-			btnAtmMerge.Margin = new Thickness(0, 0, 0, 4);
-			btnAtmMerge.Click += (s, ev) =>
-			{
-				cachedIsAtmMerge = !cachedIsAtmMerge;
-				btnAtmMerge.Content = cachedIsAtmMerge ? "ATM Bracket: MERGE" : "ATM Bracket: SPLIT";
-				btnAtmMerge.Background = cachedIsAtmMerge ? freezeOnBg : freezeOffBg;
-				btnAtmMerge.Foreground = cachedIsAtmMerge ? Brushes.White : Brushes.LightGray;
-				if (cachedIsAtmMerge)
-					ScheduleAtmBracketMerge();
-			};
-			sec4Panel.Children.Add(btnAtmMerge);
-
 			SolidColorBrush closeBg = new SolidColorBrush(Color.FromRgb(20, 20, 20)); // Very dark gray (almost black)
 			Button btnClose = CreateButton("Close/flatten", closeBg, (s, ev) => FlattenAllPositions(), 33, 15);
 			sec4Panel.Children.Add(btnClose);
@@ -1184,31 +1163,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 
 			panelBorder.Child = mainPanel;
-		}
-
-		private void AddGridRow(Grid grid, string labelText, FrameworkElement inputElement)
-		{
-			int rowIdx = grid.RowDefinitions.Count;
-			grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(28) });
-
-			TextBlock label = new TextBlock
-			{
-				Text = labelText,
-				Foreground = Brushes.LightGray,
-				VerticalAlignment = VerticalAlignment.Center,
-				HorizontalAlignment = HorizontalAlignment.Left,
-				FontSize = 11
-			};
-			Grid.SetRow(label, rowIdx);
-			Grid.SetColumn(label, 0);
-			grid.Children.Add(label);
-
-			inputElement.VerticalAlignment = VerticalAlignment.Center;
-			inputElement.HorizontalAlignment = HorizontalAlignment.Stretch;
-			inputElement.Height = 22;
-			Grid.SetRow(inputElement, rowIdx);
-			Grid.SetColumn(inputElement, 1);
-			grid.Children.Add(inputElement);
 		}
 
 		private Button CreateButton(string text, Brush bg, RoutedEventHandler handler, double height = 24, double fontSize = 10)

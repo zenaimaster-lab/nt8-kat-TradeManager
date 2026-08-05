@@ -23,6 +23,13 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.08] — 2026-08-04
+- **HUD: full-width account dropdown + ATM Bracket permanently MERGE**:
+  - Account selector is now a full-width row (same layout as the ATM dropdown); the `Acc:` label and its 2-column `paramGrid` wrapper were removed along with the now-orphaned `AddGridRow` helper.
+  - Removed the `ATM Bracket: MERGE/SPLIT` toggle button and the `cachedIsAtmMerge` flag. Bracket merging is now unconditional: `SubmitOrder` scale-in path, `ScheduleAtmBracketMerge`, `MergeAtmBrackets`, `ProcessAtmScaleInUpdate`, and the account-order-update diagnostics all run as if MERGE were always ON.
+  - README updated (ATM Bracket bullet rewritten as always-on).
+  - **Graphify entity mapping**: `KatTradeManagerUI.CreateWpfControls` (acc selector full-width, merge button removed), `KatTradeManager.SubmitOrder`, `KatTradeManager.ScheduleAtmBracketMerge`, `KatTradeManager.MergeAtmBrackets`, `KatTradeManager.ProcessAtmScaleInUpdate`, `KatTradeManager.OnAccountOrderUpdateCore`.
+
 ### [v1.07] — 2026-08-04
 - **HUD slim-down: removed Contracts row, single-line status, removed Buy/Sell distance feature**:
   - Removed the `Contracts:` input row from the HUD and its ATM quantity sync (`LoadAtmTemplateSettings` no longer reads ATM `<EntryQuantity>` into the HUD). Order quantity now comes solely from the `Default Quantity` indicator property; removed orphaned `txtQuantity`, `cachedQuantity`, and `atmQuantity` fields.

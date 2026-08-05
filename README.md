@@ -1,6 +1,6 @@
 # NT8 Kat TradeManager
 
-**Current Version**: `v1.07` (Released: `2026-08-04`)
+**Current Version**: `v1.08` (Released: `2026-08-04`)
 
 An advanced TradeManager Indicator for **NinjaTrader 8 (NT8)** designed for fast execution, candle-based pending stop orders, and dynamic risk management.
 
@@ -12,7 +12,7 @@ An advanced TradeManager Indicator for **NinjaTrader 8 (NT8)** designed for fast
 - **ATM `None` selection**: First item of the HUD ATM dropdown submits plain orders without any ATM strategy, matching NT8 Chart Trader's own None mode; with None selected the HUD no longer merges, resizes, or cancels protective orders it does not own.
 - **ATM Quick Set buttons (A–F)**: Row of 6 one-click buttons directly below the ATM dropdown; each instantly selects its assigned ATM template (the dropdown updates to match). Exactly one shows amber (ON) — the one owning the currently selected ATM — the rest stay gray; None turns all OFF. Button labels (max 3 chars, default A–F) and assigned ATMs (dropdown lists) are configured in Indicator Settings under "ATM Quick Sets".
 - **Pending Stop-Limit Control (`Stop-Limit: OFF` / `Stop-Limit: ON`)**: Full-width Freeze Trail-style button below Freeze Trail; converts valid candle and EMA-touch pending StopMarket entries to one-tick StopLimit entries when enabled.
-- **ATM Bracket Control (`ATM Bracket: MERGE` / `ATM Bracket: SPLIT`)**: Button below Stop-Limit; MERGE reconciles all scale-in and scale-out activity to one canonical SL plus one TP at live position quantity, while SPLIT preserves independent bracket sets per entry.
+- **ATM Bracket MERGE (always on)**: Every trade automatically reconciles all scale-in and scale-out activity to one canonical SL plus one TP at live position quantity; the former MERGE/SPLIT toggle was removed so bracket merging can never be disabled.
 - **Serialized account operations**: Submit, Change, and Cancel requests run through one state-aware FIFO gate; Close/flatten cancels working orders before submitting its close order.
 - **ATM startup lifecycle hardening**: ATM API calls release queue ownership after return, while MERGE defers flat cleanup until first-entry startup resolves so initial SL/TP brackets are not cancelled prematurely.
 - **Account-wide Close/flatten**: cancels all active account orders, then submits one market close per open position across every instrument; Revert and daily-risk remain instrument-scoped.

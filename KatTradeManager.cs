@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 1.07 (2026-08-04)
+ * Version: 1.08 (2026-08-04)
  * NinjaTrader 8 TradeManager Indicator
  */
  
@@ -69,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "1.07";
+		public const string VERSION = "1.08";
 		public const string RELEASE_DATE = "2026-08-04";
 
 		private volatile Account account;
@@ -111,8 +111,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 		// Pending stop order mode (default OFF = StopMarket)
 		private volatile bool cachedIsStopLimit = false;
-		// ATM bracket mode (default ON = merge duplicate brackets like active Chart Trader ATM)
-		private volatile bool cachedIsAtmMerge = true;
 
 		// MERGE scale-ins use plain entry orders, then resize first ATM bracket after fills.
 		private sealed class AtmScaleInState

@@ -514,7 +514,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			{
 				if (HasAtmTemplate(tpl))
 				{
-					if (cachedIsAtmMerge && TryPrepareAtmScaleIn(order))
+					if (TryPrepareAtmScaleIn(order))
 					{
 						TrackAtmScaleIn(order);
 						QueueAccountOperation(AccountOperationType.Submit, new[] { order }, "ATM MERGE scale-in submit");
@@ -649,7 +649,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private void ScheduleAtmBracketMerge()
 		{
 			// Freeze takes ownership of protective exits; MERGE would race it for the same orders.
-			if (!cachedIsAtmMerge || cachedIsFreezeTrail || !IsHudAtmActive() || account == null || Instrument == null) return;
+			if (cachedIsFreezeTrail || !IsHudAtmActive() || account == null || Instrument == null) return;
 			if (System.Threading.Interlocked.CompareExchange(ref atmMergeScheduled, 1, 0) != 0) return;
 
 			Action merge = () =>
@@ -683,7 +683,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 		private void MergeAtmBrackets()
 		{
-			if (!cachedIsAtmMerge || cachedIsFreezeTrail || !IsHudAtmActive() || account == null || Instrument == null) return;
+			if (cachedIsFreezeTrail || !IsHudAtmActive() || account == null || Instrument == null) return;
 
 			try
 			{
@@ -945,7 +945,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 		private void ProcessAtmScaleInUpdate(Order observed)
 		{
-			if (!cachedIsAtmMerge || observed == null || observed.Name != "Entry") return;
+			if (observed == null || observed.Name != "Entry") return;
 			lock (atmScaleInLock)
 				atmLastLifecycleActivityUtc = DateTime.UtcNow;
 
@@ -1362,13 +1362,12 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			TryCompleteActiveAccountOperation();
 			if (Instrument == null || observed.Instrument != Instrument)
 				return;
-			if (cachedIsAtmMerge && IsAtmLifecycleOrder(observed))
+			if (IsAtmLifecycleOrder(observed))
 				MarkAtmLifecycleActivity();
 
-			if (cachedIsAtmMerge
-				&& (observed.OrderType == OrderType.StopMarket
-					|| observed.OrderType == OrderType.StopLimit
-					|| observed.OrderType == OrderType.Limit))
+			if (observed.OrderType == OrderType.StopMarket
+				|| observed.OrderType == OrderType.StopLimit
+				|| observed.OrderType == OrderType.Limit)
 			{
 				Print(string.Format(
 					"[KatTradeManager] ATM order identity: name={0} id={1} oco={2} from={3} action={4} type={5} state={6} qty={7} filled={8} stop={9} limit={10}",
