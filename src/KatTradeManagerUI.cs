@@ -270,24 +270,31 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				List<ComboBox> combos = new List<ComboBox>();
 				FindAllVisualChildren<ComboBox>(ctControl, combos);
 				foreach (ComboBox combo in combos)
-				{
-					// Bulenox: Chart Trader renders Rithmic accounts as "BX45272-51!Bulenox!Bulenox"
-					// while Account.Name is "BX45272-51" — exact match first, then "name!" prefix.
-					object exactMatch = null;
-					object prefixMatch = null;
 					foreach (object item in combo.Items)
 					{
 						if (item == null) continue;
-						string text = item.ToString();
-						if (accountName.Equals(text, StringComparison.OrdinalIgnoreCase)) { exactMatch = item; break; }
-						if (prefixMatch == null && text.StartsWith(accountName + "!", StringComparison.OrdinalIgnoreCase)) prefixMatch = item;
+						// Rithmic accounts render as "name!connection!connection" in Chart Trader's
+						// selector while Account.Name stays short — match on Name first, then on
+						// exact/prefixed ToString. (Proven fix from nt8-kat-34-Scalper.)
+						string itemText = item.ToString();
+						bool match = (item as Account)?.Name.Equals(accountName, StringComparison.OrdinalIgnoreCase) == true
+							|| itemText.Equals(accountName, StringComparison.OrdinalIgnoreCase)
+							|| itemText.StartsWith(accountName + "!", StringComparison.OrdinalIgnoreCase);
+						if (!match) continue;
+						if (!ReferenceEquals(combo.SelectedItem, item))
+							combo.SelectedItem = item;
+						return;
 					}
-					object match = exactMatch ?? prefixMatch;
-					if (match == null) continue;
-					if (!ReferenceEquals(combo.SelectedItem, match))
-						combo.SelectedItem = match;
-					return;
-				}
+				// No match: Chart Trader's account selector (NinjaTrader.Gui.Tools.AccountSelector) only
+				// lists accounts NT8 currently offers — connected-connection accounts, minus Backtest/Playback.
+				// Report what it actually lists so the gap is diagnosable.
+				List<string> listed = new List<string>();
+				foreach (ComboBox combo in combos)
+					foreach (object item in combo.Items)
+						if (item is Account listedAcc && !listed.Contains(listedAcc.Name))
+							listed.Add(listedAcc.Name);
+				Print(string.Format("[KatTradeManager] Chart Trader sync skipped — '{0}' not in its account list (listed: {1})",
+					accountName, listed.Count > 0 ? string.Join(", ", listed) : "none"));
 			}
 			catch (Exception ex)
 			{

@@ -23,6 +23,11 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.14] — 2026-08-04
+- **Bulenox account sync fix v2 — ported proven pattern from nt8-kat-34-Scalper**:
+  - v1.13's exact/prefix `ToString()` match still failed: Chart Trader's account selector items are `NinjaTrader.Cbi.Account` objects, not strings — display text comes from an item template, `ToString()` alone is unreliable.
+  - `SyncChartTraderAccount` (src/KatTradeManagerUI.cs) now matches `(item as Account).Name` FIRST, then exact `ToString()`, then `name!` prefix — same pattern user verified working in nt8-kat-34-Scalper. Added diagnostic Print listing Chart Trader's actual account list when no match, so gaps (e.g. disconnected accounts) are visible in the log.
+  - Graphify entities: `KatTradeManagerUI.SyncChartTraderAccount`, `NinjaTrader.Cbi.Account`.
 ### [v1.13] — 2026-08-04
 - **Bulenox account sync fix (HUD → Chart Trader)**:
   - Root cause: Chart Trader renders Rithmic/Bulenox accounts as `BX45272-51!Bulenox!Bulenox` while `Account.Name` is `BX45272-51` — exact-match lookup in `SyncChartTraderAccount` never matched, so picking a Bulenox account on the HUD left Chart Trader on the old account.
