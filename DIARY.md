@@ -23,6 +23,13 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.15] — 2026-08-05
+- **HUD ATM quantity restored**:
+  - Root cause: v1.12 removed ATM quantity parsing, while every BUY/SELL path still created entries with `DefaultQuantity` (default 1), so HUD ATM selection changed brackets but never entry contracts.
+  - `KatAtmXmlParser` now reads positive `EntryQuantity`, falling back to summed positive bracket quantities with overflow saturation.
+  - `LoadAtmTemplateSettings` caches selected ATM quantity; pending, EMA, and market entries use it. ATM `None` or templates without quantity retain `Default Quantity`.
+  - Graphify entities: `AtmTemplateData.Quantity`, `KatAtmXmlParser.ParseXmlDocument`, `KatTradeManager.LoadAtmTemplateSettings`, `KatTradeManager.PlaceOrderInternal`, `KatTradeManager.PlaceMarketOrder`.
+
 ### [v1.14] — 2026-08-04
 - **Bulenox account sync fix v2 — ported proven pattern from nt8-kat-34-Scalper**:
   - v1.13's exact/prefix `ToString()` match still failed: Chart Trader's account selector items are `NinjaTrader.Cbi.Account` objects, not strings — display text comes from an item template, `ToString()` alone is unreliable.

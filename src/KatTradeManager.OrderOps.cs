@@ -1185,7 +1185,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				limitPrice = liveLimitPrice;
 				stopPrice = liveStopPrice;
 
-				int qty = DefaultQuantity;
+				int qty = atmQuantity > 0 ? atmQuantity : DefaultQuantity;
 				string entryName = "Entry";
 
 				entryOrder = account.CreateOrder(Instrument, action, orderType, OrderEntry.Manual, TimeInForce.Gtc, qty, limitPrice, stopPrice, "", entryName, NinjaTrader.Core.Globals.MaxDate, null);
@@ -1598,7 +1598,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			{
 				int qty = quantityOverride > 0
 					? quantityOverride
-					: DefaultQuantity;
+					: (atmQuantity > 0 ? atmQuantity : DefaultQuantity);
 				// NinjaTrader ATM contract: CreateOrder name MUST be "Entry".
 				// A custom name leaves StartAtmStrategy stuck at Initialized.
 				string entryName = HasAtmTemplate(cachedAtmTemplate) ? "Entry" : (action == OrderAction.Buy ? "MarketBuy" : "MarketSell");

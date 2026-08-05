@@ -42,6 +42,7 @@ namespace KatTradeManager.Tests
 			Assert.Equal(10, data.BETrigger);
 			Assert.Equal(15, data.SL1Trigger);
 			Assert.Equal(25, data.SL2Trigger);
+			Assert.Equal(2, data.Quantity);
 		}
 
 		[Fact]
@@ -59,8 +60,10 @@ namespace KatTradeManager.Tests
 			Assert.Equal(0, emptyData.StopLoss);
 			Assert.Equal(0, emptyData.Target);
 			Assert.Equal(0, emptyData.BETrigger);
+			Assert.Equal(0, emptyData.Quantity);
 
 			Assert.Equal(0, invalidData.StopLoss);
+			Assert.Equal(0, invalidData.Quantity);
 		}
 	}
 }

@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 1.14 (2026-08-04)
+ * Version: 1.15 (2026-08-05)
  * NinjaTrader 8 TradeManager Indicator
  */
  
@@ -69,8 +69,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "1.14";
-		public const string RELEASE_DATE = "2026-08-04";
+		public const string VERSION = "1.15";
+		public const string RELEASE_DATE = "2026-08-05";
 
 		private volatile Account account;
 		private Account subscribedAccount;
@@ -139,6 +139,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private int atmBETrigger = 0;
 		private int atmSL1Trigger = 0;
 		private int atmSL2Trigger = 0;
+		private volatile int atmQuantity = 0;
 
 		private bool isExpectedLinesDrawn = false;
 
@@ -585,6 +586,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			atmBETrigger = 0;
 			atmSL1Trigger = 0;
 			atmSL2Trigger = 0;
+			atmQuantity = 0;
 
 			if (string.IsNullOrEmpty(templateName)) return;
 
@@ -598,6 +600,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				atmBETrigger = data.BETrigger;
 				atmSL1Trigger = data.SL1Trigger;
 				atmSL2Trigger = data.SL2Trigger;
+				atmQuantity = data.Quantity;
 			}
 			catch (Exception ex)
 			{
