@@ -23,6 +23,12 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.17] — 2026-08-05
+- **Restore namespace-matched NT8 deployment layout**:
+  - v1.16 incorrectly moved `Indicators.KAT` sources to the `Indicators` root, causing NinjaTrader code generation to emit cascading errors across custom indicators.
+  - Deployment restored to `Indicators\KAT`; all stale root copies are removed before compile.
+  - Graphify entities: `scripts/Deploy-NT8.ps1`, `NinjaTrader.NinjaScript.Indicators.KAT`.
+
 ### [v1.16] — 2026-08-05
 - **NT8 Editor deployment path fix**:
   - Root cause: deploy script copied sources into `Indicators\KAT`; this NT8 installation did not surface those files in NinjaScript Editor.

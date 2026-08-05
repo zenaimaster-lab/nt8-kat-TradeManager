@@ -1,5 +1,6 @@
-# Deploy-NT8.ps1 — copy ALL KatTradeManager sources into NT8's Indicators root with overwrite,
-# remove stale subfolder copies, then verify NT8's file watcher recompiled NinjaTrader.Custom.dll.
+# Deploy-NT8.ps1 — copy ALL KatTradeManager sources into NT8's Indicators\KAT subfolder with overwrite,
+# remove stale flat-root copies, then verify NT8's file watcher recompiled NinjaTrader.Custom.dll.
+# Folder must match the declared NinjaTrader.NinjaScript.Indicators.KAT namespace.
 # Usage:  pwsh scripts/Deploy-NT8.ps1 [-TimeoutSeconds 60]
 param(
     [int]$TimeoutSeconds = 60
@@ -24,10 +25,10 @@ $files = @(
 # Removed sources that must not linger in NT8 (it compiles the folder recursively).
 $stale = @('KatTradeManager.FreezeTrail.cs')
 
-New-Item -ItemType Directory -Path $indicators -Force | Out-Null
+New-Item -ItemType Directory -Path $katDir -Force | Out-Null
 
 foreach ($name in $stale) {
-    foreach ($p in @((Join-Path $indicators $name), (Join-Path $katDir $name))) {
+    foreach ($p in @((Join-Path $katDir $name), (Join-Path $indicators $name))) {
         if (Test-Path $p) { Remove-Item $p -Force; Write-Host "removed stale: $name" }
     }
 }
@@ -37,14 +38,10 @@ foreach ($f in $files) {
     $src = Join-Path $repoRoot $f
     if (-not (Test-Path $src)) { throw "Missing source: $f" }
     $name = Split-Path $f -Leaf
-    Copy-Item $src (Join-Path $indicators $name) -Force
-    $nested = Join-Path $katDir $name
-    if (Test-Path $nested) { Remove-Item $nested -Force }
-    Write-Host "deployed: $name"
-}
-
-if ((Test-Path $katDir) -and (Get-ChildItem $katDir -Force | Measure-Object).Count -eq 0) {
-    Remove-Item $katDir -Force
+    Copy-Item $src (Join-Path $katDir $name) -Force
+    $flat = Join-Path $indicators $name
+    if (Test-Path $flat) { Remove-Item $flat -Force }
+    Write-Host "deployed: KAT\$name"
 }
 
 # NT8 recompiles automatically when NinjaTrader is running. A newer dll = accepted; older = rejected
