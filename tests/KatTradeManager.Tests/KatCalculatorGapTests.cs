@@ -91,9 +91,7 @@ namespace KatTradeManager.Tests
 				Assert.Equal(fromText.BETrigger, fromFile.BETrigger);
 				Assert.Equal(fromText.SL1Trigger, fromFile.SL1Trigger);
 				Assert.Equal(fromText.SL2Trigger, fromFile.SL2Trigger);
-				Assert.Equal(fromText.Quantity, fromFile.Quantity);
 				Assert.Equal(20, fromFile.StopLoss);
-				Assert.Equal(3, fromFile.Quantity);
 			}
 			finally
 			{
@@ -106,7 +104,6 @@ namespace KatTradeManager.Tests
 		{
 			AtmTemplateData data = KatAtmXmlParser.ParseFile(System.IO.Path.GetTempPath());
 			Assert.Equal(0, data.StopLoss);
-			Assert.Equal(0, data.Quantity); // 0 = unspecified -> caller keeps user's quantity
 		}
 		#endregion
 
@@ -202,12 +199,11 @@ namespace KatTradeManager.Tests
 		[Fact]
 		public void ParseXml_WhitespacePaddedNumbers_ParsedCorrectly()
 		{
-			string xml = "<AtmStrategy><EntryQuantity> 2 </EntryQuantity><Brackets><Bracket>"
+			string xml = "<AtmStrategy><Brackets><Bracket>"
 				+ "<StopLoss> 20 </StopLoss><Target>\n40\n</Target></Bracket></Brackets></AtmStrategy>";
 			AtmTemplateData data = KatAtmXmlParser.ParseXml(xml);
 			Assert.Equal(20, data.StopLoss);
 			Assert.Equal(40, data.Target);
-			Assert.Equal(2, data.Quantity);
 		}
 		#endregion
 
@@ -246,26 +242,14 @@ namespace KatTradeManager.Tests
 		}
 		#endregion
 
-		#region AtmXmlParser — quantity fallback chain
+		#region AtmXmlParser — missing Brackets node
 		[Fact]
-		public void ParseXml_ZeroEntryQuantity_FallsBackToBracketSum()
+		public void ParseXml_NoBracketsNode_LevelsDefaultToZero()
 		{
-			// EntryQuantity of 0 is invalid -> bracket quantities take over
-			string xml = "<AtmStrategy><EntryQuantity>0</EntryQuantity><Brackets>"
-				+ "<Bracket><Quantity>2</Quantity><StopLoss>10</StopLoss></Bracket>"
-				+ "<Bracket><Quantity>3</Quantity></Bracket></Brackets></AtmStrategy>";
-			AtmTemplateData data = KatAtmXmlParser.ParseXml(xml);
-			Assert.Equal(5, data.Quantity);
-		}
-
-		[Fact]
-		public void ParseXml_NoBracketsNode_LevelsZeroQuantityDefault()
-		{
-			string xml = "<AtmStrategy><EntryQuantity>4</EntryQuantity></AtmStrategy>";
+			string xml = "<AtmStrategy></AtmStrategy>";
 			AtmTemplateData data = KatAtmXmlParser.ParseXml(xml);
 			Assert.Equal(0, data.StopLoss);
 			Assert.Equal(0, data.Target);
-			Assert.Equal(4, data.Quantity);
 		}
 		#endregion
 
@@ -286,18 +270,6 @@ namespace KatTradeManager.Tests
 		{
 			Assert.True(KatTradeCalculator.IsAccountAllowed("Sim101", "Playback,Sim;Other"));
 			Assert.False(KatTradeCalculator.IsAccountAllowed("BxAcct", "Sim;!bx,Other"));
-		}
-		#endregion
-
-		#region AtmXmlParser — unspecified quantity stays zero
-		[Fact]
-		public void ParseXml_NoQuantityNodes_QuantityStaysZero()
-		{
-			// Valid template with levels but no quantity info -> 0 (unspecified), not 1
-			string xml = "<AtmStrategy><Brackets><Bracket><StopLoss>12</StopLoss></Bracket></Brackets></AtmStrategy>";
-			AtmTemplateData data = KatAtmXmlParser.ParseXml(xml);
-			Assert.Equal(12, data.StopLoss);
-			Assert.Equal(0, data.Quantity);
 		}
 		#endregion
 

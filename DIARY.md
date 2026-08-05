@@ -23,6 +23,16 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.12] — 2026-08-04
+- **Post-removal re-audit: dead-code purge after v1.07–v1.11 feature cuts**:
+  - **ATM XML Quantity**: `AtmTemplateData.Quantity` + `EntryQuantity`/bracket-`Quantity` parsing deleted (no production consumer since the Contracts row was removed in v1.07). Parser now extracts only SL/TP/BE/trail levels. 6 quantity-only tests deleted, quantity asserts stripped from 6 more.
+  - **Open/Close orphans**: `EmaTouchBarInfo.Open/Close`, `CandleBarInfo.Open/Close` struct fields, `ema34/89TouchOpen/Close` arrays, `cachedCurrentOpen`/`cachedPrevOpen`/`cachedPrevClose` price arrays, and the `openCache`/`closeCache` params of `UpdateEmaTouchCache` all deleted — no readers remained after `CalculateCandlePrice(action, high, low)` simplification. `cachedCurrentClose` kept (`GetSwingValidationPrice` fallback).
+  - **`FindLastEmaTouchBar`** (test-only dead calculator function, documented as such since v0.x) deleted with its 3 tests; production touch scanning uses `IsEmaTouchBar` directly.
+  - **Rename**: `KatRenkoAndHalfCandleTests` → `KatRenkoAndOrderTypeTests` (half-candle tests gone).
+  - **Verified intact**: `cachedTfIndex`/`DefaultTimeframe` still drive `GetBarsInProgressIndex`; `isRenkoChart` kept as startup diagnostic only; EMA Place validation under `priceLock` intact; MERGE gates correct without freeze; module split unchanged (OrderOps cohesive). No functional regressions found.
+  - **Tests**: 170 → **163 passing**. Compile gate 0 errors.
+  - **Graphify entity mapping**: `KatAtmXmlParser.ParseXmlDocument` (levels only), `KatTradeManager.UpdateEmaTouchCache` (slimmed), `KatTradeManager.OnBarUpdate` (slimmed caches), `KatTradeCalculator` (FindLastEmaTouchBar removed).
+
 ### [v1.11] — 2026-08-04
 - **Close/flatten double height + HUD→Chart Trader account sync**:
   - `Close/flatten` button height doubled (33 → 66px) for a bigger flatten target.

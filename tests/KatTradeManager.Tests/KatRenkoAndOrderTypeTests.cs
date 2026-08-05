@@ -4,7 +4,7 @@ using NinjaTrader.NinjaScript.Indicators;
 
 namespace KatTradeManager.Tests
 {
-	public class KatRenkoAndHalfCandleTests
+	public class KatRenkoAndOrderTypeTests
 	{
 		[Fact]
 		public void CalculateCandlePrice_StandardCandle_ReturnsHighOrLow()

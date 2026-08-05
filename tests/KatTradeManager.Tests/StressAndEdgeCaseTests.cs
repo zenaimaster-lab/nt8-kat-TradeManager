@@ -75,14 +75,13 @@ namespace KatTradeManager.Tests
 			AtmTemplateData dataSpace = KatAtmXmlParser.ParseXml("   \t\r\n  ");
 
 			Assert.NotNull(dataNull);
-			Assert.Equal(0, dataNull.Quantity);
 			Assert.Equal(0, dataNull.StopLoss);
 
 			Assert.NotNull(dataEmpty);
-			Assert.Equal(0, dataEmpty.Quantity);
+			Assert.Equal(0, dataEmpty.StopLoss);
 
 			Assert.NotNull(dataSpace);
-			Assert.Equal(0, dataSpace.Quantity);
+			Assert.Equal(0, dataSpace.StopLoss);
 		}
 
 		[Fact]
@@ -97,7 +96,7 @@ namespace KatTradeManager.Tests
 			AtmTemplateData d3 = KatAtmXmlParser.ParseXml(randomNoise);
 
 			Assert.NotNull(d1);
-			Assert.Equal(0, d1.Quantity);
+			Assert.Equal(0, d1.StopLoss);
 			Assert.NotNull(d2);
 			Assert.NotNull(d3);
 		}
@@ -106,12 +105,10 @@ namespace KatTradeManager.Tests
 		public void ParseXml_InvalidNumberFormatsAndOverflows_HandledGracefully()
 		{
 			string xml = @"<AtmStrategy>
-  <EntryQuantity>999999999999999999999999999999</EntryQuantity>
   <Brackets>
     <Bracket>
       <StopLoss>NotANumber</StopLoss>
       <Target>2147483648</Target>
-      <Quantity>-5</Quantity>
     </Bracket>
   </Brackets>
 </AtmStrategy>";
@@ -119,7 +116,6 @@ namespace KatTradeManager.Tests
 			AtmTemplateData data = KatAtmXmlParser.ParseXml(xml);
 
 			Assert.NotNull(data);
-			Assert.Equal(0, data.Quantity); // EntryQuantity overflowed int.TryParse, negative bracket qty ignored -> unspecified
 			Assert.Equal(0, data.StopLoss); // Non-number -> 0
 			Assert.Equal(0, data.Target);   // Overflow > int.MaxValue -> 0
 		}
@@ -132,7 +128,7 @@ namespace KatTradeManager.Tests
 			AtmTemplateData d3 = KatAtmXmlParser.ParseFile(@"C:\NonExistentFolder\NonExistentFile_12345.xml");
 
 			Assert.NotNull(d1);
-			Assert.Equal(0, d1.Quantity);
+			Assert.Equal(0, d1.StopLoss);
 			Assert.NotNull(d2);
 			Assert.NotNull(d3);
 		}
@@ -142,9 +138,6 @@ namespace KatTradeManager.Tests
 		{
 			string xml = @"
 <AtmStrategy>
-  <EntryQuantity>
-    4 
-  </EntryQuantity>
   <Brackets>
     <Bracket>
       <StopLoss> 30 </StopLoss>
@@ -155,7 +148,6 @@ namespace KatTradeManager.Tests
 
 			AtmTemplateData data = KatAtmXmlParser.ParseXml(xml);
 
-			Assert.Equal(4, data.Quantity);
 			Assert.Equal(30, data.StopLoss);
 			Assert.Equal(60, data.Target);
 		}

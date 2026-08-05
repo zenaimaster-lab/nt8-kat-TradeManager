@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 1.11 (2026-08-04)
+ * Version: 1.12 (2026-08-04)
  * NinjaTrader 8 TradeManager Indicator
  */
  
@@ -69,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "1.11";
+		public const string VERSION = "1.12";
 		public const string RELEASE_DATE = "2026-08-04";
 
 		private volatile Account account;
@@ -161,12 +161,9 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private const int NUM_SERIES = 9; // chart + 30s + 1m + 2m + 3m + 5m + 15m + 30m + 60m
 		private double[] cachedCurrentHigh  = new double[NUM_SERIES];
 		private double[] cachedCurrentLow   = new double[NUM_SERIES];
-		private double[] cachedCurrentOpen  = new double[NUM_SERIES];
 		private double[] cachedCurrentClose = new double[NUM_SERIES];
 		private double[] cachedPrevHigh     = new double[NUM_SERIES];
 		private double[] cachedPrevLow      = new double[NUM_SERIES];
-		private double[] cachedPrevOpen     = new double[NUM_SERIES];
-		private double[] cachedPrevClose    = new double[NUM_SERIES];
 		private double cachedTickSize;
 		private double cachedCurrentPrice;
 		private readonly double[] cachedSwingHighs = new double[501];
@@ -177,13 +174,9 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private readonly int[] ema34TouchBarsAgo = new int[NUM_SERIES];
 		private readonly double[] ema34TouchHigh = new double[NUM_SERIES];
 		private readonly double[] ema34TouchLow = new double[NUM_SERIES];
-		private readonly double[] ema34TouchOpen = new double[NUM_SERIES];
-		private readonly double[] ema34TouchClose = new double[NUM_SERIES];
 		private readonly int[] ema89TouchBarsAgo = new int[NUM_SERIES];
 		private readonly double[] ema89TouchHigh = new double[NUM_SERIES];
 		private readonly double[] ema89TouchLow = new double[NUM_SERIES];
-		private readonly double[] ema89TouchOpen = new double[NUM_SERIES];
-		private readonly double[] ema89TouchClose = new double[NUM_SERIES];
 
 		// Bar-time + bar-list snapshots: UI-thread handlers must never touch Times/Highs directly
 		// (NT8 throws ArgumentOutOfRangeException off the data thread — v0.11 lesson, regressed in v1.00-v1.03).
@@ -417,7 +410,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			}
 		}
 
-		private void UpdateEmaTouchCache(int bip, EMA targetEma, int[] barsAgoCache, double[] highCache, double[] lowCache, double[] openCache, double[] closeCache, DateTime[] timeCache, List<EmaTouchBarInfo>[] touchLists)
+		private void UpdateEmaTouchCache(int bip, EMA targetEma, int[] barsAgoCache, double[] highCache, double[] lowCache, DateTime[] timeCache, List<EmaTouchBarInfo>[] touchLists)
 		{
 			if (targetEma == null || CurrentBars[bip] < 0) return;
 
@@ -425,8 +418,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			int foundBarsAgo = -1;
 			double foundHigh = 0;
 			double foundLow = 0;
-			double foundOpen = 0;
-			double foundClose = 0;
 			DateTime foundTime = DateTime.MinValue;
 			List<EmaTouchBarInfo> touchBars = new List<EmaTouchBarInfo>();
 
@@ -441,8 +432,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					foundBarsAgo = barsAgo;
 					foundHigh = high;
 					foundLow = low;
-					foundOpen = Opens[bip][barsAgo];
-					foundClose = Closes[bip][barsAgo];
 					foundTime = Times[bip][barsAgo];
 				}
 				touchBars.Add(new EmaTouchBarInfo
@@ -450,9 +439,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					BarsAgo = barsAgo,
 					Time = Times[bip][barsAgo],
 					High = high,
-					Low = low,
-					Open = Opens[bip][barsAgo],
-					Close = Closes[bip][barsAgo]
+					Low = low
 				});
 			}
 
@@ -461,8 +448,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				barsAgoCache[bip] = foundBarsAgo;
 				highCache[bip] = foundHigh;
 				lowCache[bip] = foundLow;
-				openCache[bip] = foundOpen;
-				closeCache[bip] = foundClose;
 				timeCache[bip] = foundTime;
 				touchLists[bip] = touchBars;
 			}
@@ -483,7 +468,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					{
 					cachedCurrentHigh[bip]  = Highs[bip][0];
 					cachedCurrentLow[bip]   = Lows[bip][0];
-					cachedCurrentOpen[bip]  = Opens[bip][0];
 					cachedCurrentClose[bip] = Closes[bip][0];
 					cachedCurrentBarTime[bip] = Times[bip][0];
 					if (bip == 0)
@@ -494,8 +478,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					{
 						cachedPrevHigh[bip]  = Highs[bip][1];
 						cachedPrevLow[bip]   = Lows[bip][1];
-						cachedPrevOpen[bip]  = Opens[bip][1];
-						cachedPrevClose[bip] = Closes[bip][1];
 						cachedPrevBarTime[bip] = Times[bip][1];
 					}
 						if (bip == 0)
@@ -513,8 +495,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 				if (bip < NUM_SERIES && ema34Series != null && ema89Series != null)
 				{
-					UpdateEmaTouchCache(bip, ema34Series[bip], ema34TouchBarsAgo, ema34TouchHigh, ema34TouchLow, ema34TouchOpen, ema34TouchClose, ema34TouchTime, ema34TouchLists);
-					UpdateEmaTouchCache(bip, ema89Series[bip], ema89TouchBarsAgo, ema89TouchHigh, ema89TouchLow, ema89TouchOpen, ema89TouchClose, ema89TouchTime, ema89TouchLists);
+					UpdateEmaTouchCache(bip, ema34Series[bip], ema34TouchBarsAgo, ema34TouchHigh, ema34TouchLow, ema34TouchTime, ema34TouchLists);
+					UpdateEmaTouchCache(bip, ema89Series[bip], ema89TouchBarsAgo, ema89TouchHigh, ema89TouchLow, ema89TouchTime, ema89TouchLists);
 				}
 				if (bip < NUM_SERIES && CurrentBars[bip] >= 0)
 				{
@@ -527,9 +509,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 							BarsAgo = barsAgo,
 							Time = Times[bip][barsAgo],
 							High = Highs[bip][barsAgo],
-							Low = Lows[bip][barsAgo],
-							Open = Opens[bip][barsAgo],
-							Close = Closes[bip][barsAgo]
+							Low = Lows[bip][barsAgo]
 						});
 					}
 					lock (priceLock)

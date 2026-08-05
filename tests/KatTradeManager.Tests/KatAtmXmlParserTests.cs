@@ -37,41 +37,11 @@ namespace KatTradeManager.Tests
 			AtmTemplateData data = KatAtmXmlParser.ParseXml(xml);
 
 			// Assert
-			Assert.Equal(2, data.Quantity);
 			Assert.Equal(20, data.StopLoss);
 			Assert.Equal(40, data.Target);
 			Assert.Equal(10, data.BETrigger);
 			Assert.Equal(15, data.SL1Trigger);
 			Assert.Equal(25, data.SL2Trigger);
-		}
-
-		[Fact]
-		public void ParseXml_MultipleBrackets_SumsQuantities()
-		{
-			// Arrange
-			string xml = @"<?xml version=""1.0"" encoding=""utf-16""?>
-<AtmStrategy>
-  <Brackets>
-    <Bracket>
-      <Quantity>3</Quantity>
-      <StopLoss>20</StopLoss>
-      <Target>40</Target>
-    </Bracket>
-    <Bracket>
-      <Quantity>2</Quantity>
-      <StopLoss>20</StopLoss>
-      <Target>80</Target>
-    </Bracket>
-  </Brackets>
-</AtmStrategy>";
-
-			// Act
-			AtmTemplateData data = KatAtmXmlParser.ParseXml(xml);
-
-			// Assert
-			Assert.Equal(5, data.Quantity);
-			Assert.Equal(20, data.StopLoss);
-			Assert.Equal(40, data.Target);
 		}
 
 		[Fact]
@@ -86,12 +56,10 @@ namespace KatTradeManager.Tests
 			AtmTemplateData invalidData = KatAtmXmlParser.ParseXml(invalidXml);
 
 			// Assert
-			Assert.Equal(0, emptyData.Quantity);
 			Assert.Equal(0, emptyData.StopLoss);
 			Assert.Equal(0, emptyData.Target);
 			Assert.Equal(0, emptyData.BETrigger);
 
-			Assert.Equal(0, invalidData.Quantity);
 			Assert.Equal(0, invalidData.StopLoss);
 		}
 	}

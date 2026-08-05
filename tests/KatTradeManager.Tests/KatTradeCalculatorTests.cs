@@ -190,18 +190,5 @@ namespace KatTradeManager.Tests
 			Assert.Equal(996.25, levels.Sl1Price, 4);
 			Assert.Equal(993.75, levels.Sl2Price, 4);
 		}
-
-		[Fact]
-		public void FindLastEmaTouchBar_ScansAndFindsTouchCandle()
-		{
-			double[] highs = new double[] { 105.0, 102.0, 98.0 };
-			double[] lows  = new double[] { 101.0,  99.0, 94.0 };
-			double[] emas  = new double[] { 100.0, 100.0, 100.0 };
-
-			// Index 1 has High 102 >= 100 and Low 99 <= 100 -> Touch!
-			int foundBarsAgo = KatTradeCalculator.FindLastEmaTouchBar(highs, lows, emas, 3);
-
-			Assert.Equal(1, foundBarsAgo);
-		}
 	}
 }

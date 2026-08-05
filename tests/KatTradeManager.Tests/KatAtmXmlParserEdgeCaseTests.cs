@@ -37,32 +37,11 @@ namespace KatTradeManager.Tests
 
             AtmTemplateData data = KatAtmXmlParser.ParseXml(xml);
 
-            Assert.Equal(5, data.Quantity); // Sum of 2 + 3
             Assert.Equal(20, data.StopLoss);
             Assert.Equal(40, data.Target);
             Assert.Equal(12, data.BETrigger);
             Assert.Equal(16, data.SL1Trigger);
             Assert.Equal(24, data.SL2Trigger);
-        }
-
-        [Fact]
-        public void ParseXml_EntryQuantityOverridesBracketQuantities()
-        {
-            string xml = @"<AtmStrategy>
-  <EntryQuantity>10</EntryQuantity>
-  <Brackets>
-    <Bracket>
-      <Quantity>2</Quantity>
-    </Bracket>
-    <Bracket>
-      <Quantity>3</Quantity>
-    </Bracket>
-  </Brackets>
-</AtmStrategy>";
-
-            AtmTemplateData data = KatAtmXmlParser.ParseXml(xml);
-
-            Assert.Equal(10, data.Quantity);
         }
 
         [Fact]

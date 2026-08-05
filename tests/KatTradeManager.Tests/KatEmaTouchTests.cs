@@ -18,32 +18,6 @@ namespace KatTradeManager.Tests
 		}
 
 		[Fact]
-		public void FindLastEmaTouchBar_ReturnsMostRecentMatchingBarIndex()
-		{
-			double[] highs = new double[] { 120.0, 105.0, 110.0, 95.0 };
-			double[] lows  = new double[] { 110.0,  95.0,  90.0, 85.0 };
-			double[] emas  = new double[] { 100.0, 100.0, 100.0, 100.0 };
-
-			// Bar 0: H=120, L=110, EMA=100 -> false
-			// Bar 1: H=105, L=95, EMA=100 -> true (first match)
-			int index = KatTradeCalculator.FindLastEmaTouchBar(highs, lows, emas, 4);
-
-			Assert.Equal(1, index);
-		}
-
-		[Fact]
-		public void FindLastEmaTouchBar_ReturnsNegativeOne_WhenNoBarMatches()
-		{
-			double[] highs = new double[] { 120.0, 130.0 };
-			double[] lows  = new double[] { 110.0, 105.0 };
-			double[] emas  = new double[] { 100.0, 100.0 };
-
-			int index = KatTradeCalculator.FindLastEmaTouchBar(highs, lows, emas, 2);
-
-			Assert.Equal(-1, index);
-		}
-
-		[Fact]
 		public void EmaOrderPrice_CandleAnchors_GenerateStopMarketOrders()
 		{
 			double high = 110.0;

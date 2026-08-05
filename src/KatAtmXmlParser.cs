@@ -11,8 +11,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public int BETrigger { get; set; }
 		public int SL1Trigger { get; set; }
 		public int SL2Trigger { get; set; }
-		// 0 = "not specified in template" — callers must keep the user's current quantity instead of stomping it
-		public int Quantity { get; set; } = 0;
 	}
 
 	public static class KatAtmXmlParser
@@ -61,25 +59,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			XmlNode targetNode = doc.SelectSingleNode("//AtmStrategy/Brackets/Bracket/Target");
 			if (targetNode != null && int.TryParse(targetNode.InnerText, out int tp)) result.Target = tp;
-
-			XmlNode entryQtyNode = doc.SelectSingleNode("//AtmStrategy/EntryQuantity");
-			if (entryQtyNode != null && int.TryParse(entryQtyNode.InnerText, out int eq) && eq > 0)
-			{
-				result.Quantity = eq;
-			}
-			else
-			{
-				XmlNodeList qtyNodes = doc.SelectNodes("//AtmStrategy/Brackets/Bracket/Quantity");
-				if (qtyNodes != null && qtyNodes.Count > 0)
-				{
-					int sum = 0;
-					foreach (XmlNode qn in qtyNodes)
-					{
-						if (int.TryParse(qn.InnerText, out int val)) sum += val;
-					}
-					if (sum > 0) result.Quantity = sum;
-				}
-			}
 
 			XmlNode beNode = doc.SelectSingleNode("//AtmStrategy/Brackets/Bracket/StopStrategy/AutoBreakEvenProfitTrigger");
 			if (beNode != null && int.TryParse(beNode.InnerText, out int be)) result.BETrigger = be;

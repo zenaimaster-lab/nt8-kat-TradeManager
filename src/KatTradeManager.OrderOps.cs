@@ -2021,8 +2021,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			public DateTime Time;
 			public double High;
 			public double Low;
-			public double Open;
-			public double Close;
 		}
 
 		private void ShiftEmaEntry(bool isForward)
@@ -2125,8 +2123,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			public DateTime Time;
 			public double High;
 			public double Low;
-			public double Open;
-			public double Close;
 		}
 
 		private void ShiftCandleEntry(bool isForward)

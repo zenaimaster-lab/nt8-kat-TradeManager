@@ -96,19 +96,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return high >= ema && low <= ema;
 		}
 
-		/// <summary>Scans bars backward (0..count-1) and returns the barsAgo index of the first candle touching/crossing EMA.</summary>
-		public static int FindLastEmaTouchBar(double[] highs, double[] lows, double[] emas, int count)
-		{
-			if (highs == null || lows == null || emas == null) return -1;
-			int limit = Math.Min(count, Math.Min(highs.Length, Math.Min(lows.Length, emas.Length)));
-			for (int barsAgo = 0; barsAgo < limit; barsAgo++)
-			{
-				if (IsEmaTouchBar(highs[barsAgo], lows[barsAgo], emas[barsAgo]))
-					return barsAgo;
-			}
-			return -1;
-		}
-
 		/// <summary>
 		/// Calculates target bar index when shifting entry orders backward or forward.
 		/// Uses bar timestamps to accurately track current position even when new bars arrive on chart.
