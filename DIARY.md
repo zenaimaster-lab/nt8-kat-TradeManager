@@ -23,6 +23,12 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.16] — 2026-08-05
+- **NT8 Editor deployment path fix**:
+  - Root cause: deploy script copied sources into `Indicators\KAT`; this NT8 installation did not surface those files in NinjaScript Editor.
+  - Deploy now writes all seven sources directly into `Indicators` and removes stale `Indicators\KAT` copies to prevent duplicate classes.
+  - Graphify entities: `scripts/Deploy-NT8.ps1`, NT8 `Indicators` source root.
+
 ### [v1.15] — 2026-08-05
 - **HUD ATM quantity restored**:
   - Root cause: v1.12 removed ATM quantity parsing, while every BUY/SELL path still created entries with `DefaultQuantity` (default 1), so HUD ATM selection changed brackets but never entry contracts.
