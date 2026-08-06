@@ -23,6 +23,13 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.18] — 2026-08-06
+- **Ema protect (HUD rename + full entry gate)**:
+  - HUD toggle label `Ema place` -> `Ema protect` (settings property names unchanged).
+  - Extracted `TryRejectEmaProtect` - when toggle ON, blocks ALL HUD Buy/Sell entries (candle, EMA 34/89, market, entry-shift) that fail Settings EMA place rules.
+  - Previously Market + EMA-touch buttons bypassed filter (`applyEmaFilters: false`).
+  - Reject shows top HUD status: `EMA Protect blocked: ...` (also Daily Risk rejects now surface status).
+  - Graphify entities: `TryRejectEmaProtect`, `PlaceOrderInternal`, `PlaceMarketOrder`, `ValidateEmaPlace`.
 ### [v1.17] — 2026-08-05
 - **Restore namespace-matched NT8 deployment layout**:
   - v1.16 incorrectly moved `Indicators.KAT` sources to the `Indicators` root, causing NinjaTrader code generation to emit cascading errors across custom indicators.

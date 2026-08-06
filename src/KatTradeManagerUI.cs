@@ -1053,7 +1053,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			// --- SECTION 4: ON/OFF Toggles ---
 			StackPanel sec4Panel = new StackPanel();
 
-			// Stop-Limit + EMA Place side-by-side
+			// Stop-Limit + EMA Protect side-by-side
 			Grid modeToggleGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
 			modeToggleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 			modeToggleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
@@ -1076,13 +1076,13 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			Grid.SetColumn(btnStopLimit, 0);
 			modeToggleGrid.Children.Add(btnStopLimit);
 
-			Button btnEmaPlace = CreateButton(cachedIsEmaPlace ? "Ema place: ON" : "Ema place: OFF",
+			Button btnEmaPlace = CreateButton(cachedIsEmaPlace ? "Ema protect: ON" : "Ema protect: OFF",
 				cachedIsEmaPlace ? emaPlaceOnBg : toggleOffBg, null, 24, 10);
 			btnEmaPlace.Foreground = cachedIsEmaPlace ? Brushes.White : Brushes.LightGray;
 			btnEmaPlace.Click += (s, ev) =>
 			{
 				cachedIsEmaPlace = !cachedIsEmaPlace;
-				btnEmaPlace.Content = cachedIsEmaPlace ? "Ema place: ON" : "Ema place: OFF";
+				btnEmaPlace.Content = cachedIsEmaPlace ? "Ema protect: ON" : "Ema protect: OFF";
 				btnEmaPlace.Background = cachedIsEmaPlace ? emaPlaceOnBg : toggleOffBg;
 				btnEmaPlace.Foreground = cachedIsEmaPlace ? Brushes.White : Brushes.LightGray;
 			};

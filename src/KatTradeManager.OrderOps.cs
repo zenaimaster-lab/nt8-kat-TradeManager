@@ -1099,7 +1099,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					lastEmaTouchBarTime = emaPeriod == 34 ? ema34TouchTime[barIdx] : ema89TouchTime[barIdx];
 				}
 
-				PlaceOrderInternal(action, triggerPrice, orderType, limitPrice, stopPrice, string.Format("placing EMA {0} order", emaPeriod), false);
+				PlaceOrderInternal(action, triggerPrice, orderType, limitPrice, stopPrice, string.Format("placing EMA {0} order", emaPeriod), true);
 				ShowHudStatus(string.Format("{0} EMA{1} @ {2}", action == OrderAction.Buy ? "BUY" : "SELL", emaPeriod, triggerPrice), System.Windows.Media.Brushes.LightGreen);
 			}
 			catch (Exception ex)
@@ -1108,6 +1108,35 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			}
 		}
 
+
+		
+		/// <summary>
+		/// When HUD "Ema protect" is ON, block entries that violate Settings EMA place rules.
+		/// Returns true if order must be rejected (status already shown).
+		/// </summary>
+		private bool TryRejectEmaProtect(OrderAction action, double checkPrice)
+		{
+			if (!cachedIsEmaPlace) return false;
+
+			lock (priceLock)
+			{
+				double[] emaVals = new double[3];
+				int valCount = 0;
+				if (EmaPlace1Enabled) emaVals[valCount++] = cachedEmaPlaceValues[0];
+				if (EmaPlace2Enabled) emaVals[valCount++] = cachedEmaPlaceValues[1];
+				if (EmaPlace3Enabled) emaVals[valCount++] = cachedEmaPlaceValues[2];
+
+				if (valCount == 0) return false;
+
+				KatOrderAction katAction = ToKatAction(action);
+				if (KatTradeCalculator.ValidateEmaPlace(katAction, checkPrice, emaVals.Take(valCount).ToArray(), out string errPlace))
+					return false;
+
+				Print(string.Format("[KatTradeManager] Order REJECTED by EMA Protect: {0}", errPlace));
+				ShowHudStatus(string.Format("EMA Protect blocked: {0}", errPlace), System.Windows.Media.Brushes.OrangeRed);
+				return true;
+			}
+		}
 
 		private void PlaceOrderInternal(OrderAction action, double triggerPrice, OrderType orderType, double limitPrice, double stopPrice, string errorContext, bool applyEmaFilters)
 		{
@@ -1120,6 +1149,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			if (IsDailyRiskBreached(out string breachReason))
 			{
 				Print(string.Format("[KatTradeManager] Order REJECTED by Daily Risk Protection: {0}", breachReason));
+				ShowHudStatus(string.Format("Daily Risk blocked: {0}", breachReason), System.Windows.Media.Brushes.OrangeRed);
 				return;
 			}
 
@@ -1135,25 +1165,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				KatOrderAction katAction = ToKatAction(action);
 				double checkPrice = (orderType == OrderType.Market) ? (cachedCurrentPrice > 0 ? cachedCurrentPrice : triggerPrice) : triggerPrice;
 
-				lock (priceLock)
-				{
-					// Validation 1: EMA Place Check
-					if (applyEmaFilters && cachedIsEmaPlace)
-					{
-						double[] emaVals = new double[3];
-						int valCount = 0;
-						if (EmaPlace1Enabled) emaVals[valCount++] = cachedEmaPlaceValues[0];
-						if (EmaPlace2Enabled) emaVals[valCount++] = cachedEmaPlaceValues[1];
-						if (EmaPlace3Enabled) emaVals[valCount++] = cachedEmaPlaceValues[2];
-
-						if (valCount > 0 && !KatTradeCalculator.ValidateEmaPlace(katAction, checkPrice, emaVals.Take(valCount).ToArray(), out string errPlace))
-						{
-							Print(string.Format("[KatTradeManager] Order REJECTED by EMA Place: {0}", errPlace));
-							ShowHudStatus(string.Format("EMA Place blocked: {0}", errPlace), System.Windows.Media.Brushes.OrangeRed);
-							return;
-						}
-					}
-				}
+				if (applyEmaFilters && TryRejectEmaProtect(action, checkPrice))
+					return;
 
 				// Re-evaluate Stop vs Limit using the *latest* cachedCurrentPrice right before submit.
 				// If price has run past the intended stop (making StopMarket invalid), flip to Limit order.
@@ -1584,6 +1597,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			if (IsDailyRiskBreached(out string breachReason))
 			{
 				Print(string.Format("[KatTradeManager] Market Order REJECTED by Daily Risk Protection: {0}", breachReason));
+				ShowHudStatus(string.Format("Daily Risk blocked: {0}", breachReason), System.Windows.Media.Brushes.OrangeRed);
 				return false;
 			}
 
@@ -1592,6 +1606,12 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				Print("[KatTradeManager] Duplicate market order ignored (anti-spam debounce).");
 				return false;
 			}
+
+			double mktCheckPrice = cachedCurrentPrice > 0 ? cachedCurrentPrice : 0;
+			if (mktCheckPrice <= 0 && Instrument.MarketData != null && Instrument.MarketData.Last != null)
+				mktCheckPrice = Instrument.MarketData.Last.Price;
+			if (TryRejectEmaProtect(action, mktCheckPrice))
+				return false;
 
 			try
 
@@ -2099,7 +2119,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 				CancelWorkingEntryOrders();
 
-				PlaceOrderInternal(lastEmaOrderAction, triggerPrice, orderType, limitPrice, stopPrice, string.Format("shifting EMA {0} order to bar #{1}", lastEmaOrderPeriod, targetBar.BarsAgo), false);
+				PlaceOrderInternal(lastEmaOrderAction, triggerPrice, orderType, limitPrice, stopPrice, string.Format("shifting EMA {0} order to bar #{1}", lastEmaOrderPeriod, targetBar.BarsAgo), true);
 				currentEmaTouchIndex = targetIndex;
 				lastEmaTouchBarTime = targetBar.Time;
 
