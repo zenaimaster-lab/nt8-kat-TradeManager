@@ -23,6 +23,13 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.19] — 2026-08-06
+- **Ema protect default ON + clearer gate**:
+  - `cachedIsEmaPlace` default `true` (HUD starts `Ema protect: ON`).
+  - Gate logic confirmed: BUY entry must be strictly above every enabled Settings EMA Place slot (default EMA9/34/89 on 5m); SELL strictly below.
+  - Reject if EMA series not ready yet; status shows which EMA blocked (period + values).
+  - Force NT deploy + recompile verify (dll was stale on prior deploy).
+  - Graphify entities: `TryRejectEmaProtect`, `ValidateEmaPlace`, `cachedIsEmaPlace`.
 ### [v1.18] — 2026-08-06
 - **Ema protect (HUD rename + full entry gate)**:
   - HUD toggle label `Ema place` -> `Ema protect` (settings property names unchanged).

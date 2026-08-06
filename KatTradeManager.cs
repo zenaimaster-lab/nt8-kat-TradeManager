@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 1.18 (2026-08-06)
+ * Version: 1.19 (2026-08-06)
  * NinjaTrader 8 TradeManager Indicator
  */
  
@@ -69,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "1.18";
+		public const string VERSION = "1.19";
 		public const string RELEASE_DATE = "2026-08-06";
 
 		private volatile Account account;
@@ -101,8 +101,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private int[] emaPlaceFilterBarIdx;
 		private readonly double[] cachedEmaPlaceValues = new double[3];
 
-		// HUD toggle state for EMA Place (default OFF)
-		private volatile bool cachedIsEmaPlace = false;
+		// HUD toggle state for EMA Protect (default ON)
+		private volatile bool cachedIsEmaPlace = true;
 
 		// Pending stop order mode (default OFF = StopMarket)
 		private volatile bool cachedIsStopLimit = false;

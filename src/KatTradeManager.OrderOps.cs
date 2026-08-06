@@ -1111,8 +1111,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 		
 		/// <summary>
-		/// When HUD "Ema protect" is ON, block entries that violate Settings EMA place rules.
-		/// Returns true if order must be rejected (status already shown).
+		/// When HUD "Ema protect" is ON: BUY entry must sit strictly above every enabled Settings EMA
+		/// (period+TF, default EMA9/34/89 on 5m); SELL must sit strictly below. Returns true if rejected.
 		/// </summary>
 		private bool TryRejectEmaProtect(OrderAction action, double checkPrice)
 		{
@@ -1120,21 +1120,43 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			lock (priceLock)
 			{
+				// Slot = Settings EMA Place 1/2/3 (Enabled + Period + Timeframe series cache).
+				int[] periods = { EmaPlace1Period, EmaPlace2Period, EmaPlace3Period };
+				bool[] enabled = { EmaPlace1Enabled, EmaPlace2Enabled, EmaPlace3Enabled };
+
 				double[] emaVals = new double[3];
+				int[] emaPeriods = new int[3];
 				int valCount = 0;
-				if (EmaPlace1Enabled) emaVals[valCount++] = cachedEmaPlaceValues[0];
-				if (EmaPlace2Enabled) emaVals[valCount++] = cachedEmaPlaceValues[1];
-				if (EmaPlace3Enabled) emaVals[valCount++] = cachedEmaPlaceValues[2];
+				for (int i = 0; i < 3; i++)
+				{
+					if (!enabled[i]) continue;
+					double v = cachedEmaPlaceValues[i];
+					if (v <= 0)
+					{
+						string wait = string.Format("EMA{0} data not ready", periods[i]);
+						Print(string.Format("[KatTradeManager] Order REJECTED by EMA Protect: {0}", wait));
+						ShowHudStatus(string.Format("EMA Protect blocked: {0}", wait), System.Windows.Media.Brushes.OrangeRed);
+						return true;
+					}
+					emaVals[valCount] = v;
+					emaPeriods[valCount] = periods[i];
+					valCount++;
+				}
 
 				if (valCount == 0) return false;
 
 				KatOrderAction katAction = ToKatAction(action);
-				if (KatTradeCalculator.ValidateEmaPlace(katAction, checkPrice, emaVals.Take(valCount).ToArray(), out string errPlace))
-					return false;
+				for (int i = 0; i < valCount; i++)
+				{
+					if (KatTradeCalculator.ValidateEmaPlace(katAction, checkPrice, new[] { emaVals[i] }, out string errPlace))
+						continue;
 
-				Print(string.Format("[KatTradeManager] Order REJECTED by EMA Protect: {0}", errPlace));
-				ShowHudStatus(string.Format("EMA Protect blocked: {0}", errPlace), System.Windows.Media.Brushes.OrangeRed);
-				return true;
+					string msg = string.Format("entry {0} vs EMA{1}={2}", checkPrice, emaPeriods[i], emaVals[i]);
+					Print(string.Format("[KatTradeManager] Order REJECTED by EMA Protect: {0} ({1})", errPlace, msg));
+					ShowHudStatus(string.Format("EMA Protect blocked: {0}", msg), System.Windows.Media.Brushes.OrangeRed);
+					return true;
+				}
+				return false;
 			}
 		}
 

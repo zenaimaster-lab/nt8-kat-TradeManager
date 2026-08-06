@@ -38,7 +38,10 @@ foreach ($f in $files) {
     $src = Join-Path $repoRoot $f
     if (-not (Test-Path $src)) { throw "Missing source: $f" }
     $name = Split-Path $f -Leaf
-    Copy-Item $src (Join-Path $katDir $name) -Force
+    $dst = Join-Path $katDir $name
+    Copy-Item $src $dst -Force
+    # NT file-watcher sometimes ignores same-second stamps; nudge LastWriteTime forward.
+    (Get-Item $dst).LastWriteTime = (Get-Date).AddSeconds(2)
     $flat = Join-Path $indicators $name
     if (Test-Path $flat) { Remove-Item $flat -Force }
     Write-Host "deployed: KAT\$name"
