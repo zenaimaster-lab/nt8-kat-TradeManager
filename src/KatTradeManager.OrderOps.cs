@@ -1028,16 +1028,17 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				KatOrderType katOrderType = KatTradeCalculator.DetermineOrderType(katAction, triggerPrice, currentPx, cachedTickSize, out double limitPrice, out double stopPrice);
 				OrderType orderType = ToNtOrderType(katOrderType);
 
-				hasCandleOrder = true;
-				lastCandleOrderAction = action;
-				currentCandleBarsAgo = isCurrentCandle ? 0 : 1;
-				lock (priceLock)
+				if (PlaceOrderInternal(action, triggerPrice, orderType, limitPrice, stopPrice, "placing order", true))
 				{
-					lastCandleBarTime = isCurrentCandle ? cachedCurrentBarTime[barIdx] : cachedPrevBarTime[barIdx];
+					hasCandleOrder = true;
+					lastCandleOrderAction = action;
+					currentCandleBarsAgo = isCurrentCandle ? 0 : 1;
+					lock (priceLock)
+					{
+						lastCandleBarTime = isCurrentCandle ? cachedCurrentBarTime[barIdx] : cachedPrevBarTime[barIdx];
+					}
+					ShowHudStatus(string.Format("{0} {1} candle @ {2}", action == OrderAction.Buy ? "BUY" : "SELL", isCurrentCandle ? "curr" : "prev", triggerPrice), System.Windows.Media.Brushes.LightGreen);
 				}
-
-				PlaceOrderInternal(action, triggerPrice, orderType, limitPrice, stopPrice, "placing order", true);
-				ShowHudStatus(string.Format("{0} {1} candle @ {2}", action == OrderAction.Buy ? "BUY" : "SELL", isCurrentCandle ? "curr" : "prev", triggerPrice), System.Windows.Media.Brushes.LightGreen);
 			}
 			catch (Exception ex)
 			{
@@ -1091,16 +1092,17 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				KatOrderType katOrderType = KatTradeCalculator.DetermineOrderType(katAction, triggerPrice, currentPx, cachedTickSize, out double limitPrice, out double stopPrice);
 				OrderType orderType = ToNtOrderType(katOrderType);
 
-				lastEmaOrderPeriod = emaPeriod;
-				lastEmaOrderAction = action;
-				currentEmaTouchIndex = 0;
-				lock (priceLock)
+				if (PlaceOrderInternal(action, triggerPrice, orderType, limitPrice, stopPrice, string.Format("placing EMA {0} order", emaPeriod), true))
 				{
-					lastEmaTouchBarTime = emaPeriod == 34 ? ema34TouchTime[barIdx] : ema89TouchTime[barIdx];
+					lastEmaOrderPeriod = emaPeriod;
+					lastEmaOrderAction = action;
+					currentEmaTouchIndex = 0;
+					lock (priceLock)
+					{
+						lastEmaTouchBarTime = emaPeriod == 34 ? ema34TouchTime[barIdx] : ema89TouchTime[barIdx];
+					}
+					ShowHudStatus(string.Format("{0} EMA{1} @ {2}", action == OrderAction.Buy ? "BUY" : "SELL", emaPeriod, triggerPrice), System.Windows.Media.Brushes.LightGreen);
 				}
-
-				PlaceOrderInternal(action, triggerPrice, orderType, limitPrice, stopPrice, string.Format("placing EMA {0} order", emaPeriod), true);
-				ShowHudStatus(string.Format("{0} EMA{1} @ {2}", action == OrderAction.Buy ? "BUY" : "SELL", emaPeriod, triggerPrice), System.Windows.Media.Brushes.LightGreen);
 			}
 			catch (Exception ex)
 			{
@@ -1160,25 +1162,25 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			}
 		}
 
-		private void PlaceOrderInternal(OrderAction action, double triggerPrice, OrderType orderType, double limitPrice, double stopPrice, string errorContext, bool applyEmaFilters)
+		private bool PlaceOrderInternal(OrderAction action, double triggerPrice, OrderType orderType, double limitPrice, double stopPrice, string errorContext, bool applyEmaFilters)
 		{
 			if (account == null || Instrument == null)
 			{
 				if (account == null) Print("[KatTradeManager] No account — watchdog auto-recovering. Retry in a moment.");
-				return;
+				return false;
 			}
 
 			if (IsDailyRiskBreached(out string breachReason))
 			{
 				Print(string.Format("[KatTradeManager] Order REJECTED by Daily Risk Protection: {0}", breachReason));
 				ShowHudStatus(string.Format("Daily Risk blocked: {0}", breachReason), System.Windows.Media.Brushes.OrangeRed);
-				return;
+				return false;
 			}
 
 			if (IsEntryDebounced())
 			{
 				Print("[KatTradeManager] Duplicate entry ignored (anti-spam debounce).");
-				return;
+				return false;
 			}
 
 			try
@@ -1188,7 +1190,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				double checkPrice = (orderType == OrderType.Market) ? (cachedCurrentPrice > 0 ? cachedCurrentPrice : triggerPrice) : triggerPrice;
 
 				if (applyEmaFilters && TryRejectEmaProtect(action, checkPrice))
-					return;
+					return false;
 
 				// Re-evaluate Stop vs Limit using the *latest* cachedCurrentPrice right before submit.
 				// If price has run past the intended stop (making StopMarket invalid), flip to Limit order.
@@ -1229,7 +1231,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					if (!SubmitOrder(entryOrder))
 					{
 						entryOrder = null;
-						return;
+						return false;
 					}
 					Print(string.Format("[KatTradeManager] Order submitted: {0} {1} @ {2} qty={3} atm={4}",
 						action, orderType, triggerPrice, qty, cachedAtmTemplate ?? "(none)"));
@@ -1249,12 +1251,14 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					}
 					pendingDrawOrder = entryOrder;
 					pendingDrawRequest = true;
+					return true;
 				}
 			}
 			catch (Exception ex)
 			{
 				Print(string.Format("[KatTradeManager] Error {0}: {1}", errorContext, ex.ToString()));
 			}
+			return false;
 		}
 
 		private const string CloseOrderName = "KAT_CLOSE";
@@ -2141,7 +2145,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 				CancelWorkingEntryOrders();
 
-				PlaceOrderInternal(lastEmaOrderAction, triggerPrice, orderType, limitPrice, stopPrice, string.Format("shifting EMA {0} order to bar #{1}", lastEmaOrderPeriod, targetBar.BarsAgo), true);
+				if (!PlaceOrderInternal(lastEmaOrderAction, triggerPrice, orderType, limitPrice, stopPrice, string.Format("shifting EMA {0} order to bar #{1}", lastEmaOrderPeriod, targetBar.BarsAgo), true))
+					return;
 				currentEmaTouchIndex = targetIndex;
 				lastEmaTouchBarTime = targetBar.Time;
 
@@ -2238,7 +2243,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 				CancelWorkingEntryOrders();
 
-				PlaceOrderInternal(lastCandleOrderAction, triggerPrice, orderType, limitPrice, stopPrice, string.Format("shifting Candle order to bar #{0}", targetBar.BarsAgo), true);
+				if (!PlaceOrderInternal(lastCandleOrderAction, triggerPrice, orderType, limitPrice, stopPrice, string.Format("shifting Candle order to bar #{0}", targetBar.BarsAgo), true))
+					return;
 				currentCandleBarsAgo = targetBar.BarsAgo;
 				lastCandleBarTime = targetBar.Time;
 

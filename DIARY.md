@@ -30,6 +30,14 @@ graph TD
   - Reject if EMA series not ready yet; status shows which EMA blocked (period + values).
   - Force NT deploy + recompile verify (dll was stale on prior deploy).
   - Graphify entities: `TryRejectEmaProtect`, `ValidateEmaPlace`, `cachedIsEmaPlace`.
+### [v1.20] — 2026-08-06
+- **EMA Protect status fix for non-market entries**:
+  - Re-audit confirmed BUY/SELL current, previous, last 34, and last 89 all pass `applyEmaFilters: true`.
+  - Candle/EMA callers previously overwrote red block status with green success status after `PlaceOrderInternal` returned.
+  - `PlaceOrderInternal` now returns submit success; success status appears only after submission, preserving `EMA Protect blocked: ...`.
+  - Rejected orders no longer update shift state as if placed.
+  - Graphify entities: `PlaceOrderInternal`, `PlaceOrder`, `PlaceEmaOrder`, `ShiftEmaEntry`, `ShiftCandleEntry`.
+
 ### [v1.18] — 2026-08-06
 - **Ema protect (HUD rename + full entry gate)**:
   - HUD toggle label `Ema place` -> `Ema protect` (settings property names unchanged).
