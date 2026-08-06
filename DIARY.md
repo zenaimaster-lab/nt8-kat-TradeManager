@@ -38,6 +38,13 @@ graph TD
   - Rejected orders no longer update shift state as if placed.
   - Graphify entities: `PlaceOrderInternal`, `PlaceOrder`, `PlaceEmaOrder`, `ShiftEmaEntry`, `ShiftCandleEntry`.
 
+### [v1.21] — 2026-08-06
+- **EMA Protect market scale-in/scale-out exception**:
+  - With EMA Protect ON, market BUY/SELL remains protected while instrument position is flat.
+  - Once a Long/Short position is filled, market BUY/SELL bypasses EMA Protect for scale-in/scale-out.
+  - Pending, stop, and limit entries remain EMA-protected regardless of position state.
+  - Graphify entities: `PlaceMarketOrder`, `GetInstrumentPosition`, `MarketPosition`.
+
 ### [v1.18] — 2026-08-06
 - **Ema protect (HUD rename + full entry gate)**:
   - HUD toggle label `Ema place` -> `Ema protect` (settings property names unchanged).

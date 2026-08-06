@@ -1636,7 +1636,10 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			double mktCheckPrice = cachedCurrentPrice > 0 ? cachedCurrentPrice : 0;
 			if (mktCheckPrice <= 0 && Instrument.MarketData != null && Instrument.MarketData.Last != null)
 				mktCheckPrice = Instrument.MarketData.Last.Price;
-			if (TryRejectEmaProtect(action, mktCheckPrice))
+
+			Position openPosition = GetInstrumentPosition();
+			bool hasFilledPosition = openPosition != null && openPosition.MarketPosition != MarketPosition.Flat;
+			if (!hasFilledPosition && TryRejectEmaProtect(action, mktCheckPrice))
 				return false;
 
 			try
