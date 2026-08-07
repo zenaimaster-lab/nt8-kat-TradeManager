@@ -23,6 +23,13 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.27] — 2026-08-07
+- **Re-audit 2 — daily-risk bypass + sizing direction**:
+  - **TP-early bypass**: `TryRejectDisciplineForClose` now checks `IsDailyRiskBreached` first — emergency flatten from `EvaluateDailyRiskLimits` bypasses `TP-early` (safety over discipline) (`src/KatTradeManager.Discipline.cs:451`).
+  - **Sizing direction**: `UpdateDisciplineFromPosition` sizing cancel now filters same-direction only — Long cancels only `Buy` entries, Short only `Sell/SellShort` (`src/KatTradeManager.Discipline.cs:278`). Previously cancelled opposite pending entries (over-aggressive).
+  - 169/169 tests pass; CompileCheck 0 errors; deploy OK.
+  - Graphify entity mapping: `KatTradeManager.TryRejectDisciplineForClose` (daily-risk bypass), `KatTradeManager.UpdateDisciplineFromPosition` (directional cancel).
+
 ### [v1.26] — 2026-08-07
 - **Re-audit fixes for v1.25 discipline protects**:
   - **Timing no-window**: `IsTimingLocked` previously returned `false` when no window enabled (allowed trading) — now returns `true` with `No Trading Window enabled — trading blocked` so `TimingWindows ON` with all windows OFF correctly blocks all entries (`src/KatTradeManager.Discipline.cs:252`).

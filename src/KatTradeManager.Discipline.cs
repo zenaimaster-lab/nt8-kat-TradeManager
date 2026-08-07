@@ -1,4 +1,4 @@
-/* KatTradeManager.Discipline.cs - Discipline protects (partial class) v1.26 (2026-08-07) */
+/* KatTradeManager.Discipline.cs - Discipline protects (partial class) v1.27 (2026-08-07) */
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -279,9 +279,11 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			{
 				try
 				{
+					bool isLongSizing = capturedMp == MarketPosition.Long;
 					var workingEntries = GetAccountOrdersSnapshot().Where(o => o.Instrument == Instrument
 						&& IsActiveOrderState(o.OrderState)
-						&& (o.Name == "Entry" || o.Name == "MarketBuy" || o.Name == "MarketSell")).ToArray();
+						&& (o.Name == "Entry" || o.Name == "MarketBuy" || o.Name == "MarketSell")
+						&& ((isLongSizing && o.OrderAction == OrderAction.Buy) || (!isLongSizing && (o.OrderAction == OrderAction.Sell || o.OrderAction == OrderAction.SellShort)))).ToArray();
 					if (workingEntries.Length > 0)
 					{
 						QueueAccountOperation(AccountOperationType.Cancel, workingEntries, "sizing protect: cancel pending adds after fill");
@@ -452,6 +454,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		{
 			reason = string.Empty;
 			if (!cachedTpEarlyProtect) return false;
+			// Daily Risk emergency flatten must bypass TP-early (safety over discipline)
+			if (IsDailyRiskBreached(out string _riskReason)) return false;
 			Position pos = GetInstrumentPosition();
 			if (pos == null || pos.MarketPosition == MarketPosition.Flat) return false;
 			// any close while in position is blocked by TP-early
