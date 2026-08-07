@@ -23,6 +23,12 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.42] — 2026-08-08
+- **Critical fix — Scale-out SL/TP không giảm theo position**:
+  - **Root cause** `KatTradeCalculator.PlanAtmBracketMerge:130` dùng `Math.Max(live, existing)` nên khi scale-out (position 4→1, SL/TP 4) `Desired = Max(1,4)=4` giữ nguyên, không giảm. `src/KatTradeCalculator.cs:130`.
+  - **Fix** `DesiredStopQuantity = livePositionQuantity`, `DesiredTargetQuantity = livePositionQuantity` — SL/TP luôn = live qty, cả scale-in (4→6) và scale-out (4→1) đều đúng `src/KatTradeCalculator.cs:130`.
+  - **Test** thêm `KatScaleOutTests.cs:4` — scale-out 4→1, 6→2, 10→3, scale-in vẫn pass — 195/195 pass.
+  - Verify: 195/195 tests, CompileCheck 0 errors (2 warnings), Deploy 11 files.
 ### [v1.41] — 2026-08-08
 - **Re-audit 8 — AtmMerge module split**:
   - **Split** `OrderOps 2010L -> AtmMerge 550L`: tách `KatTradeManager.AtmMerge.cs` chứa toàn bộ ATM merge/scale-in (`TrackAtmStartup`..`ProcessAtmScaleInUpdate`, `HasAtmTemplate`, `IsAtmBracketCandidate`..`MergeAtmBrackets`) `src/KatTradeManager.AtmMerge.cs:1`; `OrderOps` còn ~1450L chỉ execution/close/market/BE.

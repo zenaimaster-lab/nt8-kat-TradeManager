@@ -1,4 +1,4 @@
-/* KatTradeManager.Discipline.cs - Discipline protects (partial class) v1.41 (2026-08-08) */
+/* KatTradeManager.Discipline.cs - Discipline protects (partial class) v1.42 (2026-08-08) */
 using System;
 using System.Collections.Generic;
 using System.Linq;

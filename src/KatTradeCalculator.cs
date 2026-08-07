@@ -1,4 +1,4 @@
-/* KatTradeCalculator.cs - Pure calculation logic (partial) v1.41 (2026-08-08) */
+/* KatTradeCalculator.cs - Pure calculation logic (partial) v1.42 (2026-08-08) */
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -127,8 +127,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			plan.KeepStopIndex = keepStop;
 			plan.KeepTargetIndex = keepTarget;
-			plan.DesiredStopQuantity = Math.Max(livePositionQuantity, orders[keepStop].Quantity);
-			plan.DesiredTargetQuantity = Math.Max(livePositionQuantity, orders[keepTarget].Quantity);
+			plan.DesiredStopQuantity = livePositionQuantity;
+			plan.DesiredTargetQuantity = livePositionQuantity;
 
 			List<int> changes = new List<int>();
 			if (orders[keepStop].Quantity != plan.DesiredStopQuantity) changes.Add(keepStop);
