@@ -1,4 +1,4 @@
-/* KatAtmXmlParser.cs - ATM XML parser v1.44 (2026-08-08) */
+/* KatAtmXmlParser.cs - ATM XML parser v1.45 (2026-08-08) */
 using System;
 using System.IO;
 using System.Xml;

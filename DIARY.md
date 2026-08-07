@@ -23,6 +23,12 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.45] — 2026-08-08
+- **Hotfix — Market SL/TP bị cancel ngay sau khớp (regression v1.44)**:
+  - **Root cause** `EnforceSlPullManualDrag` v1.44 check cả `StopPrice` (working) lẫn `StopPriceChanged` (pending) nên order SL mới tạo (StopPrice = entry ± SL, StopPriceChanged=0) bị nhầm thành manual drag khi `InitialSl` stale từ episode trước (flat chưa kịp clear hoặc cross-instrument shared `DisciplineState` per-account). Với Long `new 95 < init 100` → blocked → queue `Change` revert về `init` cũ, gây nhiễu bracket và trong vài race `MergeAtmBrackets` thấy pending change → skip merge, flat-cleanup defer sai, broker cancel cặp SL/TP.
+  - **Fix** `src/KatTradeManager.Discipline.cs:510` chỉ enforce khi `StopPriceChanged !=0` (pending drag thật). Working `StopPrice` đơn thuần (tạo mới hoặc đã accepted) bỏ qua. Giữ nguyên `IsSlPullBlocked` logic (Long `new < init - tol`, Short `new > init + tol`, tighten vẫn cho phép). Thêm chú `ponytail: only pending Change is a manual drag`.
+  - Verify: 197/197 tests, CompileCheck 0 errors (2 warnings obsolete), Deploy 11 files.
+  - Graphify entity mapping: `KatTradeManager.EnforceSlPullManualDrag` (pending-only), `KatTradeManager.OnAccountOrderUpdateCore`.
 ### [v1.44] — 2026-08-08
 - **Fix — No SL-pull manual drag bypass (ON vẫn kéo xa được)**:
   - **Root cause** `TryRejectDisciplineForSlMove` chỉ được gọi từ `SetBreakeven` và `ShiftSlToSwing` (`src/KatTradeManager.OrderOps.cs:876,1186`); drag thủ công SL trên chart (NT8 `OnOrderUpdate` ChangePending/Working) không qua gate nào nên dù `No SL-pull: ON` vẫn kéo SL ra xa (tăng SL) được. `DIARY.md:163` đã note ceiling “Manual chart drag beyond initial is ponytail ceiling — v2 would revert via OnAccountOrderUpdate”.

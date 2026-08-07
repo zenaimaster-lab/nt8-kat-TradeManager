@@ -1,4 +1,4 @@
-/* KatTradeManager.Discipline.cs - Discipline protects (partial class) v1.44 (2026-08-08) */
+/* KatTradeManager.Discipline.cs - Discipline protects (partial class) v1.45 (2026-08-08) */
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -507,15 +507,13 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			lock (disciplineLock) { initSl = st.InitialSl; }
 			if (initSl <= 0) return;
 			double tick = cachedTickSize > 0 ? cachedTickSize : (Instrument != null ? Instrument.MasterInstrument.TickSize : 0.25);
+			// ponytail: only pending Change is a manual drag. Working StopPrice alone is initial creation or already accepted — not a drag.
 			double newSlCandidate = 0;
 			bool hasPending = false;
 			try { if (observed.StopPriceChanged != 0) { newSlCandidate = observed.StopPriceChanged; hasPending = true; } } catch {}
-			if (!hasPending) newSlCandidate = observed.StopPrice;
+			if (!hasPending) return;
 			if (newSlCandidate <= 0) return;
-			bool blocked = KatTradeCalculator.IsSlPullBlocked(isLong, initSl, newSlCandidate, tick);
-			if (!blocked && hasPending && observed.StopPrice > 0 && observed.StopPrice != newSlCandidate)
-				blocked = KatTradeCalculator.IsSlPullBlocked(isLong, initSl, observed.StopPrice, tick);
-			if (!blocked) return;
+			if (!KatTradeCalculator.IsSlPullBlocked(isLong, initSl, newSlCandidate, tick)) return;
 			// blocked -> revert to initial (tighter moves remain allowed, so reverting to initial is always valid)
 			try
 			{
