@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.28 (2026-08-07) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.29 (2026-08-07) */
 
 using System;
 using System.Collections.Generic;
@@ -31,17 +31,16 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private Button btnDisciplineOnAll;
 		private Button btnDisciplineOffAll;
 		private readonly SolidColorBrush disciplineOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
-		private readonly SolidColorBrush[] disciplineOnBgs = new SolidColorBrush[]
+		// Row-based ON colors: 2 buttons per row share same shade (3 rows)
+		private readonly SolidColorBrush[] disciplineRowBgs = new SolidColorBrush[]
 		{
-			new SolidColorBrush(Color.FromRgb(14, 58, 90)),   // Sizing - deep navy
-			new SolidColorBrush(Color.FromRgb(20, 75, 115)),  // SL-pull - blue 2
-			new SolidColorBrush(Color.FromRgb(26, 92, 140)),  // Loss-DCA - blue 3
-			new SolidColorBrush(Color.FromRgb(32, 110, 168)), // TP-early - blue 4
-			new SolidColorBrush(Color.FromRgb(45, 130, 190)), // LossTimes - blue 5
-			new SolidColorBrush(Color.FromRgb(70, 155, 210)), // Timing - light blue
+			new SolidColorBrush(Color.FromRgb(22, 60, 92)),   // Row0: Fix size + No SL-pull
+			new SolidColorBrush(Color.FromRgb(32, 88, 138)),  // Row1: No loss-DCA + No TP-early
+			new SolidColorBrush(Color.FromRgb(48, 120, 180)), // Row2: StopWhenLoss + TradingWindows
 		};
-		private readonly SolidColorBrush onAllBg = new SolidColorBrush(Color.FromRgb(15, 76, 58)); // emerald
-		private readonly SolidColorBrush offAllBg = new SolidColorBrush(Color.FromRgb(55, 71, 79)); // slate
+		// Top Discipline/Un-Discipline row — standout from blue rows
+		private readonly SolidColorBrush onAllBg = new SolidColorBrush(Color.FromRgb(124, 58, 237)); // Discipline All - vivid violet
+		private readonly SolidColorBrush offAllBg = new SolidColorBrush(Color.FromRgb(190, 18, 60));  // Un-Discipline - rose red
 		private bool isHotkeyAttached = false;
 		private Window hotkeyWindow; // cached at attach — chart can move to a new window before detach
 		private bool hasHudDragPosition;
@@ -388,7 +387,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				case 5: isOn = cachedTimingProtect; break;
 			}
 			btn.Content = isOn ? labels[idx] : labels[idx] + ": OFF";
-			btn.Background = isOn ? disciplineOnBgs[idx] : disciplineOffBg;
+			int row = idx / 2;
+			btn.Background = isOn ? disciplineRowBgs[row] : disciplineOffBg;
 			btn.Foreground = isOn ? Brushes.White : Brushes.LightGray;
 		}
 
@@ -1380,19 +1380,25 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			allToggleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 			allToggleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
 			allToggleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			btnDisciplineOnAll = CreateButton("ON ALL", onAllBg, null, 24, 10);
+			btnDisciplineOnAll = CreateButton("Discipline All", onAllBg, null, 26, 11);
 			btnDisciplineOnAll.Foreground = Brushes.White;
+			btnDisciplineOnAll.FontWeight = FontWeights.Bold;
+			btnDisciplineOnAll.BorderBrush = new SolidColorBrush(Color.FromRgb(167, 139, 250));
+			btnDisciplineOnAll.BorderThickness = new Thickness(1);
 			btnDisciplineOnAll.Click += (s, ev) => SetAllDiscipline(true);
 			Grid.SetColumn(btnDisciplineOnAll, 0);
 			allToggleGrid.Children.Add(btnDisciplineOnAll);
-			btnDisciplineOffAll = CreateButton("OFF ALL", offAllBg, null, 24, 10);
+			btnDisciplineOffAll = CreateButton("Un-Discipline", offAllBg, null, 26, 11);
 			btnDisciplineOffAll.Foreground = Brushes.White;
+			btnDisciplineOffAll.FontWeight = FontWeights.Bold;
+			btnDisciplineOffAll.BorderBrush = new SolidColorBrush(Color.FromRgb(251, 113, 133));
+			btnDisciplineOffAll.BorderThickness = new Thickness(1);
 			btnDisciplineOffAll.Click += (s, ev) => SetAllDiscipline(false);
 			Grid.SetColumn(btnDisciplineOffAll, 2);
 			allToggleGrid.Children.Add(btnDisciplineOffAll);
 			sec5Panel.Children.Add(allToggleGrid);
 
-			// 3 rows x 2 cols for 6 protects (same font/size, blue shades when ON)
+			// 3 rows x 2 cols for 6 protects — same shade per row (2 buttons/row share color)
 			for (int row = 0; row < 3; row++)
 			{
 				Grid rowGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
@@ -1403,7 +1409,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				{
 					int idx = row * 2 + col;
 					bool isOn = discStates[idx];
-					Button discBtn = CreateButton(isOn ? discLabels[idx] : discLabels[idx] + ": OFF", isOn ? disciplineOnBgs[idx] : disciplineOffBg, null, 24, 10);
+					Button discBtn = CreateButton(isOn ? discLabels[idx] : discLabels[idx] + ": OFF", isOn ? disciplineRowBgs[row] : disciplineOffBg, null, 24, 10);
 					discBtn.Foreground = isOn ? Brushes.White : Brushes.LightGray;
 					int capturedIdx = idx;
 					discBtn.Click += (s, ev) => ToggleDiscipline(capturedIdx);

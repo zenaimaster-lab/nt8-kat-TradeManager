@@ -23,6 +23,13 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.29] — 2026-08-07
+- **HUD discipline row colors + Discipline/Un-Discipline**:
+  - Đổi tên: `ON ALL→Discipline All`, `OFF ALL→Un-Discipline` (`src/KatTradeManagerUI.cs:1383`).
+  - Mỗi dòng 2 button sharing same ON shade (3 rows): Row0 `Fix size+No SL-pull` `#163C5C`, Row1 `No loss-DCA+No TP-early` `#20588A`, Row2 `StopWhenLoss+TradingWindows` `#3078B4` (`disciplineRowBgs:34`); trước mỗi button 1 shade riêng. OFF vẫn gray `#2D3241`.
+  - Dòng Discipline/Un-Discipline standout: violet vivid `#7C3AED` / rose red `#BE123C`, height 26/font 11 Bold + 1px border (`#A78BFA/#FB7185`) (`src/KatTradeManagerUI.cs:43`).
+  - Graphify entity mapping: `KatTradeManagerUI.disciplineRowBgs`, `KatTradeManagerUI.onAllBg/offAllBg`, `KatTradeManagerUI.CreateWpfControls` sec5 row.
+
 ### [v1.28] — 2026-08-07
 - **HUD discipline labels — OFF-only + rename**:
   - Buttons 6 discipline trong `Section 5` đổi label: `Sizing protect→Fix size`, `SL-pull→No SL-pull`, `Loss-DCA→No loss-DCA`, `TP-early→No TP-early`, `LossTimes→StopWhenLoss`, `TimingWindows→TradingWindows` (chỉ HUD, logic giữ nguyên).
