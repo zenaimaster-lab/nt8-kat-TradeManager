@@ -23,6 +23,14 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.30] — 2026-08-07
+- **Re-audit 3 — sizing partial-fill + Trades lock + upgrade migration**:
+  - **Sizing partial-fill**: `st.InitialQty` previously captured `pos.Quantity` after first partial fill (2) instead of ATM qty (4) — max became 2, second fill of same entry incorrectly blocked as scale-in. Now prefers `atmQuantity` over `liveQty` (`src/KatTradeManager.Discipline.cs:189`).
+  - **Trades lock**: `UpdateDisciplineFromPosition` snapshot `Trades.Count` and iteration `list[i]` now `lock(tradesObj)` — fixes `Collection was modified` race when broker thread adds trades during enumeration (`src/KatTradeManager.Discipline.cs:155` `228`).
+  - **Upgrade migration**: existing charts upgraded from pre-v1.25 have all discipline props `0/false` — now `DataLoaded` detects `LossTimesMaxLosses==0 && all OFF` and forces ON defaults (6 protects ON, W1 02:00-15:00) + syncs cached (`src/KatTradeManager.cs:423`).
+  - 169/169 tests pass; CompileCheck 0 errors; deploy OK.
+  - Graphify entity mapping: `KatTradeManager.UpdateDisciplineFromPosition` (InitialQty, Trades lock), `KatTradeManager.OnStateChange` (migration).
+
 ### [v1.29] — 2026-08-07
 - **HUD discipline row colors + Discipline/Un-Discipline**:
   - Đổi tên: `ON ALL→Discipline All`, `OFF ALL→Un-Discipline` (`src/KatTradeManagerUI.cs:1383`).

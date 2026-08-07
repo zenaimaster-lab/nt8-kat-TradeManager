@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 1.29 (2026-08-07)
+ * Version: 1.30 (2026-08-07)
  * NinjaTrader 8 TradeManager Indicator
  */
  
@@ -69,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "1.29";
+		public const string VERSION = "1.30";
 		public const string RELEASE_DATE = "2026-08-07";
 
 		private volatile Account account;
@@ -420,6 +420,18 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				cachedTw3StartMinute = TradingWindow3StartMinute;
 				cachedTw3EndHour = TradingWindow3EndHour;
 				cachedTw3EndMinute = TradingWindow3EndMinute;
+				// Migration: pre-v1.25 instances have all discipline props 0/false -> force ON defaults
+				if (LossTimesMaxLosses == 0 && LossTimesLockMinutes == 0 && !SizingProtectEnabled && !SlPullProtectEnabled && !LossDcaProtectEnabled && !TpEarlyProtectEnabled && !LossTimesProtectEnabled && !TimingWindowsProtectEnabled)
+				{
+					SizingProtectEnabled = true; SlPullProtectEnabled = true; LossDcaProtectEnabled = true; TpEarlyProtectEnabled = true; LossTimesProtectEnabled = true; TimingWindowsProtectEnabled = true;
+					LossTimesMaxLosses = 3; LossTimesLockMinutes = 30;
+					TradingWindow1Enabled = true; TradingWindow1StartHour = 2; TradingWindow1StartMinute = 0; TradingWindow1EndHour = 15; TradingWindow1EndMinute = 0;
+					TradingWindow2Enabled = false; TradingWindow3Enabled = false;
+					cachedSizingProtect = true; cachedSlPullProtect = true; cachedLossDcaProtect = true; cachedTpEarlyProtect = true; cachedLossTimesProtect = true; cachedTimingProtect = true;
+					cachedLossTimesMaxLosses = 3; cachedLossTimesLockMinutes = 30;
+					cachedTw1Enabled = true; cachedTw1StartHour = 2; cachedTw1StartMinute = 0; cachedTw1EndHour = 15; cachedTw1EndMinute = 0;
+					cachedTw2Enabled = false; cachedTw3Enabled = false;
+				}
 				isRenkoChart = BarsPeriod.BarsPeriodType == BarsPeriodType.Renko
 
 				               || (BarsPeriod.BarsPeriodTypeName != null && BarsPeriod.BarsPeriodTypeName.IndexOf("Renko", StringComparison.OrdinalIgnoreCase) >= 0)

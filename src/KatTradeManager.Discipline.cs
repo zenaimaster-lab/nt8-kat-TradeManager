@@ -1,4 +1,4 @@
-/* KatTradeManager.Discipline.cs - Discipline protects (partial class) v1.29 (2026-08-07) */
+/* KatTradeManager.Discipline.cs - Discipline protects (partial class) v1.30 (2026-08-07) */
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -152,11 +152,14 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					if (pi != null)
 					{
 						tradesObj = pi.GetValue(account);
-						if (tradesObj is System.Collections.IList list) curTradesCount = list.Count;
+						if (tradesObj is System.Collections.IList list) { lock (tradesObj) curTradesCount = list.Count; }
 						else if (tradesObj != null)
 						{
-							var cntPi = tradesObj.GetType().GetProperty("Count");
-							if (cntPi != null) curTradesCount = (int)cntPi.GetValue(tradesObj);
+							lock (tradesObj)
+							{
+								var cntPi = tradesObj.GetType().GetProperty("Count");
+								if (cntPi != null) curTradesCount = (int)cntPi.GetValue(tradesObj);
+							}
 						}
 					}
 				}
@@ -183,9 +186,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 						st.HasEpisode = true;
 						st.Position = mp;
 						st.EntryPrice = pos.AveragePrice;
-						int liveQty = pos.Quantity;
-						if (liveQty > 0) st.InitialQty = liveQty;
-						else if (atmQuantity > 0) st.InitialQty = atmQuantity;
+						if (atmQuantity > 0) st.InitialQty = atmQuantity;
+						else if (pos.Quantity > 0) st.InitialQty = pos.Quantity;
 						else if (DefaultQuantity > 0) st.InitialQty = DefaultQuantity;
 						st.RealizedBeforeEpisode = curGlobalRealized;
 						if (capturedSl > 0) st.InitialSl = capturedSl;
@@ -223,10 +225,12 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				}
 				else if (useTrades && curTradesCount > st.LastTradesCount && tradesObj is System.Collections.IList list)
 				{
-					for (int i = st.LastTradesCount; i < curTradesCount; i++)
+					lock (tradesObj)
 					{
-						object tr = null;
-						try { tr = list[i]; } catch { try { var gi = tradesObj.GetType().GetMethod("get_Item"); if (gi != null) tr = gi.Invoke(tradesObj, new object[] { i }); } catch {} }
+						for (int i = st.LastTradesCount; i < curTradesCount; i++)
+						{
+							object tr = null;
+							try { tr = list[i]; } catch { try { var gi = tradesObj.GetType().GetMethod("get_Item"); if (gi != null) tr = gi.Invoke(tradesObj, new object[] { i }); } catch {} }
 						double profit = GetTradeProfit(tr);
 						if (Math.Abs(profit) < 0.01) continue; // ignore breakeven/commission noise
 						if (profit < 0)
@@ -246,6 +250,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					st.LastTradesCount = curTradesCount;
 					st.LastGlobalRealized = curGlobalRealized;
 					st.LastGlobalPosCount = curGlobalPosCount;
+					}
 				}
 				else
 				{
