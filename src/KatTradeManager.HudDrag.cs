@@ -1,4 +1,4 @@
-/* KatTradeManager.HudDrag.cs - HUD drag handling (partial class) v1.42 (2026-08-08) */
+/* KatTradeManager.HudDrag.cs - HUD drag handling (partial class) v1.43 (2026-08-08) */
 using System;
 using System.Windows;
 using System.Windows.Controls;

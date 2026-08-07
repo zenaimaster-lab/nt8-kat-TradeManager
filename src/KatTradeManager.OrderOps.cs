@@ -1,4 +1,4 @@
-/* KatTradeManager.OrderOps.cs - Order execution & position management (partial class) v1.42 (2026-08-08) */
+/* KatTradeManager.OrderOps.cs - Order execution & position management (partial class) v1.43 (2026-08-08) */
 
 using System;
 using System.Collections.Generic;

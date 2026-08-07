@@ -71,5 +71,34 @@ namespace KatTradeManager.Tests
 			Assert.Equal(6, plan.DesiredTargetQuantity);
 			Assert.Equal(2, plan.ChangeIndices.Length);
 		}
+
+		[Fact]
+		public void PlanAtmBracketMerge_Flat_NoChange()
+		{
+			var orders = new[]
+			{
+				new KatTradeCalculator.KatAtmBracketOrder { Oco = "a", IsStop = true, Quantity = 4, Price = 100.0 },
+				new KatTradeCalculator.KatAtmBracketOrder { Oco = "a", IsStop = false, Quantity = 4, Price = 110.0 },
+			};
+			var plan = KatTradeCalculator.PlanAtmBracketMerge(orders, 0);
+			Assert.True(plan.IsNoop);
+			Assert.Empty(plan.ChangeIndices);
+			Assert.Empty(plan.CancelIndices);
+		}
+
+		[Fact]
+		public void PlanAtmBracketMerge_ScaleOut_ToZero_FlatCleanupPath()
+		{
+			// live 0 is handled by flat path, planner returns noop, caller cancels via flat cleanup
+			var orders = new[]
+			{
+				new KatTradeCalculator.KatAtmBracketOrder { Oco = "a", IsStop = true, Quantity = 1, Price = 100.0 },
+				new KatTradeCalculator.KatAtmBracketOrder { Oco = "a", IsStop = false, Quantity = 1, Price = 110.0 },
+			};
+			var planZero = KatTradeCalculator.PlanAtmBracketMerge(orders, 0);
+			Assert.True(planZero.IsNoop);
+			var planNeg = KatTradeCalculator.PlanAtmBracketMerge(orders, -1);
+			Assert.True(planNeg.IsNoop);
+		}
 	}
 }

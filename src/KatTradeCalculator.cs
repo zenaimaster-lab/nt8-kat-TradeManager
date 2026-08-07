@@ -1,4 +1,4 @@
-/* KatTradeCalculator.cs - Pure calculation logic (partial) v1.42 (2026-08-08) */
+/* KatTradeCalculator.cs - Pure calculation logic (partial) v1.43 (2026-08-08) */
 using System;
 using System.Collections.Generic;
 using System.Linq;

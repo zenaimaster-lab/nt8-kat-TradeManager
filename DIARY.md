@@ -23,6 +23,11 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.43] — 2026-08-08
+- **Re-audit scale-out — bổ sung test flat + live=0**:
+  - **Thêm** `KatScaleOutTests.cs:80` `Flat_NoChange` và `ScaleOut_ToZero_FlatCleanupPath` — live 0/−1 return noop, flat cleanup cancel hết — 197/197 pass.
+  - `AtmMerge.cs:459,463` giữ `Math.Max` cho scale-in (đúng), không đổi.
+  - Verify: 197/197 tests, CompileCheck 0 errors (2 warnings), Deploy 11 files.
 ### [v1.42] — 2026-08-08
 - **Critical fix — Scale-out SL/TP không giảm theo position**:
   - **Root cause** `KatTradeCalculator.PlanAtmBracketMerge:130` dùng `Math.Max(live, existing)` nên khi scale-out (position 4→1, SL/TP 4) `Desired = Max(1,4)=4` giữ nguyên, không giảm. `src/KatTradeCalculator.cs:130`.
