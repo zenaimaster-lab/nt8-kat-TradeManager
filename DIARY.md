@@ -23,6 +23,13 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.28] — 2026-08-07
+- **HUD discipline labels — OFF-only + rename**:
+  - Buttons 6 discipline trong `Section 5` đổi label: `Sizing protect→Fix size`, `SL-pull→No SL-pull`, `Loss-DCA→No loss-DCA`, `TP-early→No TP-early`, `LossTimes→StopWhenLoss`, `TimingWindows→TradingWindows` (chỉ HUD, logic giữ nguyên).
+  - Khi ON: hiển thị chỉ label + màu sáng (blue shades), khi OFF: `label: OFF` + gray `#2D3241` (`disciplineOffBg`). Trước đó hiển thị `: ON/: OFF`. Sửa cả `CreateWpfControls` khởi tạo `src/KatTradeManagerUI.cs:1375` và `UpdateDisciplineButton:374`.
+  - ON ALL/OFF ALL giữ nguyên.
+  - Graphify entity mapping: `KatTradeManagerUI.UpdateDisciplineButton`, `KatTradeManagerUI.CreateWpfControls` sec5.
+
 ### [v1.27] — 2026-08-07
 - **Re-audit 2 — daily-risk bypass + sizing direction**:
   - **TP-early bypass**: `TryRejectDisciplineForClose` now checks `IsDailyRiskBreached` first — emergency flatten from `EvaluateDailyRiskLimits` bypasses `TP-early` (safety over discipline) (`src/KatTradeManager.Discipline.cs:451`).

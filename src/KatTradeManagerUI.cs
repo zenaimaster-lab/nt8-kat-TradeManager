@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.27 (2026-08-07) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.28 (2026-08-07) */
 
 using System;
 using System.Collections.Generic;
@@ -376,7 +376,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			if (disciplineButtons == null || idx < 0 || idx >= disciplineButtons.Length) return;
 			Button btn = disciplineButtons[idx];
 			if (btn == null) return;
-			string[] labels = new[] { "Sizing protect", "SL-pull protect", "Loss-DCA protect", "TP-early protect", "LossTimes protect", "TimingWindows" };
+			string[] labels = new[] { "Fix size", "No SL-pull", "No loss-DCA", "No TP-early", "StopWhenLoss", "TradingWindows" };
 			bool isOn = false;
 			switch (idx)
 			{
@@ -387,7 +387,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				case 4: isOn = cachedLossTimesProtect; break;
 				case 5: isOn = cachedTimingProtect; break;
 			}
-			btn.Content = labels[idx] + (isOn ? ": ON" : ": OFF");
+			btn.Content = isOn ? labels[idx] : labels[idx] + ": OFF";
 			btn.Background = isOn ? disciplineOnBgs[idx] : disciplineOffBg;
 			btn.Foreground = isOn ? Brushes.White : Brushes.LightGray;
 		}
@@ -1372,7 +1372,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			// --- SECTION 5: Discipline Protects (bottom) ---
 			StackPanel sec5Panel = new StackPanel();
 			disciplineButtons = new Button[6];
-			string[] discLabels = new[] { "Sizing protect", "SL-pull protect", "Loss-DCA protect", "TP-early protect", "LossTimes protect", "TimingWindows" };
+			string[] discLabels = new[] { "Fix size", "No SL-pull", "No loss-DCA", "No TP-early", "StopWhenLoss", "TradingWindows" };
 			bool[] discStates = new[] { cachedSizingProtect, cachedSlPullProtect, cachedLossDcaProtect, cachedTpEarlyProtect, cachedLossTimesProtect, cachedTimingProtect };
 
 			// Row 0: ON ALL / OFF ALL (full width controls for all bottom protects)
@@ -1403,7 +1403,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				{
 					int idx = row * 2 + col;
 					bool isOn = discStates[idx];
-					Button discBtn = CreateButton(discLabels[idx] + (isOn ? ": ON" : ": OFF"), isOn ? disciplineOnBgs[idx] : disciplineOffBg, null, 24, 10);
+					Button discBtn = CreateButton(isOn ? discLabels[idx] : discLabels[idx] + ": OFF", isOn ? disciplineOnBgs[idx] : disciplineOffBg, null, 24, 10);
 					discBtn.Foreground = isOn ? Brushes.White : Brushes.LightGray;
 					int capturedIdx = idx;
 					discBtn.Click += (s, ev) => ToggleDiscipline(capturedIdx);
