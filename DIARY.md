@@ -23,6 +23,16 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.23] — 2026-08-06
+- **Critical order-spam / broker-flood fix (SL/TP, Close/flatten, MERGE)**:
+  - Root cause: `MergeAtmBrackets` chose the stop and target anchors independently, so with multi-bracket ATMs or interleaved Rithmic order feeds the retained stop/target could come from DIFFERENT OCO pairs. Cancelling the "duplicate" legs then made the broker's OCO linkage cancel the retained anchors too; NT8's ATM engine recreated brackets and every OrderUpdate callback re-triggered merge — a cancel/recreate storm that flooded the broker (visible at 20–70 contracts, froze NT8 with platform warning popups).
+  - New pure planner `KatTradeCalculator.PlanAtmBracketMerge`: consolidates quantity only within ONE complete same-OCO stop+target pair (largest pair wins); never merges across OCO; cancel targets never share the retained OCO; steady state is a no-op plan (zero broker messages while the 500ms watchdog and callbacks keep running).
+  - FIFO gate: Cancel operations now settle only when all target orders reach terminal state (previously released right after the API call returned, letting Close/flatten submit while cancels were still in flight).
+  - Fixed coalesce bug where an overlapping same-type operation silently dropped non-overlapping orders (e.g. close cancel list [A,B,C] coalesced into in-flight cancel [A] left B and C never cancelled); remaining orders are re-queued after the overlapping operation completes.
+  - Order-update handler no longer exits early for other instruments, so multi-instrument flatten close tracking releases its guard; merge/scale-in processing is now scoped to the chart instrument only.
+  - Regression tests: OCO pair selection, cross-OCO pairing refused, empty plan when no complete pair. 166/166 tests passing; CompileCheck 0 errors.
+  - Graphify entity mapping: `KatTradeCalculator.PlanAtmBracketMerge`, `KatTradeCalculator.KatAtmBracketOrder`, `KatTradeCalculator.KatAtmMergePlan`, `KatTradeManager.MergeAtmBrackets`, `KatTradeManager.IsAccountOperationSettled`, `KatTradeManager.QueueAccountOperation`, `KatTradeManager.OnAccountOrderUpdateCore`.
+
 ### [v1.22] — 2026-08-06
 - **Daily Risk Quick Sets**:
   - Added six persisted preset groups under `Daily Risk Quick Sets`, each with configurable label, Max DD, and Max Profit values.

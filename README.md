@@ -1,6 +1,6 @@
 # NT8 Kat TradeManager
 
-**Current Version**: `v1.22` (Released: `2026-08-06`)
+**Current Version**: `v1.23` (Released: `2026-08-06`)
 
 An advanced TradeManager Indicator for **NinjaTrader 8 (NT8)** designed for fast execution, candle-based pending stop orders, and dynamic risk management.
 
@@ -12,8 +12,8 @@ An advanced TradeManager Indicator for **NinjaTrader 8 (NT8)** designed for fast
 - **ATM Quick Set buttons (A–F)**: Row of 6 one-click buttons directly below the ATM dropdown; each instantly selects its assigned ATM template (the dropdown updates to match). Exactly one shows amber (ON) — the one owning the currently selected ATM — the rest stay gray; None turns all OFF. Button labels (max 3 chars, default A–F) and assigned ATMs (dropdown lists) are configured in Indicator Settings under "ATM Quick Sets".
 - **ATM entry quantity sync**: BUY/SELL buttons and hotkeys use selected ATM template's `EntryQuantity` (or summed bracket quantities); ATM `None` falls back to `Default Quantity`.
 - **Pending Stop-Limit Control (`Stop-Limit: OFF` / `Stop-Limit: ON`)**: Toggle button paired side-by-side with EMA Place in the bottom ON/OFF toggles section; converts valid candle and EMA-touch pending StopMarket entries to one-tick StopLimit entries when enabled.
-- **ATM Bracket MERGE (always on)**: Every trade automatically reconciles all scale-in and scale-out activity to one canonical SL plus one TP at live position quantity; the former MERGE/SPLIT toggle was removed so bracket merging can never be disabled.
-- **Serialized account operations**: Submit, Change, and Cancel requests run through one state-aware FIFO gate; Close/flatten cancels working orders before submitting its close order.
+- **ATM Bracket MERGE (always on)**: Every trade automatically reconciles all scale-in and scale-out activity to one canonical SL plus one TP at live position quantity; the former MERGE/SPLIT toggle was removed so bracket merging can never be disabled. Merge is OCO-safe: quantities consolidate only within one complete stop+target OCO pair, so reconciliation can never trigger broker OCO cascade cancels or cancel/recreate storms.
+- **Serialized account operations**: Submit, Change, and Cancel requests run through one state-aware FIFO gate; Cancel releases the gate only after terminal confirmation, and Close/flatten cancels working orders before submitting its close order.
 - **ATM startup lifecycle hardening**: ATM API calls release queue ownership after return, while MERGE defers flat cleanup until first-entry startup resolves so initial SL/TP brackets are not cancelled prematurely.
 - **Account-wide Close/flatten**: cancels all active account orders, then submits one market close per open position across every instrument; Revert and daily-risk remain instrument-scoped.
 - **Swing Stop Loss Shift Controls (`◀ SL` & `SL ▶`)**: Dynamic gray HUD buttons below Section 2 to shift active Stop Loss orders back to historical Swing Lows (Long) or Swing Highs (Short) step-by-step with full Redo functionality.

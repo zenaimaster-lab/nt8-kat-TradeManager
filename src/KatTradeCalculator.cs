@@ -75,6 +75,70 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return (int)total;
 		}
 
+		public sealed class KatAtmBracketOrder
+		{
+			public string Id;
+			public string Oco;
+			public bool IsStop;
+			public int Quantity;
+			public double Price;
+		}
+
+		public sealed class KatAtmMergePlan
+		{
+			public string KeepStopId;
+			public string KeepTargetId;
+			public int DesiredStopQuantity;
+			public int DesiredTargetQuantity;
+			public string[] ChangeIds;
+			public string[] CancelIds;
+			public bool IsNoop => ChangeIds.Length == 0 && CancelIds.Length == 0;
+		}
+
+		/// <summary>
+		/// Chooses one canonical stop/target pair from SAME OCO only; quantity is merged to that pair.
+		/// Different OCO brackets are never merged into each other to avoid broker-side OCO cascades.
+		/// </summary>
+		public static KatAtmMergePlan PlanAtmBracketMerge(IEnumerable<KatAtmBracketOrder> orders, int livePositionQuantity)
+		{
+			KatAtmMergePlan plan = new KatAtmMergePlan
+			{
+				ChangeIds = Array.Empty<string>(),
+				CancelIds = Array.Empty<string>(),
+			};
+			if (orders == null || livePositionQuantity <= 0) return plan;
+
+			List<KatAtmBracketOrder> valid = orders.Where(o => o != null && o.Quantity > 0).ToList();
+			if (valid.Count == 0) return plan;
+
+			// Group by OCO; only pairs with BOTH stop and target are complete.
+			var groups = valid.GroupBy(o => o.Oco ?? string.Empty).ToList();
+			var complete = groups.Where(g => g.Any(o => o.IsStop) && g.Any(o => !o.IsStop)).ToList();
+			var chosen = complete.Count > 0
+				? complete.OrderByDescending(g => g.Sum(o => o.Quantity)).First()
+				: null;
+			if (chosen == null) return plan;
+
+			KatAtmBracketOrder stop = chosen.Where(o => o.IsStop).OrderByDescending(o => o.Quantity).ThenBy(o => o.Price).First();
+			KatAtmBracketOrder target = chosen.Where(o => !o.IsStop).OrderByDescending(o => o.Quantity).ThenBy(o => o.Price).First();
+
+			plan.KeepStopId = stop.Id;
+			plan.KeepTargetId = target.Id;
+			plan.DesiredStopQuantity = Math.Max(livePositionQuantity, stop.Quantity);
+			plan.DesiredTargetQuantity = Math.Max(livePositionQuantity, target.Quantity);
+
+			var changes = new List<string>();
+			if (stop.Quantity != plan.DesiredStopQuantity) changes.Add(stop.Id);
+			if (target.Quantity != plan.DesiredTargetQuantity) changes.Add(target.Id);
+			plan.ChangeIds = changes.ToArray();
+
+			plan.CancelIds = valid
+				.Where(o => o.Id != stop.Id && o.Id != target.Id)
+				.Select(o => o.Id)
+				.ToArray();
+			return plan;
+		}
+
 		public static double ClampHudCoordinate(double proposed, double panelExtent, double chartExtent, double minVisible)
 		{
 			if (minVisible < 0) minVisible = 0;

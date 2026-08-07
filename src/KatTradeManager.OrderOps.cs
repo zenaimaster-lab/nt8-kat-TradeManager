@@ -197,6 +197,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			foreach (Order order in request.Orders)
 			{
 				if (order == null) continue;
+				if (request.Type == AccountOperationType.Cancel && !IsTerminalOrderState(order.OrderState))
+					return false;
 				if (request.Type == AccountOperationType.Submit
 					&& (order.OrderState == OrderState.Initialized
 						|| order.OrderState == OrderState.Submitted))
@@ -267,8 +269,16 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				{
 					if (overlap.Type == type)
 					{
-						if (completion != null)
-							overlap.Completions.Add(completion);
+						Order[] remaining = requested
+							.Where(order => !overlap.Orders.Any(existing => SameOrder(existing, order)))
+							.ToArray();
+						if (remaining.Length == 0)
+						{
+							if (completion != null)
+								overlap.Completions.Add(completion);
+						}
+						else
+							overlap.Completions.Add(() => QueueAccountOperation(type, remaining, reason, completion, executeOverride));
 					}
 					else
 						overlap.Completions.Add(() => QueueAccountOperation(type, requested, reason, completion, executeOverride));
@@ -767,42 +777,46 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				List<Order> targets = brackets
 					.Where(o => o.OrderType == OrderType.Limit)
 					.ToList();
-				// ponytail: keep existing anchor prices; ceiling = synthetic ATM recalculation if NT8 exposes ownership transfer.
 
-				Order stopAnchor;
-				Order targetAnchor;
+				// Only merge within SAME OCO pair to avoid broker-side cascade cancellations.
+				var plannerOrders = stops.Concat(targets).Select(o => new KatTradeCalculator.KatAtmBracketOrder
+				{
+					Id = o.OrderId ?? string.Empty,
+					Oco = o.Oco ?? string.Empty,
+					IsStop = o.OrderType == OrderType.StopMarket || o.OrderType == OrderType.StopLimit,
+					Quantity = o.Quantity,
+					Price = o.OrderType == OrderType.Limit ? o.LimitPrice : o.StopPrice,
+				}).ToList();
+				var mergePlan = KatTradeCalculator.PlanAtmBracketMerge(plannerOrders, position.Quantity);
+
+				Order stopAnchor = mergePlan.KeepStopId != null ? stops.FirstOrDefault(o => o.OrderId == mergePlan.KeepStopId) : null;
+				Order targetAnchor = mergePlan.KeepTargetId != null ? targets.FirstOrDefault(o => o.OrderId == mergePlan.KeepTargetId) : null;
 				lock (atmScaleInLock)
 				{
-					stopAnchor = atmMergeStopAnchor != null && stops.Contains(atmMergeStopAnchor)
-						? atmMergeStopAnchor
-						: stops.FirstOrDefault();
-					targetAnchor = atmMergeTargetAnchor != null && targets.Contains(atmMergeTargetAnchor)
-						? atmMergeTargetAnchor
-						: targets.FirstOrDefault();
 					atmMergePosition = position.MarketPosition;
 					atmMergeStopAnchor = stopAnchor;
 					atmMergeTargetAnchor = targetAnchor;
-					atmMergeStopQuantity = position.Quantity;
-					atmMergeTargetQuantity = position.Quantity;
+					atmMergeStopQuantity = mergePlan.DesiredStopQuantity;
+					atmMergeTargetQuantity = mergePlan.DesiredTargetQuantity;
 				}
 
 				List<Order> changes = new List<Order>();
-				if (stopAnchor != null && stopAnchor.Quantity != position.Quantity)
+				if (stopAnchor != null && stopAnchor.Quantity != mergePlan.DesiredStopQuantity)
 				{
-					stopAnchor.QuantityChanged = position.Quantity;
+					stopAnchor.QuantityChanged = mergePlan.DesiredStopQuantity;
 					changes.Add(stopAnchor);
 				}
-				if (targetAnchor != null && targetAnchor.Quantity != position.Quantity)
+				if (targetAnchor != null && targetAnchor.Quantity != mergePlan.DesiredTargetQuantity)
 				{
-					targetAnchor.QuantityChanged = position.Quantity;
+					targetAnchor.QuantityChanged = mergePlan.DesiredTargetQuantity;
 					changes.Add(targetAnchor);
 				}
 				if (changes.Count > 0)
 					QueueAccountOperation(AccountOperationType.Change, changes, "ATM MERGE canonical quantity");
 
-				Order[] duplicates = stops
-					.Where(o => o != stopAnchor)
-					.Concat(targets.Where(o => o != targetAnchor))
+				var duplicateIds = new HashSet<string>(mergePlan.CancelIds);
+				Order[] duplicates = stops.Concat(targets)
+					.Where(o => duplicateIds.Contains(o.OrderId ?? string.Empty))
 					.ToArray();
 				if (duplicates.Length > 0)
 					QueueAccountOperation(AccountOperationType.Cancel, duplicates, "ATM MERGE duplicate cleanup");
@@ -1341,9 +1355,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				return;
 			ProcessAtmStartupUpdate(observed);
 			TryCompleteActiveAccountOperation();
-			if (Instrument == null || observed.Instrument != Instrument)
-				return;
-			if (IsAtmLifecycleOrder(observed))
+			bool isOurInstrument = Instrument != null && observed.Instrument == Instrument;
+			if (isOurInstrument && IsAtmLifecycleOrder(observed))
 				MarkAtmLifecycleActivity();
 
 			if (observed.OrderType == OrderType.StopMarket
@@ -1392,8 +1405,11 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					System.Threading.Interlocked.Exchange(ref closeOperationQueued, 0);
 				SchedulePendingRevertRetry();
 			}
-			ProcessAtmScaleInUpdate(observed);
-			ScheduleAtmBracketMerge();
+			if (isOurInstrument)
+			{
+				ProcessAtmScaleInUpdate(observed);
+				ScheduleAtmBracketMerge();
+			}
 		}
 
 		private void SchedulePendingRevertRetry()
