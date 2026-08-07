@@ -1,16 +1,16 @@
 # Graph Report - nt8-kat-TradeManager  (2026-08-07)
 
 ## Corpus Check
-- 33 files · ~54,808 words
+- 33 files · ~55,253 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 630 nodes · 1162 edges · 34 communities (15 shown, 19 thin omitted)
-- Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 138 edges (avg confidence: 0.8)
+- 630 nodes · 1163 edges · 34 communities (15 shown, 19 thin omitted)
+- Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 139 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `76e3839a`
+- Built from commit: `f0c39911`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -104,7 +104,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **Why does `string` connect `Community 5` to `Community 0`, `Community 1`, `Community 3`, `Community 6`?**
   _High betweenness centrality (0.102) - this node is a cross-community bridge._
 - **Why does `KatTradeManager` connect `Community 0` to `Community 2`, `Community 5`, `Community 6`?**
-  _High betweenness centrality (0.100) - this node is a cross-community bridge._
+  _High betweenness centrality (0.099) - this node is a cross-community bridge._
 - **What connects `NinjaTrader.NinjaScript.Indicators.KAT`, `Account`, `Grid` to the rest of the system?**
   _55 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**

@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.34 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.35 (2026-08-08) */
 
 using System;
 using System.Collections.Generic;
@@ -38,6 +38,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private Button btnEmaPlace;
 		private volatile int activeTradingProfile = -1; // last applied profile index, -1 = none
 		private DateTime lastProfileApplyUtc = DateTime.MinValue;
+		private string pendingProfileAccount;
+		private DateTime pendingProfileAccountSinceUtc;
 		private readonly SolidColorBrush profileOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
 		private readonly SolidColorBrush[] profileRowOnBgs = new SolidColorBrush[]
 		{
@@ -124,11 +126,39 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				if (chartGrid == null) return;
 
 				// Auto-recover account if DataLoaded ran before accounts connected (root cause of "buttons don't work")
+				// Pending profile account (selected but not yet connected) has priority — don't fallback to wrong account
 				if (account == null)
 				{
-					SwitchAccount(SelectAccount()); // resets daily-risk baseline for the fresh account
-					if (account != null)
-						Print(string.Format("[KatTradeManager] Account auto-recovered by watchdog: {0}", account.Name));
+					if (!string.IsNullOrEmpty(pendingProfileAccount))
+					{
+						Account pending = null;
+						if (Account.All != null)
+							pending = Account.All.FirstOrDefault(a => a.Name.Equals(pendingProfileAccount, StringComparison.OrdinalIgnoreCase));
+						if (pending != null)
+						{
+							SwitchAccount(pending);
+							pendingProfileAccount = null;
+							pendingProfileAccountSinceUtc = DateTime.MinValue;
+							Print(string.Format("[KatTradeManager] Profile account connected, switched to {0}", pending.Name));
+						}
+						else if (pendingProfileAccountSinceUtc != DateTime.MinValue && (DateTime.UtcNow - pendingProfileAccountSinceUtc).TotalSeconds > 30)
+						{
+							// pending timed out (30s) — fallback to normal selection so HUD not stuck null
+							Print(string.Format("[KatTradeManager] Profile account '{0}' not connected within 30s, fallback to available", pendingProfileAccount));
+							pendingProfileAccount = null;
+							pendingProfileAccountSinceUtc = DateTime.MinValue;
+							SwitchAccount(SelectAccount());
+							if (account != null)
+								Print(string.Format("[KatTradeManager] Account auto-recovered by watchdog: {0}", account.Name));
+						}
+						// else keep waiting (account stays null, HUD shows pending account name)
+					}
+					else
+					{
+						SwitchAccount(SelectAccount()); // resets daily-risk baseline for the fresh account
+						if (account != null)
+							Print(string.Format("[KatTradeManager] Account auto-recovered by watchdog: {0}", account.Name));
+					}
 				}
 				EnsureAccountEventSubscription();
 				// Pump serialized account mutations; pending broker states are revisited on each watchdog tick.
@@ -609,6 +639,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				{
 					SwitchAccount(target);
 					AccountName = acc;
+					pendingProfileAccount = null;
+					pendingProfileAccountSinceUtc = DateTime.MinValue;
 					if (accSelector != null)
 					{
 						for (int i = 0; i < accSelector.Items.Count; i++)
@@ -631,6 +663,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					// account not connected yet — clear live account so no orders go to stale account, persist name for watchdog auto-recovery
 					SwitchAccount(null);
 					AccountName = acc;
+					pendingProfileAccount = acc;
+					pendingProfileAccountSinceUtc = DateTime.UtcNow;
 					if (accSelector != null)
 					{
 						if (!accSelector.Items.Contains(acc)) accSelector.Items.Add(acc);
@@ -1392,6 +1426,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					// realized PnL stays as the baseline (phantom daily PnL -> false/missed risk breach).
 					SwitchAccount(Account.All.FirstOrDefault(a => a.Name == selectedName));
 					AccountName = selectedName;
+					pendingProfileAccount = null;
+					pendingProfileAccountSinceUtc = DateTime.MinValue;
 					// NT8 only renders chart orders for the account selected in Chart Trader — mirror the pick there.
 					SyncChartTraderAccount(selectedName);
 					Print(string.Format("[KatTradeManager] Account changed via UI to: {0}", selectedName));

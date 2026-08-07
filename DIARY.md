@@ -23,6 +23,12 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.35] — 2026-08-08
+- **Trading Profiles — pending-account race + second re-audit**:
+  - **Fix** `pendingProfileAccount` race: profile chọn account chưa connected trước để `account=null` nhưng watchdog `SelectAccount()` fallback về Sim101 làm mất pending. Thêm `pendingProfileAccount` + `pendingProfileAccountSinceUtc` trong `ApplyTradingProfile` và `OnPanelWatchdogTick:126` — giữ `account=null` chờ đúng account kết nối, timeout 30s mới fallback, manual `accSelector` clear pending. Tránh order đi nhầm account cũ khi profile account chưa online.
+  - **Fix** `accSelector` manual đổi cũng clear pending để tránh treo.
+  - **Fix** `HasAtmTemplate` reuse thay `File.Exists` trực tiếp.
+  - Verify: 169/169 tests, CompileCheck 0 errors.
 ### [v1.34] — 2026-08-08
 - **Re-audit Trading Profiles — 6 bug fix + 3 improve**:
   - **Fix1** `SyncCachedValues` trước thiếu sync DailyMaxDD/Profit (chỉ discipline) -> property grid đổi DD/Profit không phản ánh vào cached, breach check dùng stale. Thêm `cachedIsDailyMaxDD/DailyMaxProfit` sync `src/KatTradeManagerUI.cs:182`.
