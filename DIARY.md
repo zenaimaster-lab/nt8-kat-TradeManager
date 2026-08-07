@@ -23,6 +23,12 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.38] — 2026-08-08
+- **Re-audit 5 — None normalize + tooltip**:
+  - `IsTradingProfileActive` so sánh ATM `IsNoAtmSelection` normalize cả live `DefaultAtmTemplate` và profile `GetTradingProfileAtm` về "" để `None` vs "" không lệch highlight `KatTradeManagerUI.cs:491`.
+  - `ApplyTradingProfile` ATM branch `IsNoAtmSelection` thay `IsNullOrWhiteSpace`, `HasAtmTemplate` check kép, tránh warning orange khi profile chọn `None`, và `ShowHudStatus` dùng `IsNoAtmSelection` để hiện `None` đúng `KatTradeManagerUI.cs:687`.
+  - Tooltip per-profile `ToolTip: acc / atm DD TP` ở `CreateWpfControls` và `UpdateTradingProfileButtons` `KatTradeManagerUI.cs:540`, giúp preview nhanh không cần mở Settings.
+  - Verify: 169/169 tests, CompileCheck 0 errors.
 ### [v1.37] — 2026-08-08
 - **Re-audit 4 — clamp + filter persistence**:
   - **Fix** `IsTradingProfileActive` so sánh `DefaultQuantity/Buffer/LossTimes` với giá trị clamp `1..100`/`1..20`/`1..1440` như `ApplyTradingProfile` clamp, tránh highlight false khi profile lưu 200 nhưng live clamp 100. `KatTradeManagerUI.cs:491`.
