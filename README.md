@@ -1,6 +1,6 @@
 # NT8 Kat TradeManager
 
-**Current Version**: `v1.32` (Released: `2026-08-07`)
+**Current Version**: `v1.33` (Released: `2026-08-08`)
 
 An advanced TradeManager Indicator for **NinjaTrader 8 (NT8)** designed for fast execution, candle-based pending stop orders, and dynamic risk management.
 
@@ -9,6 +9,7 @@ An advanced TradeManager Indicator for **NinjaTrader 8 (NT8)** designed for fast
 - **On-Chart WPF Control Panel**: Interactive buttons with SELL on left / BUY on right and dropdown selectors directly on your NinjaTrader 8 charts.
 - **Configurable HUD (default InChart / optional ChartTrader)**: `HUD Left Inset (px)` defaults to 10px for fresh placement; `HUD Drag Enabled` defaults ON and can lock HUD in place. Background drag works in both modes, keeps at least 40px visible, preserves user position across watchdog re-attachment, and leaves buttons/text controls clickable.
 - **ATM `None` selection**: First item of the HUD ATM dropdown submits plain orders without any ATM strategy, matching NT8 Chart Trader's own None mode; with None selected the HUD no longer merges, resizes, or cancels protective orders it does not own.
+- **Trading Profile presets (P1–P6)**: 2 rows ×3 buttons at very top of HUD, above account selector, height 22 (same as ATM row). Each preset is one-click account + ATM + all lower parameters (quantity, timeframe, buffer, Stop-Limit, EMA Protect, Max DD/Profit with enables, all 6 Discipline protects + LossTimes params). Button labels (max 8 chars, default P1–P6) and full configs use dropdowns (Account, ATM) in Settings groups "Trading Profile 1"–"Trading Profile 6". Row 0 ON = teal `#146E6E`, Row 1 ON = rose `#872341`; OFF = gray `#2D3241`. Instant account switch (SwitchAccount resets daily PnL baseline + syncs Chart Trader), no manual diverge leaves profile highlighted, debounce 500 ms.
 - **ATM Quick Set buttons (A–F)**: Row of 6 one-click buttons directly below the ATM dropdown; each instantly selects its assigned ATM template (the dropdown updates to match). Exactly one shows amber (ON) — the one owning the currently selected ATM — the rest stay gray; None turns all OFF. Button labels (max 3 chars, default A–F) and assigned ATMs (dropdown lists) are configured in Indicator Settings under "ATM Quick Sets".
 - **ATM entry quantity sync**: BUY/SELL buttons and hotkeys use selected ATM template's `EntryQuantity` (or summed bracket quantities); ATM `None` falls back to `Default Quantity`.
 - **Pending Stop-Limit Control (`Stop-Limit: OFF` / `Stop-Limit: ON`)**: Toggle button paired side-by-side with EMA Place in the bottom ON/OFF toggles section; converts valid candle and EMA-touch pending StopMarket entries to one-tick StopLimit entries when enabled.

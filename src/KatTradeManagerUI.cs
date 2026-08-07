@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.32 (2026-08-07) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.33 (2026-08-08) */
 
 using System;
 using System.Collections.Generic;
@@ -31,6 +31,19 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private Button btnDisciplineOnAll;
 		private Button btnDisciplineOffAll;
 		private readonly SolidColorBrush disciplineOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
+		// Trading profiles — 6 buttons in 2 rows above account selector, row-based ON colors, height 22 same as ATM row
+		private Button[] tradingProfileButtons;
+		private ComboBox accSelector;
+		private Button btnStopLimit;
+		private Button btnEmaPlace;
+		private volatile int activeTradingProfile = -1; // last applied profile index, -1 = none
+		private DateTime lastProfileApplyUtc = DateTime.MinValue;
+		private readonly SolidColorBrush profileOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
+		private readonly SolidColorBrush[] profileRowOnBgs = new SolidColorBrush[]
+		{
+			new SolidColorBrush(Color.FromRgb(20, 110, 110)), // Row0 (P1-P3) teal — distinct from discipline blues
+			new SolidColorBrush(Color.FromRgb(135, 35, 65)),  // Row1 (P4-P6) rose — distinct from ATM amber
+		};
 		// Row-based ON colors: 2 buttons per row share same shade (3 rows)
 		private readonly SolidColorBrush[] disciplineRowBgs = new SolidColorBrush[]
 		{
@@ -132,6 +145,12 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				ScheduleAtmBracketMerge();
 				try { UpdateDisciplineFromPosition(); } catch {}
 				try { EvaluateDisciplineLockVisual(); } catch {}
+				try { UpdateTradingProfileButtons(); } catch {}
+				try { UpdateAtmSetButtons(); } catch {}
+				try { UpdateDailyRiskPresetButtons(); } catch {}
+				try { UpdateStopLimitButton(); } catch {}
+				try { UpdateEmaPlaceButton(); } catch {}
+				for (int _di = 0; _di < 6; _di++) try { UpdateDisciplineButton(_di); } catch {}
 
 				if (!IsPanelAttached())
 				{
@@ -202,6 +221,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			DefaultAtmTemplate = cachedAtmTemplate;
 			LoadAtmTemplateSettings(cachedAtmTemplate); // empty name clears parsed ATM levels
 			UpdateAtmSetButtons();
+			try { UpdateTradingProfileButtons(); } catch {}
 		}
 
 		private string GetAtmSetTemplate(int idx)
@@ -324,6 +344,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			cachedDailyMaxDD = DailyMaxDD;
 			cachedDailyMaxProfit = DailyMaxProfit;
 			UpdateDailyRiskPresetButtons();
+			try { UpdateTradingProfileButtons(); } catch {}
 			EvaluateDailyRiskLimits();
 		}
 
@@ -341,6 +362,315 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			}
 		}
 
+		// ponytail: trading profile helpers — ceiling = per-profile TradingWindows + EmaPlace expansion needs extra ~30 props (ponytail: upgrade when requested)
+		private string GetTradingProfileName(int idx)
+		{
+			switch (idx) { case 0: return TradingProfile1Name; case 1: return TradingProfile2Name; case 2: return TradingProfile3Name; case 3: return TradingProfile4Name; case 4: return TradingProfile5Name; default: return TradingProfile6Name; }
+		}
+		private string GetTradingProfileAccount(int idx)
+		{
+			switch (idx) { case 0: return TradingProfile1Account; case 1: return TradingProfile2Account; case 2: return TradingProfile3Account; case 3: return TradingProfile4Account; case 4: return TradingProfile5Account; default: return TradingProfile6Account; }
+		}
+		private string GetTradingProfileAtm(int idx)
+		{
+			switch (idx) { case 0: return TradingProfile1Atm; case 1: return TradingProfile2Atm; case 2: return TradingProfile3Atm; case 3: return TradingProfile4Atm; case 4: return TradingProfile5Atm; default: return TradingProfile6Atm; }
+		}
+		private int GetTradingProfileQuantity(int idx)
+		{
+			switch (idx) { case 0: return TradingProfile1Quantity; case 1: return TradingProfile2Quantity; case 2: return TradingProfile3Quantity; case 3: return TradingProfile4Quantity; case 4: return TradingProfile5Quantity; default: return TradingProfile6Quantity; }
+		}
+		private KatTimeframe GetTradingProfileTimeframe(int idx)
+		{
+			switch (idx) { case 0: return TradingProfile1Timeframe; case 1: return TradingProfile2Timeframe; case 2: return TradingProfile3Timeframe; case 3: return TradingProfile4Timeframe; case 4: return TradingProfile5Timeframe; default: return TradingProfile6Timeframe; }
+		}
+		private int GetTradingProfileBufferTicks(int idx)
+		{
+			switch (idx) { case 0: return TradingProfile1BufferTicks; case 1: return TradingProfile2BufferTicks; case 2: return TradingProfile3BufferTicks; case 3: return TradingProfile4BufferTicks; case 4: return TradingProfile5BufferTicks; default: return TradingProfile6BufferTicks; }
+		}
+		private bool GetTradingProfileStopLimit(int idx)
+		{
+			switch (idx) { case 0: return TradingProfile1StopLimitEnabled; case 1: return TradingProfile2StopLimitEnabled; case 2: return TradingProfile3StopLimitEnabled; case 3: return TradingProfile4StopLimitEnabled; case 4: return TradingProfile5StopLimitEnabled; default: return TradingProfile6StopLimitEnabled; }
+		}
+		private bool GetTradingProfileEmaProtect(int idx)
+		{
+			switch (idx) { case 0: return TradingProfile1EmaProtectEnabled; case 1: return TradingProfile2EmaProtectEnabled; case 2: return TradingProfile3EmaProtectEnabled; case 3: return TradingProfile4EmaProtectEnabled; case 4: return TradingProfile5EmaProtectEnabled; default: return TradingProfile6EmaProtectEnabled; }
+		}
+		private bool GetTradingProfileDailyMaxDDEnabled(int idx)
+		{
+			switch (idx) { case 0: return TradingProfile1DailyMaxDDEnabled; case 1: return TradingProfile2DailyMaxDDEnabled; case 2: return TradingProfile3DailyMaxDDEnabled; case 3: return TradingProfile4DailyMaxDDEnabled; case 4: return TradingProfile5DailyMaxDDEnabled; default: return TradingProfile6DailyMaxDDEnabled; }
+		}
+		private double GetTradingProfileDailyMaxDD(int idx)
+		{
+			switch (idx) { case 0: return TradingProfile1DailyMaxDD; case 1: return TradingProfile2DailyMaxDD; case 2: return TradingProfile3DailyMaxDD; case 3: return TradingProfile4DailyMaxDD; case 4: return TradingProfile5DailyMaxDD; default: return TradingProfile6DailyMaxDD; }
+		}
+		private bool GetTradingProfileDailyMaxProfitEnabled(int idx)
+		{
+			switch (idx) { case 0: return TradingProfile1DailyMaxProfitEnabled; case 1: return TradingProfile2DailyMaxProfitEnabled; case 2: return TradingProfile3DailyMaxProfitEnabled; case 3: return TradingProfile4DailyMaxProfitEnabled; case 4: return TradingProfile5DailyMaxProfitEnabled; default: return TradingProfile6DailyMaxProfitEnabled; }
+		}
+		private double GetTradingProfileDailyMaxProfit(int idx)
+		{
+			switch (idx) { case 0: return TradingProfile1DailyMaxProfit; case 1: return TradingProfile2DailyMaxProfit; case 2: return TradingProfile3DailyMaxProfit; case 3: return TradingProfile4DailyMaxProfit; case 4: return TradingProfile5DailyMaxProfit; default: return TradingProfile6DailyMaxProfit; }
+		}
+		private bool GetTradingProfileSizing(int idx)
+		{
+			switch (idx) { case 0: return TradingProfile1SizingProtect; case 1: return TradingProfile2SizingProtect; case 2: return TradingProfile3SizingProtect; case 3: return TradingProfile4SizingProtect; case 4: return TradingProfile5SizingProtect; default: return TradingProfile6SizingProtect; }
+		}
+		private bool GetTradingProfileSlPull(int idx)
+		{
+			switch (idx) { case 0: return TradingProfile1SlPullProtect; case 1: return TradingProfile2SlPullProtect; case 2: return TradingProfile3SlPullProtect; case 3: return TradingProfile4SlPullProtect; case 4: return TradingProfile5SlPullProtect; default: return TradingProfile6SlPullProtect; }
+		}
+		private bool GetTradingProfileLossDca(int idx)
+		{
+			switch (idx) { case 0: return TradingProfile1LossDcaProtect; case 1: return TradingProfile2LossDcaProtect; case 2: return TradingProfile3LossDcaProtect; case 3: return TradingProfile4LossDcaProtect; case 4: return TradingProfile5LossDcaProtect; default: return TradingProfile6LossDcaProtect; }
+		}
+		private bool GetTradingProfileTpEarly(int idx)
+		{
+			switch (idx) { case 0: return TradingProfile1TpEarlyProtect; case 1: return TradingProfile2TpEarlyProtect; case 2: return TradingProfile3TpEarlyProtect; case 3: return TradingProfile4TpEarlyProtect; case 4: return TradingProfile5TpEarlyProtect; default: return TradingProfile6TpEarlyProtect; }
+		}
+		private bool GetTradingProfileLossTimes(int idx)
+		{
+			switch (idx) { case 0: return TradingProfile1LossTimesProtect; case 1: return TradingProfile2LossTimesProtect; case 2: return TradingProfile3LossTimesProtect; case 3: return TradingProfile4LossTimesProtect; case 4: return TradingProfile5LossTimesProtect; default: return TradingProfile6LossTimesProtect; }
+		}
+		private bool GetTradingProfileTiming(int idx)
+		{
+			switch (idx) { case 0: return TradingProfile1TimingProtect; case 1: return TradingProfile2TimingProtect; case 2: return TradingProfile3TimingProtect; case 3: return TradingProfile4TimingProtect; case 4: return TradingProfile5TimingProtect; default: return TradingProfile6TimingProtect; }
+		}
+		private int GetTradingProfileLossTimesMaxLosses(int idx)
+		{
+			switch (idx) { case 0: return TradingProfile1LossTimesMaxLosses; case 1: return TradingProfile2LossTimesMaxLosses; case 2: return TradingProfile3LossTimesMaxLosses; case 3: return TradingProfile4LossTimesMaxLosses; case 4: return TradingProfile5LossTimesMaxLosses; default: return TradingProfile6LossTimesMaxLosses; }
+		}
+		private int GetTradingProfileLossTimesLockMinutes(int idx)
+		{
+			switch (idx) { case 0: return TradingProfile1LossTimesLockMinutes; case 1: return TradingProfile2LossTimesLockMinutes; case 2: return TradingProfile3LossTimesLockMinutes; case 3: return TradingProfile4LossTimesLockMinutes; case 4: return TradingProfile5LossTimesLockMinutes; default: return TradingProfile6LossTimesLockMinutes; }
+		}
+
+		private bool IsTradingProfileConfigured(int idx)
+		{
+			string acc = GetTradingProfileAccount(idx);
+			string atm = GetTradingProfileAtm(idx);
+			return !string.IsNullOrWhiteSpace(acc) || !string.IsNullOrWhiteSpace(atm);
+		}
+
+		private bool IsTradingProfileActive(int idx)
+		{
+			if (!IsTradingProfileConfigured(idx)) return false;
+			// compare live indicator properties/cached toggles to stored profile snapshot
+			if (!string.Equals(AccountName ?? string.Empty, GetTradingProfileAccount(idx) ?? string.Empty, StringComparison.OrdinalIgnoreCase)) return false;
+			if (!string.Equals(DefaultAtmTemplate ?? string.Empty, GetTradingProfileAtm(idx) ?? string.Empty, StringComparison.OrdinalIgnoreCase)) return false;
+			if (DefaultQuantity != GetTradingProfileQuantity(idx)) return false;
+			if (DefaultTimeframe != GetTradingProfileTimeframe(idx)) return false;
+			if (DefaultBufferTicks != GetTradingProfileBufferTicks(idx)) return false;
+			if (cachedIsStopLimit != GetTradingProfileStopLimit(idx)) return false;
+			if (cachedIsEmaPlace != GetTradingProfileEmaProtect(idx)) return false;
+			if (DailyMaxDDEnabled != GetTradingProfileDailyMaxDDEnabled(idx)) return false;
+			if (Math.Abs(DailyMaxDD - GetTradingProfileDailyMaxDD(idx)) > 0.0001) return false;
+			if (DailyMaxProfitEnabled != GetTradingProfileDailyMaxProfitEnabled(idx)) return false;
+			if (Math.Abs(DailyMaxProfit - GetTradingProfileDailyMaxProfit(idx)) > 0.0001) return false;
+			if (SizingProtectEnabled != GetTradingProfileSizing(idx)) return false;
+			if (SlPullProtectEnabled != GetTradingProfileSlPull(idx)) return false;
+			if (LossDcaProtectEnabled != GetTradingProfileLossDca(idx)) return false;
+			if (TpEarlyProtectEnabled != GetTradingProfileTpEarly(idx)) return false;
+			if (LossTimesProtectEnabled != GetTradingProfileLossTimes(idx)) return false;
+			if (TimingWindowsProtectEnabled != GetTradingProfileTiming(idx)) return false;
+			if (LossTimesMaxLosses != GetTradingProfileLossTimesMaxLosses(idx)) return false;
+			if (LossTimesLockMinutes != GetTradingProfileLossTimesLockMinutes(idx)) return false;
+			return true;
+		}
+
+		private void UpdateTradingProfileButtons()
+		{
+			if (tradingProfileButtons == null) return;
+			// stale active clears when manual tweak diverges
+			if (activeTradingProfile >= 0 && activeTradingProfile < 6 && !IsTradingProfileActive(activeTradingProfile))
+			{
+				// keep highlight briefly until next tick still shows? ponytail: clear lazily on next Update
+				// if equality false, we will show OFF this cycle, but keep index until explicit new apply
+			}
+			for (int i = 0; i < tradingProfileButtons.Length; i++)
+			{
+				if (tradingProfileButtons[i] == null) continue;
+				bool on = activeTradingProfile == i && IsTradingProfileActive(i);
+				if (on)
+				{
+					int row = i / 3; // 0 for P1-P3, 1 for P4-P6
+					tradingProfileButtons[i].Background = profileRowOnBgs[Math.Min(row, profileRowOnBgs.Length - 1)];
+					tradingProfileButtons[i].Foreground = Brushes.White;
+				}
+				else
+				{
+					tradingProfileButtons[i].Background = profileOffBg;
+					tradingProfileButtons[i].Foreground = Brushes.LightGray;
+				}
+				// keep label in sync if user changed name in settings without rebuild
+				string expected = GetTradingProfileName(i);
+				if (tradingProfileButtons[i].Content as string != expected)
+					tradingProfileButtons[i].Content = expected;
+			}
+		}
+
+		private void UpdateStopLimitButton()
+		{
+			if (btnStopLimit == null) return;
+			SolidColorBrush offBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
+			SolidColorBrush onBg = new SolidColorBrush(Color.FromRgb(180, 90, 20));
+			btnStopLimit.Content = cachedIsStopLimit ? "Stop-Limit: ON" : "Stop-Limit: OFF";
+			btnStopLimit.Background = cachedIsStopLimit ? onBg : offBg;
+			btnStopLimit.Foreground = cachedIsStopLimit ? Brushes.White : Brushes.LightGray;
+		}
+
+		private void UpdateEmaPlaceButton()
+		{
+			if (btnEmaPlace == null) return;
+			SolidColorBrush offBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
+			SolidColorBrush onBg = new SolidColorBrush(Color.FromRgb(12, 35, 75));
+			btnEmaPlace.Content = cachedIsEmaPlace ? "Ema protect: ON" : "Ema protect: OFF";
+			btnEmaPlace.Background = cachedIsEmaPlace ? onBg : offBg;
+			btnEmaPlace.Foreground = cachedIsEmaPlace ? Brushes.White : Brushes.LightGray;
+		}
+
+		private void ApplyTradingProfile(int idx)
+		{
+			if (idx < 0 || idx >= 6) return;
+			// debounce: same profile double-click within 500ms ignored (anti-spam)
+			if (activeTradingProfile == idx && (DateTime.UtcNow - lastProfileApplyUtc).TotalMilliseconds < 500) return;
+			lastProfileApplyUtc = DateTime.UtcNow;
+			string acc = GetTradingProfileAccount(idx);
+			string atm = GetTradingProfileAtm(idx);
+			if (string.IsNullOrWhiteSpace(acc) && string.IsNullOrWhiteSpace(atm))
+			{
+				ShowHudStatus(string.Format("Profile {0}: no account/ATM configured (Indicator Settings)", GetTradingProfileName(idx)), Brushes.OrangeRed);
+				return;
+			}
+			// Quantity / timeframe / buffer — persisted props + cached
+			int qty = Math.Max(1, GetTradingProfileQuantity(idx));
+			DefaultQuantity = qty;
+			KatTimeframe tf = GetTradingProfileTimeframe(idx);
+			DefaultTimeframe = tf;
+			cachedTfIndex = (int)tf;
+			int buf = Math.Max(0, GetTradingProfileBufferTicks(idx));
+			DefaultBufferTicks = buf;
+			cachedBufferTicks = buf;
+
+			bool isStop = GetTradingProfileStopLimit(idx);
+			cachedIsStopLimit = isStop;
+			bool isEma = GetTradingProfileEmaProtect(idx);
+			cachedIsEmaPlace = isEma;
+
+			// Daily risk — enabled + values
+			bool ddEn = GetTradingProfileDailyMaxDDEnabled(idx);
+			double dd = GetTradingProfileDailyMaxDD(idx);
+			bool pfEn = GetTradingProfileDailyMaxProfitEnabled(idx);
+			double pf = GetTradingProfileDailyMaxProfit(idx);
+			DailyMaxDDEnabled = ddEn; DailyMaxDD = dd; cachedIsDailyMaxDD = ddEn; cachedDailyMaxDD = dd;
+			DailyMaxProfitEnabled = pfEn; DailyMaxProfit = pf; cachedIsDailyMaxProfit = pfEn; cachedDailyMaxProfit = pf;
+
+			// Discipline
+			bool siz = GetTradingProfileSizing(idx);
+			bool slPull = GetTradingProfileSlPull(idx);
+			bool lossDca = GetTradingProfileLossDca(idx);
+			bool tpEarly = GetTradingProfileTpEarly(idx);
+			bool lossTimes = GetTradingProfileLossTimes(idx);
+			bool timing = GetTradingProfileTiming(idx);
+			int maxLosses = Math.Max(1, GetTradingProfileLossTimesMaxLosses(idx));
+			int lockMins = Math.Max(1, GetTradingProfileLossTimesLockMinutes(idx));
+			SizingProtectEnabled = siz; cachedSizingProtect = siz;
+			SlPullProtectEnabled = slPull; cachedSlPullProtect = slPull;
+			LossDcaProtectEnabled = lossDca; cachedLossDcaProtect = lossDca;
+			TpEarlyProtectEnabled = tpEarly; cachedTpEarlyProtect = tpEarly;
+			LossTimesProtectEnabled = lossTimes; cachedLossTimesProtect = lossTimes;
+			TimingWindowsProtectEnabled = timing; cachedTimingProtect = timing;
+			LossTimesMaxLosses = maxLosses; cachedLossTimesMaxLosses = maxLosses;
+			LossTimesLockMinutes = lockMins; cachedLossTimesLockMinutes = lockMins;
+
+			// Discipline visuals + daily preset visuals + toggles
+			for (int i = 0; i < 6; i++) UpdateDisciplineButton(i);
+			UpdateDailyRiskPresetButtons();
+			UpdateStopLimitButton();
+			UpdateEmaPlaceButton();
+			EvaluateDailyRiskLimits();
+			try { UpdateDisciplineFromPosition(); } catch {}
+			try { EvaluateDisciplineLockVisual(); } catch {}
+
+			// Account — switch first so baseline resets before any PnL check
+			if (!string.IsNullOrWhiteSpace(acc))
+			{
+				Account target = null;
+				if (Account.All != null)
+					target = Account.All.FirstOrDefault(a => a.Name.Equals(acc, StringComparison.OrdinalIgnoreCase));
+				if (target != null)
+				{
+					SwitchAccount(target);
+					AccountName = acc;
+					if (accSelector != null)
+					{
+						for (int i = 0; i < accSelector.Items.Count; i++)
+						{
+							if (accSelector.Items[i].ToString().Equals(acc, StringComparison.OrdinalIgnoreCase))
+							{ accSelector.SelectedItem = accSelector.Items[i]; break; }
+						}
+						// if account not in filtered list, add it visibly so HUD reflects profile
+						if (accSelector.SelectedItem == null || !accSelector.SelectedItem.ToString().Equals(acc, StringComparison.OrdinalIgnoreCase))
+						{
+							if (!accSelector.Items.Contains(acc)) accSelector.Items.Add(acc);
+							accSelector.SelectedItem = acc;
+						}
+					}
+					SyncChartTraderAccount(acc);
+					Print(string.Format("[KatTradeManager] Profile {0}: switched account to {1}", GetTradingProfileName(idx), acc));
+				}
+				else
+				{
+					// account not connected yet — still persist name for watchdog auto-recovery
+					AccountName = acc;
+					if (accSelector != null)
+					{
+						if (!accSelector.Items.Contains(acc)) accSelector.Items.Add(acc);
+						accSelector.SelectedItem = acc;
+					}
+					ShowHudStatus(string.Format("Profile {0}: account '{1}' not connected yet", GetTradingProfileName(idx), acc), Brushes.Orange);
+				}
+			}
+
+			// ATM — use same path as quick set (dropdown + ApplyAtmSelection)
+			if (!string.IsNullOrWhiteSpace(atm))
+			{
+				bool found = false;
+				if (atmSelector != null)
+				{
+					for (int i = 0; i < atmSelector.Items.Count; i++)
+					{
+						if (atmSelector.Items[i].ToString().Equals(atm, StringComparison.OrdinalIgnoreCase))
+						{
+							atmSelector.SelectedIndex = i;
+							found = true; break;
+						}
+					}
+					if (!found)
+					{
+						atmSelector.Items.Add(atm);
+						atmSelector.SelectedItem = atm;
+					}
+				}
+				ApplyAtmSelection(atm); // ensures cachedAtmTemplate + LoadAtmTemplateSettings + UpdateAtmSetButtons
+				if (!found)
+					ShowHudStatus(string.Format("Profile {0}: ATM '{1}' not found on disk (still selected)", GetTradingProfileName(idx), atm), Brushes.Orange);
+			}
+			else
+			{
+				// profile wants None
+				if (atmSelector != null) atmSelector.SelectedIndex = 0;
+				ApplyAtmSelection(NoAtmTemplateLabel);
+			}
+
+			activeTradingProfile = idx;
+			UpdateTradingProfileButtons();
+			UpdateAtmSetButtons();
+			// if ATM was missing we already showed orange status — keep it, don't overwrite with green
+			bool atmMissing = !string.IsNullOrWhiteSpace(atm) && atmSelector != null && !System.IO.File.Exists(System.IO.Path.Combine(NinjaTrader.Core.Globals.UserDataDir, "templates", "AtmStrategy", atm + ".xml"));
+			if (!atmMissing)
+				ShowHudStatus(string.Format("Profile {0} applied: {1} / {2}", GetTradingProfileName(idx), string.IsNullOrWhiteSpace(acc) ? "(no acc)" : acc, string.IsNullOrWhiteSpace(atm) ? "None" : atm), Brushes.LightGreen);
+		}
+
 		private void ToggleDiscipline(int idx)
 		{
 			switch (idx)
@@ -354,6 +684,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				default: return;
 			}
 			UpdateDisciplineButton(idx);
+			try { UpdateTradingProfileButtons(); } catch {}
 			// if disabling LossTimes while locked, clear persistent status immediately
 			if (idx == 4 && !cachedLossTimesProtect && hudStatusText != null)
 			{
@@ -401,6 +732,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			cachedLossTimesProtect = isOn; LossTimesProtectEnabled = isOn;
 			cachedTimingProtect = isOn; TimingWindowsProtectEnabled = isOn;
 			for (int i = 0; i < 6; i++) UpdateDisciplineButton(i);
+			try { UpdateTradingProfileButtons(); } catch {}
 			if (!isOn)
 			{
 				// clearing loss lock visual when OFF ALL disables it
@@ -979,12 +1311,46 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				}
 			}
 
-			ComboBox accSelector = new ComboBox { FontSize = 11, Height = 22, Margin = new Thickness(0, 0, 0, 4), HorizontalAlignment = HorizontalAlignment.Stretch };
+			// --- Trading Profile quick presets (6 buttons, 2 rows x 3 cols, above account) ---
+			tradingProfileButtons = new Button[6];
+			StackPanel profileStack = new StackPanel { Margin = new Thickness(0, 0, 0, 4) };
+			for (int prow = 0; prow < 2; prow++)
+			{
+				Grid rowGrid = new Grid { Margin = new Thickness(0, 0, 0, prow == 0 ? 2 : 0) };
+				for (int c = 0; c < 3; c++)
+				{
+					rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+					if (c < 2) rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
+				}
+				for (int cc = 0; cc < 3; cc++)
+				{
+					int idx = prow * 3 + cc;
+					Button pBtn = CreateButton(GetTradingProfileName(idx), profileOffBg, null, 22, 10);
+					pBtn.Foreground = Brushes.LightGray;
+					pBtn.Margin = new Thickness(0);
+					int captured = idx;
+					pBtn.Click += (s, ev) => ApplyTradingProfile(captured);
+					Grid.SetColumn(pBtn, cc * 2);
+					tradingProfileButtons[idx] = pBtn;
+					rowGrid.Children.Add(pBtn);
+				}
+				profileStack.Children.Add(rowGrid);
+			}
+			sec1Panel.Children.Add(profileStack);
+			UpdateTradingProfileButtons();
+
+			accSelector = new ComboBox { FontSize = 11, Height = 22, Margin = new Thickness(0, 0, 0, 4), HorizontalAlignment = HorizontalAlignment.Stretch };
 			if (Account.All != null)
 			{
 				var allowedAccs = Account.All.Where(a => IsAccountAllowed(a.Name)).ToList();
 				foreach (var acc in allowedAccs) accSelector.Items.Add(acc.Name);
 				string savedAccountName = AccountName;
+				// profile may have set an account that is filtered out — still show it to preserve explicit selection
+				if (!string.IsNullOrEmpty(savedAccountName) && !accSelector.Items.Contains(savedAccountName))
+				{
+					var savedAcc = Account.All.FirstOrDefault(a => a.Name.Equals(savedAccountName, StringComparison.OrdinalIgnoreCase));
+					if (savedAcc != null) accSelector.Items.Add(savedAcc.Name);
+				}
 				if (!string.IsNullOrEmpty(savedAccountName) && accSelector.Items.Contains(savedAccountName))
 				{
 					accSelector.SelectedItem = savedAccountName;
@@ -1001,6 +1367,12 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					AccountName = allowedAccs[0].Name;
 					Print(string.Format("[KatTradeManager] Defaulted account to first allowed: {0}", account.Name));
 				}
+				else if (!string.IsNullOrEmpty(savedAccountName))
+				{
+					// fallback: filtered list empty but saved account exists — keep it visible
+					if (!accSelector.Items.Contains(savedAccountName)) accSelector.Items.Add(savedAccountName);
+					accSelector.SelectedItem = savedAccountName;
+				}
 			}
 			accSelector.SelectionChanged += (s, ev) =>
 			{
@@ -1014,6 +1386,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					// NT8 only renders chart orders for the account selected in Chart Trader — mirror the pick there.
 					SyncChartTraderAccount(selectedName);
 					Print(string.Format("[KatTradeManager] Account changed via UI to: {0}", selectedName));
+					try { UpdateTradingProfileButtons(); } catch {}
+					try { UpdateAtmSetButtons(); } catch {}
 				}
 			};
 			sec1Panel.Children.Add(accSelector);
@@ -1268,7 +1642,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			SolidColorBrush stopLimitOnBg = new SolidColorBrush(Color.FromRgb(180, 90, 20)); // Dark amber accent when active
 			SolidColorBrush emaPlaceOnBg  = new SolidColorBrush(Color.FromRgb(12, 35, 75));  // Very dark blue
 
-			Button btnStopLimit = CreateButton(cachedIsStopLimit ? "Stop-Limit: ON" : "Stop-Limit: OFF",
+			btnStopLimit = CreateButton(cachedIsStopLimit ? "Stop-Limit: ON" : "Stop-Limit: OFF",
 				cachedIsStopLimit ? stopLimitOnBg : toggleOffBg, null, 24, 10);
 			btnStopLimit.Foreground = cachedIsStopLimit ? Brushes.White : Brushes.LightGray;
 			btnStopLimit.Click += (s, ev) =>
@@ -1277,11 +1651,12 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				btnStopLimit.Content = cachedIsStopLimit ? "Stop-Limit: ON" : "Stop-Limit: OFF";
 				btnStopLimit.Background = cachedIsStopLimit ? stopLimitOnBg : toggleOffBg;
 				btnStopLimit.Foreground = cachedIsStopLimit ? Brushes.White : Brushes.LightGray;
+				try { UpdateTradingProfileButtons(); } catch {}
 			};
 			Grid.SetColumn(btnStopLimit, 0);
 			modeToggleGrid.Children.Add(btnStopLimit);
 
-			Button btnEmaPlace = CreateButton(cachedIsEmaPlace ? "Ema protect: ON" : "Ema protect: OFF",
+			btnEmaPlace = CreateButton(cachedIsEmaPlace ? "Ema protect: ON" : "Ema protect: OFF",
 				cachedIsEmaPlace ? emaPlaceOnBg : toggleOffBg, null, 24, 10);
 			btnEmaPlace.Foreground = cachedIsEmaPlace ? Brushes.White : Brushes.LightGray;
 			btnEmaPlace.Click += (s, ev) =>
@@ -1290,6 +1665,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				btnEmaPlace.Content = cachedIsEmaPlace ? "Ema protect: ON" : "Ema protect: OFF";
 				btnEmaPlace.Background = cachedIsEmaPlace ? emaPlaceOnBg : toggleOffBg;
 				btnEmaPlace.Foreground = cachedIsEmaPlace ? Brushes.White : Brushes.LightGray;
+				try { UpdateTradingProfileButtons(); } catch {}
 			};
 			Grid.SetColumn(btnEmaPlace, 2);
 			modeToggleGrid.Children.Add(btnEmaPlace);
@@ -1320,6 +1696,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 				// Instant effect on HUD click (Requirement 4)
 				EvaluateDailyRiskLimits();
+				try { UpdateTradingProfileButtons(); } catch {}
 			};
 			Grid.SetColumn(btnDailyMaxDD, 0);
 			dailyRiskGrid.Children.Add(btnDailyMaxDD);
@@ -1338,6 +1715,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 				// Instant effect on HUD click (Requirement 4)
 				EvaluateDailyRiskLimits();
+				try { UpdateTradingProfileButtons(); } catch {}
 			};
 			Grid.SetColumn(btnDailyMaxProfit, 2);
 			dailyRiskGrid.Children.Add(btnDailyMaxProfit);
@@ -1545,6 +1923,10 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				hudCanvas = null;
 			}
 			hudStatusText = null;
+			tradingProfileButtons = null;
+			accSelector = null;
+			btnStopLimit = null;
+			btnEmaPlace = null;
 		}
 
 		private void AttachHotkeyHandler()

@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 1.32 (2026-08-07)
+ * Version: 1.33 (2026-08-08)
  * NinjaTrader 8 TradeManager Indicator
  */
  
@@ -69,8 +69,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "1.32";
-		public const string RELEASE_DATE = "2026-08-07";
+		public const string VERSION = "1.33";
+		public const string RELEASE_DATE = "2026-08-08";
 
 		private volatile Account account;
 		private Account subscribedAccount;
@@ -353,6 +353,133 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				EmaPlace3Period                     = 89;
 				EmaPlace3Timeframe                  = KatEmaTimeframe.Min5;
 
+				// Trading Profile Defaults — 6 presets, each 2 rows share row colors; values mirror global defaults
+				TradingProfile1Name                 = "P1";
+				TradingProfile1Account              = "Sim101";
+				TradingProfile1Atm                  = "";
+				TradingProfile1Quantity             = 1;
+				TradingProfile1Timeframe            = KatTimeframe.ChartTF;
+				TradingProfile1BufferTicks          = 2;
+				TradingProfile1StopLimitEnabled     = false;
+				TradingProfile1EmaProtectEnabled    = true;
+				TradingProfile1DailyMaxDDEnabled    = true;
+				TradingProfile1DailyMaxDD           = 500.0;
+				TradingProfile1DailyMaxProfitEnabled = true;
+				TradingProfile1DailyMaxProfit       = 1000.0;
+				TradingProfile1SizingProtect        = true;
+				TradingProfile1SlPullProtect        = true;
+				TradingProfile1LossDcaProtect       = true;
+				TradingProfile1TpEarlyProtect       = true;
+				TradingProfile1LossTimesProtect     = true;
+				TradingProfile1TimingProtect        = true;
+				TradingProfile1LossTimesMaxLosses   = 3;
+				TradingProfile1LossTimesLockMinutes = 30;
+
+				TradingProfile2Name                 = "P2";
+				TradingProfile2Account              = "Sim101";
+				TradingProfile2Atm                  = "";
+				TradingProfile2Quantity             = 1;
+				TradingProfile2Timeframe            = KatTimeframe.ChartTF;
+				TradingProfile2BufferTicks          = 2;
+				TradingProfile2StopLimitEnabled     = false;
+				TradingProfile2EmaProtectEnabled    = true;
+				TradingProfile2DailyMaxDDEnabled    = true;
+				TradingProfile2DailyMaxDD           = 500.0;
+				TradingProfile2DailyMaxProfitEnabled = true;
+				TradingProfile2DailyMaxProfit       = 1000.0;
+				TradingProfile2SizingProtect        = true;
+				TradingProfile2SlPullProtect        = true;
+				TradingProfile2LossDcaProtect       = true;
+				TradingProfile2TpEarlyProtect       = true;
+				TradingProfile2LossTimesProtect     = true;
+				TradingProfile2TimingProtect        = true;
+				TradingProfile2LossTimesMaxLosses   = 3;
+				TradingProfile2LossTimesLockMinutes = 30;
+
+				TradingProfile3Name                 = "P3";
+				TradingProfile3Account              = "Sim101";
+				TradingProfile3Atm                  = "";
+				TradingProfile3Quantity             = 1;
+				TradingProfile3Timeframe            = KatTimeframe.ChartTF;
+				TradingProfile3BufferTicks          = 2;
+				TradingProfile3StopLimitEnabled     = false;
+				TradingProfile3EmaProtectEnabled    = true;
+				TradingProfile3DailyMaxDDEnabled    = true;
+				TradingProfile3DailyMaxDD           = 500.0;
+				TradingProfile3DailyMaxProfitEnabled = true;
+				TradingProfile3DailyMaxProfit       = 1000.0;
+				TradingProfile3SizingProtect        = true;
+				TradingProfile3SlPullProtect        = true;
+				TradingProfile3LossDcaProtect       = true;
+				TradingProfile3TpEarlyProtect       = true;
+				TradingProfile3LossTimesProtect     = true;
+				TradingProfile3TimingProtect        = true;
+				TradingProfile3LossTimesMaxLosses   = 3;
+				TradingProfile3LossTimesLockMinutes = 30;
+
+				TradingProfile4Name                 = "P4";
+				TradingProfile4Account              = "Sim101";
+				TradingProfile4Atm                  = "";
+				TradingProfile4Quantity             = 1;
+				TradingProfile4Timeframe            = KatTimeframe.ChartTF;
+				TradingProfile4BufferTicks          = 2;
+				TradingProfile4StopLimitEnabled     = false;
+				TradingProfile4EmaProtectEnabled    = true;
+				TradingProfile4DailyMaxDDEnabled    = true;
+				TradingProfile4DailyMaxDD           = 500.0;
+				TradingProfile4DailyMaxProfitEnabled = true;
+				TradingProfile4DailyMaxProfit       = 1000.0;
+				TradingProfile4SizingProtect        = true;
+				TradingProfile4SlPullProtect        = true;
+				TradingProfile4LossDcaProtect       = true;
+				TradingProfile4TpEarlyProtect       = true;
+				TradingProfile4LossTimesProtect     = true;
+				TradingProfile4TimingProtect        = true;
+				TradingProfile4LossTimesMaxLosses   = 3;
+				TradingProfile4LossTimesLockMinutes = 30;
+
+				TradingProfile5Name                 = "P5";
+				TradingProfile5Account              = "Sim101";
+				TradingProfile5Atm                  = "";
+				TradingProfile5Quantity             = 1;
+				TradingProfile5Timeframe            = KatTimeframe.ChartTF;
+				TradingProfile5BufferTicks          = 2;
+				TradingProfile5StopLimitEnabled     = false;
+				TradingProfile5EmaProtectEnabled    = true;
+				TradingProfile5DailyMaxDDEnabled    = true;
+				TradingProfile5DailyMaxDD           = 500.0;
+				TradingProfile5DailyMaxProfitEnabled = true;
+				TradingProfile5DailyMaxProfit       = 1000.0;
+				TradingProfile5SizingProtect        = true;
+				TradingProfile5SlPullProtect        = true;
+				TradingProfile5LossDcaProtect       = true;
+				TradingProfile5TpEarlyProtect       = true;
+				TradingProfile5LossTimesProtect     = true;
+				TradingProfile5TimingProtect        = true;
+				TradingProfile5LossTimesMaxLosses   = 3;
+				TradingProfile5LossTimesLockMinutes = 30;
+
+				TradingProfile6Name                 = "P6";
+				TradingProfile6Account              = "Sim101";
+				TradingProfile6Atm                  = "";
+				TradingProfile6Quantity             = 1;
+				TradingProfile6Timeframe            = KatTimeframe.ChartTF;
+				TradingProfile6BufferTicks          = 2;
+				TradingProfile6StopLimitEnabled     = false;
+				TradingProfile6EmaProtectEnabled    = true;
+				TradingProfile6DailyMaxDDEnabled    = true;
+				TradingProfile6DailyMaxDD           = 500.0;
+				TradingProfile6DailyMaxProfitEnabled = true;
+				TradingProfile6DailyMaxProfit       = 1000.0;
+				TradingProfile6SizingProtect        = true;
+				TradingProfile6SlPullProtect        = true;
+				TradingProfile6LossDcaProtect       = true;
+				TradingProfile6TpEarlyProtect       = true;
+				TradingProfile6LossTimesProtect     = true;
+				TradingProfile6TimingProtect        = true;
+				TradingProfile6LossTimesMaxLosses   = 3;
+				TradingProfile6LossTimesLockMinutes = 30;
+
 				// Hotkey Defaults
 				HotkeyEnabled                       = true;
 				HotkeyBuyEma34                      = Key.None;
@@ -431,6 +558,22 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					cachedLossTimesMaxLosses = 3; cachedLossTimesLockMinutes = 30;
 					cachedTw1Enabled = true; cachedTw1StartHour = 2; cachedTw1StartMinute = 0; cachedTw1EndHour = 15; cachedTw1EndMinute = 0;
 					cachedTw2Enabled = false; cachedTw3Enabled = false;
+				}
+				// Migration: pre-v1.33 charts have profile quantities 0 -> seed defaults (ponytail: one-shot repair, no persist storm)
+				if (TradingProfile1Quantity == 0 && TradingProfile2Quantity == 0 && TradingProfile3Quantity == 0 && TradingProfile4Quantity == 0 && TradingProfile5Quantity == 0 && TradingProfile6Quantity == 0)
+				{
+					TradingProfile1Name = "P1"; TradingProfile1Quantity = 1; TradingProfile1BufferTicks = 2; TradingProfile1DailyMaxDD = 500; TradingProfile1DailyMaxProfit = 1000; TradingProfile1DailyMaxDDEnabled = true; TradingProfile1DailyMaxProfitEnabled = true; TradingProfile1SizingProtect = true; TradingProfile1SlPullProtect = true; TradingProfile1LossDcaProtect = true; TradingProfile1TpEarlyProtect = true; TradingProfile1LossTimesProtect = true; TradingProfile1TimingProtect = true; TradingProfile1LossTimesMaxLosses = 3; TradingProfile1LossTimesLockMinutes = 30; TradingProfile1EmaProtectEnabled = true;
+					TradingProfile2Name = "P2"; TradingProfile2Quantity = 1; TradingProfile2BufferTicks = 2; TradingProfile2DailyMaxDD = 500; TradingProfile2DailyMaxProfit = 1000; TradingProfile2DailyMaxDDEnabled = true; TradingProfile2DailyMaxProfitEnabled = true; TradingProfile2SizingProtect = true; TradingProfile2SlPullProtect = true; TradingProfile2LossDcaProtect = true; TradingProfile2TpEarlyProtect = true; TradingProfile2LossTimesProtect = true; TradingProfile2TimingProtect = true; TradingProfile2LossTimesMaxLosses = 3; TradingProfile2LossTimesLockMinutes = 30; TradingProfile2EmaProtectEnabled = true;
+					TradingProfile3Name = "P3"; TradingProfile3Quantity = 1; TradingProfile3BufferTicks = 2; TradingProfile3DailyMaxDD = 500; TradingProfile3DailyMaxProfit = 1000; TradingProfile3DailyMaxDDEnabled = true; TradingProfile3DailyMaxProfitEnabled = true; TradingProfile3SizingProtect = true; TradingProfile3SlPullProtect = true; TradingProfile3LossDcaProtect = true; TradingProfile3TpEarlyProtect = true; TradingProfile3LossTimesProtect = true; TradingProfile3TimingProtect = true; TradingProfile3LossTimesMaxLosses = 3; TradingProfile3LossTimesLockMinutes = 30; TradingProfile3EmaProtectEnabled = true;
+					TradingProfile4Name = "P4"; TradingProfile4Quantity = 1; TradingProfile4BufferTicks = 2; TradingProfile4DailyMaxDD = 500; TradingProfile4DailyMaxProfit = 1000; TradingProfile4DailyMaxDDEnabled = true; TradingProfile4DailyMaxProfitEnabled = true; TradingProfile4SizingProtect = true; TradingProfile4SlPullProtect = true; TradingProfile4LossDcaProtect = true; TradingProfile4TpEarlyProtect = true; TradingProfile4LossTimesProtect = true; TradingProfile4TimingProtect = true; TradingProfile4LossTimesMaxLosses = 3; TradingProfile4LossTimesLockMinutes = 30; TradingProfile4EmaProtectEnabled = true;
+					TradingProfile5Name = "P5"; TradingProfile5Quantity = 1; TradingProfile5BufferTicks = 2; TradingProfile5DailyMaxDD = 500; TradingProfile5DailyMaxProfit = 1000; TradingProfile5DailyMaxDDEnabled = true; TradingProfile5DailyMaxProfitEnabled = true; TradingProfile5SizingProtect = true; TradingProfile5SlPullProtect = true; TradingProfile5LossDcaProtect = true; TradingProfile5TpEarlyProtect = true; TradingProfile5LossTimesProtect = true; TradingProfile5TimingProtect = true; TradingProfile5LossTimesMaxLosses = 3; TradingProfile5LossTimesLockMinutes = 30; TradingProfile5EmaProtectEnabled = true;
+					TradingProfile6Name = "P6"; TradingProfile6Quantity = 1; TradingProfile6BufferTicks = 2; TradingProfile6DailyMaxDD = 500; TradingProfile6DailyMaxProfit = 1000; TradingProfile6DailyMaxDDEnabled = true; TradingProfile6DailyMaxProfitEnabled = true; TradingProfile6SizingProtect = true; TradingProfile6SlPullProtect = true; TradingProfile6LossDcaProtect = true; TradingProfile6TpEarlyProtect = true; TradingProfile6LossTimesProtect = true; TradingProfile6TimingProtect = true; TradingProfile6LossTimesMaxLosses = 3; TradingProfile6LossTimesLockMinutes = 30; TradingProfile6EmaProtectEnabled = true;
+					if (string.IsNullOrWhiteSpace(TradingProfile1Account)) TradingProfile1Account = "Sim101";
+					if (string.IsNullOrWhiteSpace(TradingProfile2Account)) TradingProfile2Account = "Sim101";
+					if (string.IsNullOrWhiteSpace(TradingProfile3Account)) TradingProfile3Account = "Sim101";
+					if (string.IsNullOrWhiteSpace(TradingProfile4Account)) TradingProfile4Account = "Sim101";
+					if (string.IsNullOrWhiteSpace(TradingProfile5Account)) TradingProfile5Account = "Sim101";
+					if (string.IsNullOrWhiteSpace(TradingProfile6Account)) TradingProfile6Account = "Sim101";
 				}
 				isRenkoChart = BarsPeriod.BarsPeriodType == BarsPeriodType.Renko
 

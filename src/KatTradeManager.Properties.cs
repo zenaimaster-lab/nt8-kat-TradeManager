@@ -210,6 +210,459 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		public string AtmSet6Atm { get; set; }
 		#endregion
 
+		#region Trading Profile Properties
+		private string profile1Name = "P1";
+		private string profile2Name = "P2";
+		private string profile3Name = "P3";
+		private string profile4Name = "P4";
+		private string profile5Name = "P5";
+		private string profile6Name = "P6";
+
+		[NinjaScriptProperty]
+		[Display(Name="Profile 1 Name", Order=1, GroupName="Trading Profile 1", Description="HUD button label (max 8 chars)")]
+		public string TradingProfile1Name
+		{
+			get { return profile1Name; }
+			set { profile1Name = KatTradeCalculator.NormalizeProfileName(value, "P1"); }
+		}
+		[NinjaScriptProperty]
+		[TypeConverter(typeof(NinjaTrader.NinjaScript.AccountNameConverter))]
+		[Display(Name="Profile 1 Account", Order=2, GroupName="Trading Profile 1", Description="Account for this preset (dropdown)")]
+		public string TradingProfile1Account { get; set; }
+		[NinjaScriptProperty]
+		[PropertyEditor("NinjaTrader.Gui.Tools.StringStandardValuesEditorKey")]
+		[TypeConverter(typeof(AtmTemplateNameConverter))]
+		[Display(Name="Profile 1 ATM", Order=3, GroupName="Trading Profile 1")]
+		public string TradingProfile1Atm { get; set; }
+		[NinjaScriptProperty]
+		[Range(1, 100)]
+		[Display(Name="Profile 1 Quantity", Order=4, GroupName="Trading Profile 1")]
+		public int TradingProfile1Quantity { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 1 Timeframe", Order=5, GroupName="Trading Profile 1")]
+		public KatTimeframe TradingProfile1Timeframe { get; set; }
+		[NinjaScriptProperty]
+		[Range(0, 100)]
+		[Display(Name="Profile 1 Buffer Ticks", Order=6, GroupName="Trading Profile 1")]
+		public int TradingProfile1BufferTicks { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 1 Stop-Limit", Order=7, GroupName="Trading Profile 1")]
+		public bool TradingProfile1StopLimitEnabled { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 1 EMA Protect", Order=8, GroupName="Trading Profile 1")]
+		public bool TradingProfile1EmaProtectEnabled { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 1 Max DD Enabled", Order=9, GroupName="Trading Profile 1")]
+		public bool TradingProfile1DailyMaxDDEnabled { get; set; }
+		[NinjaScriptProperty]
+		[Range(0, 1000000)]
+		[Display(Name="Profile 1 Max DD ($)", Order=10, GroupName="Trading Profile 1")]
+		public double TradingProfile1DailyMaxDD { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 1 Max Profit Enabled", Order=11, GroupName="Trading Profile 1")]
+		public bool TradingProfile1DailyMaxProfitEnabled { get; set; }
+		[NinjaScriptProperty]
+		[Range(0, 1000000)]
+		[Display(Name="Profile 1 Max Profit ($)", Order=12, GroupName="Trading Profile 1")]
+		public double TradingProfile1DailyMaxProfit { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 1 Sizing Protect", Order=13, GroupName="Trading Profile 1")]
+		public bool TradingProfile1SizingProtect { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 1 SL-Pull Protect", Order=14, GroupName="Trading Profile 1")]
+		public bool TradingProfile1SlPullProtect { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 1 Loss-DCA Protect", Order=15, GroupName="Trading Profile 1")]
+		public bool TradingProfile1LossDcaProtect { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 1 TP-Early Protect", Order=16, GroupName="Trading Profile 1")]
+		public bool TradingProfile1TpEarlyProtect { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 1 LossTimes Protect", Order=17, GroupName="Trading Profile 1")]
+		public bool TradingProfile1LossTimesProtect { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 1 Timing Protect", Order=18, GroupName="Trading Profile 1")]
+		public bool TradingProfile1TimingProtect { get; set; }
+		[NinjaScriptProperty]
+		[Range(1, 20)]
+		[Display(Name="Profile 1 LossTimes Max Losses", Order=19, GroupName="Trading Profile 1")]
+		public int TradingProfile1LossTimesMaxLosses { get; set; }
+		[NinjaScriptProperty]
+		[Range(1, 1440)]
+		[Display(Name="Profile 1 LossTimes Lock (min)", Order=20, GroupName="Trading Profile 1")]
+		public int TradingProfile1LossTimesLockMinutes { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Profile 2 Name", Order=1, GroupName="Trading Profile 2", Description="HUD button label (max 8 chars)")]
+		public string TradingProfile2Name
+		{
+			get { return profile2Name; }
+			set { profile2Name = KatTradeCalculator.NormalizeProfileName(value, "P2"); }
+		}
+		[NinjaScriptProperty]
+		[TypeConverter(typeof(NinjaTrader.NinjaScript.AccountNameConverter))]
+		[Display(Name="Profile 2 Account", Order=2, GroupName="Trading Profile 2")]
+		public string TradingProfile2Account { get; set; }
+		[NinjaScriptProperty]
+		[PropertyEditor("NinjaTrader.Gui.Tools.StringStandardValuesEditorKey")]
+		[TypeConverter(typeof(AtmTemplateNameConverter))]
+		[Display(Name="Profile 2 ATM", Order=3, GroupName="Trading Profile 2")]
+		public string TradingProfile2Atm { get; set; }
+		[NinjaScriptProperty]
+		[Range(1, 100)]
+		[Display(Name="Profile 2 Quantity", Order=4, GroupName="Trading Profile 2")]
+		public int TradingProfile2Quantity { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 2 Timeframe", Order=5, GroupName="Trading Profile 2")]
+		public KatTimeframe TradingProfile2Timeframe { get; set; }
+		[NinjaScriptProperty]
+		[Range(0, 100)]
+		[Display(Name="Profile 2 Buffer Ticks", Order=6, GroupName="Trading Profile 2")]
+		public int TradingProfile2BufferTicks { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 2 Stop-Limit", Order=7, GroupName="Trading Profile 2")]
+		public bool TradingProfile2StopLimitEnabled { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 2 EMA Protect", Order=8, GroupName="Trading Profile 2")]
+		public bool TradingProfile2EmaProtectEnabled { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 2 Max DD Enabled", Order=9, GroupName="Trading Profile 2")]
+		public bool TradingProfile2DailyMaxDDEnabled { get; set; }
+		[NinjaScriptProperty]
+		[Range(0, 1000000)]
+		[Display(Name="Profile 2 Max DD ($)", Order=10, GroupName="Trading Profile 2")]
+		public double TradingProfile2DailyMaxDD { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 2 Max Profit Enabled", Order=11, GroupName="Trading Profile 2")]
+		public bool TradingProfile2DailyMaxProfitEnabled { get; set; }
+		[NinjaScriptProperty]
+		[Range(0, 1000000)]
+		[Display(Name="Profile 2 Max Profit ($)", Order=12, GroupName="Trading Profile 2")]
+		public double TradingProfile2DailyMaxProfit { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 2 Sizing Protect", Order=13, GroupName="Trading Profile 2")]
+		public bool TradingProfile2SizingProtect { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 2 SL-Pull Protect", Order=14, GroupName="Trading Profile 2")]
+		public bool TradingProfile2SlPullProtect { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 2 Loss-DCA Protect", Order=15, GroupName="Trading Profile 2")]
+		public bool TradingProfile2LossDcaProtect { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 2 TP-Early Protect", Order=16, GroupName="Trading Profile 2")]
+		public bool TradingProfile2TpEarlyProtect { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 2 LossTimes Protect", Order=17, GroupName="Trading Profile 2")]
+		public bool TradingProfile2LossTimesProtect { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 2 Timing Protect", Order=18, GroupName="Trading Profile 2")]
+		public bool TradingProfile2TimingProtect { get; set; }
+		[NinjaScriptProperty]
+		[Range(1, 20)]
+		[Display(Name="Profile 2 LossTimes Max Losses", Order=19, GroupName="Trading Profile 2")]
+		public int TradingProfile2LossTimesMaxLosses { get; set; }
+		[NinjaScriptProperty]
+		[Range(1, 1440)]
+		[Display(Name="Profile 2 LossTimes Lock (min)", Order=20, GroupName="Trading Profile 2")]
+		public int TradingProfile2LossTimesLockMinutes { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Profile 3 Name", Order=1, GroupName="Trading Profile 3", Description="HUD button label (max 8 chars)")]
+		public string TradingProfile3Name
+		{
+			get { return profile3Name; }
+			set { profile3Name = KatTradeCalculator.NormalizeProfileName(value, "P3"); }
+		}
+		[NinjaScriptProperty]
+		[TypeConverter(typeof(NinjaTrader.NinjaScript.AccountNameConverter))]
+		[Display(Name="Profile 3 Account", Order=2, GroupName="Trading Profile 3")]
+		public string TradingProfile3Account { get; set; }
+		[NinjaScriptProperty]
+		[PropertyEditor("NinjaTrader.Gui.Tools.StringStandardValuesEditorKey")]
+		[TypeConverter(typeof(AtmTemplateNameConverter))]
+		[Display(Name="Profile 3 ATM", Order=3, GroupName="Trading Profile 3")]
+		public string TradingProfile3Atm { get; set; }
+		[NinjaScriptProperty]
+		[Range(1, 100)]
+		[Display(Name="Profile 3 Quantity", Order=4, GroupName="Trading Profile 3")]
+		public int TradingProfile3Quantity { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 3 Timeframe", Order=5, GroupName="Trading Profile 3")]
+		public KatTimeframe TradingProfile3Timeframe { get; set; }
+		[NinjaScriptProperty]
+		[Range(0, 100)]
+		[Display(Name="Profile 3 Buffer Ticks", Order=6, GroupName="Trading Profile 3")]
+		public int TradingProfile3BufferTicks { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 3 Stop-Limit", Order=7, GroupName="Trading Profile 3")]
+		public bool TradingProfile3StopLimitEnabled { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 3 EMA Protect", Order=8, GroupName="Trading Profile 3")]
+		public bool TradingProfile3EmaProtectEnabled { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 3 Max DD Enabled", Order=9, GroupName="Trading Profile 3")]
+		public bool TradingProfile3DailyMaxDDEnabled { get; set; }
+		[NinjaScriptProperty]
+		[Range(0, 1000000)]
+		[Display(Name="Profile 3 Max DD ($)", Order=10, GroupName="Trading Profile 3")]
+		public double TradingProfile3DailyMaxDD { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 3 Max Profit Enabled", Order=11, GroupName="Trading Profile 3")]
+		public bool TradingProfile3DailyMaxProfitEnabled { get; set; }
+		[NinjaScriptProperty]
+		[Range(0, 1000000)]
+		[Display(Name="Profile 3 Max Profit ($)", Order=12, GroupName="Trading Profile 3")]
+		public double TradingProfile3DailyMaxProfit { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 3 Sizing Protect", Order=13, GroupName="Trading Profile 3")]
+		public bool TradingProfile3SizingProtect { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 3 SL-Pull Protect", Order=14, GroupName="Trading Profile 3")]
+		public bool TradingProfile3SlPullProtect { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 3 Loss-DCA Protect", Order=15, GroupName="Trading Profile 3")]
+		public bool TradingProfile3LossDcaProtect { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 3 TP-Early Protect", Order=16, GroupName="Trading Profile 3")]
+		public bool TradingProfile3TpEarlyProtect { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 3 LossTimes Protect", Order=17, GroupName="Trading Profile 3")]
+		public bool TradingProfile3LossTimesProtect { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 3 Timing Protect", Order=18, GroupName="Trading Profile 3")]
+		public bool TradingProfile3TimingProtect { get; set; }
+		[NinjaScriptProperty]
+		[Range(1, 20)]
+		[Display(Name="Profile 3 LossTimes Max Losses", Order=19, GroupName="Trading Profile 3")]
+		public int TradingProfile3LossTimesMaxLosses { get; set; }
+		[NinjaScriptProperty]
+		[Range(1, 1440)]
+		[Display(Name="Profile 3 LossTimes Lock (min)", Order=20, GroupName="Trading Profile 3")]
+		public int TradingProfile3LossTimesLockMinutes { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Profile 4 Name", Order=1, GroupName="Trading Profile 4", Description="HUD button label (max 8 chars)")]
+		public string TradingProfile4Name
+		{
+			get { return profile4Name; }
+			set { profile4Name = KatTradeCalculator.NormalizeProfileName(value, "P4"); }
+		}
+		[NinjaScriptProperty]
+		[TypeConverter(typeof(NinjaTrader.NinjaScript.AccountNameConverter))]
+		[Display(Name="Profile 4 Account", Order=2, GroupName="Trading Profile 4")]
+		public string TradingProfile4Account { get; set; }
+		[NinjaScriptProperty]
+		[PropertyEditor("NinjaTrader.Gui.Tools.StringStandardValuesEditorKey")]
+		[TypeConverter(typeof(AtmTemplateNameConverter))]
+		[Display(Name="Profile 4 ATM", Order=3, GroupName="Trading Profile 4")]
+		public string TradingProfile4Atm { get; set; }
+		[NinjaScriptProperty]
+		[Range(1, 100)]
+		[Display(Name="Profile 4 Quantity", Order=4, GroupName="Trading Profile 4")]
+		public int TradingProfile4Quantity { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 4 Timeframe", Order=5, GroupName="Trading Profile 4")]
+		public KatTimeframe TradingProfile4Timeframe { get; set; }
+		[NinjaScriptProperty]
+		[Range(0, 100)]
+		[Display(Name="Profile 4 Buffer Ticks", Order=6, GroupName="Trading Profile 4")]
+		public int TradingProfile4BufferTicks { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 4 Stop-Limit", Order=7, GroupName="Trading Profile 4")]
+		public bool TradingProfile4StopLimitEnabled { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 4 EMA Protect", Order=8, GroupName="Trading Profile 4")]
+		public bool TradingProfile4EmaProtectEnabled { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 4 Max DD Enabled", Order=9, GroupName="Trading Profile 4")]
+		public bool TradingProfile4DailyMaxDDEnabled { get; set; }
+		[NinjaScriptProperty]
+		[Range(0, 1000000)]
+		[Display(Name="Profile 4 Max DD ($)", Order=10, GroupName="Trading Profile 4")]
+		public double TradingProfile4DailyMaxDD { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 4 Max Profit Enabled", Order=11, GroupName="Trading Profile 4")]
+		public bool TradingProfile4DailyMaxProfitEnabled { get; set; }
+		[NinjaScriptProperty]
+		[Range(0, 1000000)]
+		[Display(Name="Profile 4 Max Profit ($)", Order=12, GroupName="Trading Profile 4")]
+		public double TradingProfile4DailyMaxProfit { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 4 Sizing Protect", Order=13, GroupName="Trading Profile 4")]
+		public bool TradingProfile4SizingProtect { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 4 SL-Pull Protect", Order=14, GroupName="Trading Profile 4")]
+		public bool TradingProfile4SlPullProtect { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 4 Loss-DCA Protect", Order=15, GroupName="Trading Profile 4")]
+		public bool TradingProfile4LossDcaProtect { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 4 TP-Early Protect", Order=16, GroupName="Trading Profile 4")]
+		public bool TradingProfile4TpEarlyProtect { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 4 LossTimes Protect", Order=17, GroupName="Trading Profile 4")]
+		public bool TradingProfile4LossTimesProtect { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 4 Timing Protect", Order=18, GroupName="Trading Profile 4")]
+		public bool TradingProfile4TimingProtect { get; set; }
+		[NinjaScriptProperty]
+		[Range(1, 20)]
+		[Display(Name="Profile 4 LossTimes Max Losses", Order=19, GroupName="Trading Profile 4")]
+		public int TradingProfile4LossTimesMaxLosses { get; set; }
+		[NinjaScriptProperty]
+		[Range(1, 1440)]
+		[Display(Name="Profile 4 LossTimes Lock (min)", Order=20, GroupName="Trading Profile 4")]
+		public int TradingProfile4LossTimesLockMinutes { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Profile 5 Name", Order=1, GroupName="Trading Profile 5", Description="HUD button label (max 8 chars)")]
+		public string TradingProfile5Name
+		{
+			get { return profile5Name; }
+			set { profile5Name = KatTradeCalculator.NormalizeProfileName(value, "P5"); }
+		}
+		[NinjaScriptProperty]
+		[TypeConverter(typeof(NinjaTrader.NinjaScript.AccountNameConverter))]
+		[Display(Name="Profile 5 Account", Order=2, GroupName="Trading Profile 5")]
+		public string TradingProfile5Account { get; set; }
+		[NinjaScriptProperty]
+		[PropertyEditor("NinjaTrader.Gui.Tools.StringStandardValuesEditorKey")]
+		[TypeConverter(typeof(AtmTemplateNameConverter))]
+		[Display(Name="Profile 5 ATM", Order=3, GroupName="Trading Profile 5")]
+		public string TradingProfile5Atm { get; set; }
+		[NinjaScriptProperty]
+		[Range(1, 100)]
+		[Display(Name="Profile 5 Quantity", Order=4, GroupName="Trading Profile 5")]
+		public int TradingProfile5Quantity { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 5 Timeframe", Order=5, GroupName="Trading Profile 5")]
+		public KatTimeframe TradingProfile5Timeframe { get; set; }
+		[NinjaScriptProperty]
+		[Range(0, 100)]
+		[Display(Name="Profile 5 Buffer Ticks", Order=6, GroupName="Trading Profile 5")]
+		public int TradingProfile5BufferTicks { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 5 Stop-Limit", Order=7, GroupName="Trading Profile 5")]
+		public bool TradingProfile5StopLimitEnabled { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 5 EMA Protect", Order=8, GroupName="Trading Profile 5")]
+		public bool TradingProfile5EmaProtectEnabled { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 5 Max DD Enabled", Order=9, GroupName="Trading Profile 5")]
+		public bool TradingProfile5DailyMaxDDEnabled { get; set; }
+		[NinjaScriptProperty]
+		[Range(0, 1000000)]
+		[Display(Name="Profile 5 Max DD ($)", Order=10, GroupName="Trading Profile 5")]
+		public double TradingProfile5DailyMaxDD { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 5 Max Profit Enabled", Order=11, GroupName="Trading Profile 5")]
+		public bool TradingProfile5DailyMaxProfitEnabled { get; set; }
+		[NinjaScriptProperty]
+		[Range(0, 1000000)]
+		[Display(Name="Profile 5 Max Profit ($)", Order=12, GroupName="Trading Profile 5")]
+		public double TradingProfile5DailyMaxProfit { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 5 Sizing Protect", Order=13, GroupName="Trading Profile 5")]
+		public bool TradingProfile5SizingProtect { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 5 SL-Pull Protect", Order=14, GroupName="Trading Profile 5")]
+		public bool TradingProfile5SlPullProtect { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 5 Loss-DCA Protect", Order=15, GroupName="Trading Profile 5")]
+		public bool TradingProfile5LossDcaProtect { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 5 TP-Early Protect", Order=16, GroupName="Trading Profile 5")]
+		public bool TradingProfile5TpEarlyProtect { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 5 LossTimes Protect", Order=17, GroupName="Trading Profile 5")]
+		public bool TradingProfile5LossTimesProtect { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 5 Timing Protect", Order=18, GroupName="Trading Profile 5")]
+		public bool TradingProfile5TimingProtect { get; set; }
+		[NinjaScriptProperty]
+		[Range(1, 20)]
+		[Display(Name="Profile 5 LossTimes Max Losses", Order=19, GroupName="Trading Profile 5")]
+		public int TradingProfile5LossTimesMaxLosses { get; set; }
+		[NinjaScriptProperty]
+		[Range(1, 1440)]
+		[Display(Name="Profile 5 LossTimes Lock (min)", Order=20, GroupName="Trading Profile 5")]
+		public int TradingProfile5LossTimesLockMinutes { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Profile 6 Name", Order=1, GroupName="Trading Profile 6", Description="HUD button label (max 8 chars)")]
+		public string TradingProfile6Name
+		{
+			get { return profile6Name; }
+			set { profile6Name = KatTradeCalculator.NormalizeProfileName(value, "P6"); }
+		}
+		[NinjaScriptProperty]
+		[TypeConverter(typeof(NinjaTrader.NinjaScript.AccountNameConverter))]
+		[Display(Name="Profile 6 Account", Order=2, GroupName="Trading Profile 6")]
+		public string TradingProfile6Account { get; set; }
+		[NinjaScriptProperty]
+		[PropertyEditor("NinjaTrader.Gui.Tools.StringStandardValuesEditorKey")]
+		[TypeConverter(typeof(AtmTemplateNameConverter))]
+		[Display(Name="Profile 6 ATM", Order=3, GroupName="Trading Profile 6")]
+		public string TradingProfile6Atm { get; set; }
+		[NinjaScriptProperty]
+		[Range(1, 100)]
+		[Display(Name="Profile 6 Quantity", Order=4, GroupName="Trading Profile 6")]
+		public int TradingProfile6Quantity { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 6 Timeframe", Order=5, GroupName="Trading Profile 6")]
+		public KatTimeframe TradingProfile6Timeframe { get; set; }
+		[NinjaScriptProperty]
+		[Range(0, 100)]
+		[Display(Name="Profile 6 Buffer Ticks", Order=6, GroupName="Trading Profile 6")]
+		public int TradingProfile6BufferTicks { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 6 Stop-Limit", Order=7, GroupName="Trading Profile 6")]
+		public bool TradingProfile6StopLimitEnabled { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 6 EMA Protect", Order=8, GroupName="Trading Profile 6")]
+		public bool TradingProfile6EmaProtectEnabled { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 6 Max DD Enabled", Order=9, GroupName="Trading Profile 6")]
+		public bool TradingProfile6DailyMaxDDEnabled { get; set; }
+		[NinjaScriptProperty]
+		[Range(0, 1000000)]
+		[Display(Name="Profile 6 Max DD ($)", Order=10, GroupName="Trading Profile 6")]
+		public double TradingProfile6DailyMaxDD { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 6 Max Profit Enabled", Order=11, GroupName="Trading Profile 6")]
+		public bool TradingProfile6DailyMaxProfitEnabled { get; set; }
+		[NinjaScriptProperty]
+		[Range(0, 1000000)]
+		[Display(Name="Profile 6 Max Profit ($)", Order=12, GroupName="Trading Profile 6")]
+		public double TradingProfile6DailyMaxProfit { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 6 Sizing Protect", Order=13, GroupName="Trading Profile 6")]
+		public bool TradingProfile6SizingProtect { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 6 SL-Pull Protect", Order=14, GroupName="Trading Profile 6")]
+		public bool TradingProfile6SlPullProtect { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 6 Loss-DCA Protect", Order=15, GroupName="Trading Profile 6")]
+		public bool TradingProfile6LossDcaProtect { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 6 TP-Early Protect", Order=16, GroupName="Trading Profile 6")]
+		public bool TradingProfile6TpEarlyProtect { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 6 LossTimes Protect", Order=17, GroupName="Trading Profile 6")]
+		public bool TradingProfile6LossTimesProtect { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="Profile 6 Timing Protect", Order=18, GroupName="Trading Profile 6")]
+		public bool TradingProfile6TimingProtect { get; set; }
+		[NinjaScriptProperty]
+		[Range(1, 20)]
+		[Display(Name="Profile 6 LossTimes Max Losses", Order=19, GroupName="Trading Profile 6")]
+		public int TradingProfile6LossTimesMaxLosses { get; set; }
+		[NinjaScriptProperty]
+		[Range(1, 1440)]
+		[Display(Name="Profile 6 LossTimes Lock (min)", Order=20, GroupName="Trading Profile 6")]
+		public int TradingProfile6LossTimesLockMinutes { get; set; }
+		#endregion
+
 		#region Daily Risk Control Properties
 		[NinjaScriptProperty]
 		[Display(Name="Daily Max DD Enabled", Order=1, GroupName="Daily Risk Control", Description="Enable Daily Max Drawdown limit protection.")]

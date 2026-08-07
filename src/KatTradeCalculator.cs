@@ -408,6 +408,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return trimmed.Length > 3 ? trimmed.Substring(0, 3) : trimmed;
 		}
 
+		public static string NormalizeProfileName(string value, string fallback)
+		{
+			string trimmed = (value ?? string.Empty).Trim();
+			if (trimmed.Length == 0) return fallback;
+			return trimmed.Length > 8 ? trimmed.Substring(0, 8) : trimmed;
+		}
+
 		/// <summary>
 		/// Checks account name against comma/semicolon-separated filter.
 		/// Tokens prefixed with '!' are excludes; plain tokens are includes.
