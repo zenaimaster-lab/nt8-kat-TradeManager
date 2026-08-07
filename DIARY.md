@@ -23,6 +23,12 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.37] — 2026-08-08
+- **Re-audit 4 — clamp + filter persistence**:
+  - **Fix** `IsTradingProfileActive` so sánh `DefaultQuantity/Buffer/LossTimes` với giá trị clamp `1..100`/`1..20`/`1..1440` như `ApplyTradingProfile` clamp, tránh highlight false khi profile lưu 200 nhưng live clamp 100. `KatTradeManagerUI.cs:491`.
+  - **Fix** `ApplyTradingProfile` clamp thiếu upper bound: `qty` 1..100, `buf` 0..100, `maxLosses` 1..20, `lockMins` 1..1440 `KatTradeManagerUI.cs:586`.
+  - **Fix** `CreateWpfControls` `accSelector` pending account mất sau rebuild khi `Account.All==null` hoặc filtered: thêm branch `else if (!IsNullOrEmpty(AccountName))` add trực tiếp, và đổi `savedAccountName` add luôn không cần `Account.All` lookup `KatTradeManagerUI.cs:1398`.
+  - Verify: 169/169 tests, CompileCheck 0 errors.
 ### [v1.36] — 2026-08-08
 - **Re-audit 3 — discipline post-switch, ATM rebuild, highlight unique**:
   - **Fix** `ApplyTradingProfile` discipline stale: `UpdateDisciplineFromPosition` chỉ chạy trước `SwitchAccount`, position của account mới chưa được evaluate -> `SizingProtect` sai 500ms. Thêm post-switch `UpdateDisciplineFromPosition/EvaluateDisciplineLockVisual/EvaluateDailyRiskLimits` `KatTradeManagerUI.cs:672`.

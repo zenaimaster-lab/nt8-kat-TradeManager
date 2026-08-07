@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.36 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.37 (2026-08-08) */
 
 using System;
 using System.Collections.Generic;
@@ -490,12 +490,14 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private bool IsTradingProfileActive(int idx)
 		{
 			if (!IsTradingProfileConfigured(idx)) return false;
-			// compare live indicator properties/cached toggles to stored profile snapshot
+			// compare live indicator properties/cached toggles to stored profile snapshot (clamp numeric to valid ranges as Apply does)
 			if (!string.Equals(AccountName ?? string.Empty, GetTradingProfileAccount(idx) ?? string.Empty, StringComparison.OrdinalIgnoreCase)) return false;
 			if (!string.Equals(DefaultAtmTemplate ?? string.Empty, GetTradingProfileAtm(idx) ?? string.Empty, StringComparison.OrdinalIgnoreCase)) return false;
-			if (DefaultQuantity != GetTradingProfileQuantity(idx)) return false;
+			int profQty = Math.Max(1, Math.Min(100, GetTradingProfileQuantity(idx)));
+			if (DefaultQuantity != profQty) return false;
 			if (DefaultTimeframe != GetTradingProfileTimeframe(idx)) return false;
-			if (DefaultBufferTicks != GetTradingProfileBufferTicks(idx)) return false;
+			int profBuf = Math.Max(0, Math.Min(100, GetTradingProfileBufferTicks(idx)));
+			if (DefaultBufferTicks != profBuf) return false;
 			if (cachedIsStopLimit != GetTradingProfileStopLimit(idx)) return false;
 			if (cachedIsEmaPlace != GetTradingProfileEmaProtect(idx)) return false;
 			if (DailyMaxDDEnabled != GetTradingProfileDailyMaxDDEnabled(idx)) return false;
@@ -508,8 +510,10 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			if (TpEarlyProtectEnabled != GetTradingProfileTpEarly(idx)) return false;
 			if (LossTimesProtectEnabled != GetTradingProfileLossTimes(idx)) return false;
 			if (TimingWindowsProtectEnabled != GetTradingProfileTiming(idx)) return false;
-			if (LossTimesMaxLosses != GetTradingProfileLossTimesMaxLosses(idx)) return false;
-			if (LossTimesLockMinutes != GetTradingProfileLossTimesLockMinutes(idx)) return false;
+			int profLossMax = Math.Max(1, Math.Min(20, GetTradingProfileLossTimesMaxLosses(idx)));
+			if (LossTimesMaxLosses != profLossMax) return false;
+			int profLock = Math.Max(1, Math.Min(1440, GetTradingProfileLossTimesLockMinutes(idx)));
+			if (LossTimesLockMinutes != profLock) return false;
 			return true;
 		}
 
@@ -578,13 +582,13 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				ShowHudStatus(string.Format("Profile {0}: no account/ATM configured (Indicator Settings)", GetTradingProfileName(idx)), Brushes.OrangeRed);
 				return;
 			}
-			// Quantity / timeframe / buffer — persisted props + cached
-			int qty = Math.Max(1, GetTradingProfileQuantity(idx));
+			// Quantity / timeframe / buffer — persisted props + cached (clamp to valid ranges)
+			int qty = Math.Max(1, Math.Min(100, GetTradingProfileQuantity(idx)));
 			DefaultQuantity = qty;
 			KatTimeframe tf = GetTradingProfileTimeframe(idx);
 			DefaultTimeframe = tf;
 			cachedTfIndex = (int)tf;
-			int buf = Math.Max(0, GetTradingProfileBufferTicks(idx));
+			int buf = Math.Max(0, Math.Min(100, GetTradingProfileBufferTicks(idx)));
 			DefaultBufferTicks = buf;
 			cachedBufferTicks = buf;
 
@@ -608,8 +612,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			bool tpEarly = GetTradingProfileTpEarly(idx);
 			bool lossTimes = GetTradingProfileLossTimes(idx);
 			bool timing = GetTradingProfileTiming(idx);
-			int maxLosses = Math.Max(1, GetTradingProfileLossTimesMaxLosses(idx));
-			int lockMins = Math.Max(1, GetTradingProfileLossTimesLockMinutes(idx));
+			int maxLosses = Math.Max(1, Math.Min(20, GetTradingProfileLossTimesMaxLosses(idx)));
+			int lockMins = Math.Max(1, Math.Min(1440, GetTradingProfileLossTimesLockMinutes(idx)));
 			SizingProtectEnabled = siz; cachedSizingProtect = siz;
 			SlPullProtectEnabled = slPull; cachedSlPullProtect = slPull;
 			LossDcaProtectEnabled = lossDca; cachedLossDcaProtect = lossDca;
@@ -1391,11 +1395,10 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				var allowedAccs = Account.All.Where(a => IsAccountAllowed(a.Name)).ToList();
 				foreach (var acc in allowedAccs) accSelector.Items.Add(acc.Name);
 				string savedAccountName = AccountName;
-				// profile may have set an account that is filtered out — still show it to preserve explicit selection
+				// profile may have set an account that is filtered out or not yet connected (pending) — still show it to preserve explicit selection
 				if (!string.IsNullOrEmpty(savedAccountName) && !accSelector.Items.Contains(savedAccountName))
 				{
-					var savedAcc = Account.All.FirstOrDefault(a => a.Name.Equals(savedAccountName, StringComparison.OrdinalIgnoreCase));
-					if (savedAcc != null) accSelector.Items.Add(savedAcc.Name);
+					accSelector.Items.Add(savedAccountName);
 				}
 				if (!string.IsNullOrEmpty(savedAccountName) && accSelector.Items.Contains(savedAccountName))
 				{
@@ -1419,6 +1422,11 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					if (!accSelector.Items.Contains(savedAccountName)) accSelector.Items.Add(savedAccountName);
 					accSelector.SelectedItem = savedAccountName;
 				}
+			}
+			else if (!string.IsNullOrEmpty(AccountName))
+			{
+				accSelector.Items.Add(AccountName);
+				accSelector.SelectedItem = AccountName;
 			}
 			accSelector.SelectionChanged += (s, ev) =>
 			{
