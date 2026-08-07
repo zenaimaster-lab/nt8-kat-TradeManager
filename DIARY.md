@@ -23,6 +23,12 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.36] — 2026-08-08
+- **Re-audit 3 — discipline post-switch, ATM rebuild, highlight unique**:
+  - **Fix** `ApplyTradingProfile` discipline stale: `UpdateDisciplineFromPosition` chỉ chạy trước `SwitchAccount`, position của account mới chưa được evaluate -> `SizingProtect` sai 500ms. Thêm post-switch `UpdateDisciplineFromPosition/EvaluateDisciplineLockVisual/EvaluateDailyRiskLimits` `KatTradeManagerUI.cs:672`.
+  - **Fix** ATM missing mất sau HUD rebuild: `CreateWpfControls` populate từ disk xong không giữ `DefaultAtmTemplate` missing, dropdown về `None` dù `cachedAtmTemplate` vẫn missing. Thêm fallback add missing `DefaultAtmTemplate` vào `atmSelector` `KatTradeManagerUI.cs:1459`.
+  - **Fix** Highlight manual diverge: cũ chỉ highlight nếu `active==i`, manual edit khớp profile khác không highlight. Đổi `UpdateTradingProfileButtons:516` tính `uniqueMatch` bất kể `active`, nếu đúng 1 profile khớp live config thì highlight unica đó, nhiều profile khớp (fresh default 6 giống) thì 0. Manual edit tới P2 sẽ highlight P2 ngay.
+  - Verify: 169/169 tests, CompileCheck 0 errors.
 ### [v1.35] — 2026-08-08
 - **Trading Profiles — pending-account race + second re-audit**:
   - **Fix** `pendingProfileAccount` race: profile chọn account chưa connected trước để `account=null` nhưng watchdog `SelectAccount()` fallback về Sim101 làm mất pending. Thêm `pendingProfileAccount` + `pendingProfileAccountSinceUtc` trong `ApplyTradingProfile` và `OnPanelWatchdogTick:126` — giữ `account=null` chờ đúng account kết nối, timeout 30s mới fallback, manual `accSelector` clear pending. Tránh order đi nhầm account cũ khi profile account chưa online.

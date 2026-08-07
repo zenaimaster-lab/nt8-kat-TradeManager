@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.35 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.36 (2026-08-08) */
 
 using System;
 using System.Collections.Generic;
@@ -516,9 +516,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private void UpdateTradingProfileButtons()
 		{
 			if (tradingProfileButtons == null) return;
-			// after restart active==-1 but chart may have been saved with single profile's values -> highlight unique match
+			// highlight the single profile that matches live config (covers both post-restart and manual edit to match other profile)
 			int uniqueMatch = -1;
-			if (activeTradingProfile == -1)
 			{
 				int matches = 0;
 				for (int j = 0; j < 6; j++) if (IsTradingProfileActive(j)) { matches++; uniqueMatch = j; }
@@ -527,7 +526,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			for (int i = 0; i < tradingProfileButtons.Length; i++)
 			{
 				if (tradingProfileButtons[i] == null) continue;
-				bool on = (activeTradingProfile == i && IsTradingProfileActive(i)) || (activeTradingProfile == -1 && uniqueMatch == i);
+				bool on = (uniqueMatch != -1 && i == uniqueMatch) || (uniqueMatch == -1 && activeTradingProfile == i && IsTradingProfileActive(i));
 				if (on)
 				{
 					int row = i / 3; // 0 for P1-P3, 1 for P4-P6
@@ -620,7 +619,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			LossTimesMaxLosses = maxLosses; cachedLossTimesMaxLosses = maxLosses;
 			LossTimesLockMinutes = lockMins; cachedLossTimesLockMinutes = lockMins;
 
-			// Discipline visuals + daily preset visuals + toggles
+			// Discipline visuals + daily preset visuals + toggles (pre-switch for old account)
 			for (int i = 0; i < 6; i++) UpdateDisciplineButton(i);
 			UpdateDailyRiskPresetButtons();
 			UpdateStopLimitButton();
@@ -672,6 +671,10 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					}
 					ShowHudStatus(string.Format("Profile {0}: account '{1}' not connected yet", GetTradingProfileName(idx), acc), Brushes.Orange);
 				}
+				// re-evaluate discipline & risk for newly switched account (position may differ)
+				try { UpdateDisciplineFromPosition(); } catch {}
+				try { EvaluateDisciplineLockVisual(); } catch {}
+				try { EvaluateDailyRiskLimits(); } catch {}
 			}
 
 			// ATM — use same path as quick set (dropdown + ApplyAtmSelection)
@@ -1457,6 +1460,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				}
 			}
 			atmSelector.SelectedIndex = 0;
+			bool atmFound = false;
 			if (!string.IsNullOrEmpty(DefaultAtmTemplate))
 			{
 				for (int i = 0; i < atmSelector.Items.Count; i++)
@@ -1464,8 +1468,15 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					if (atmSelector.Items[i].ToString().Equals(DefaultAtmTemplate, StringComparison.OrdinalIgnoreCase))
 					{
 						atmSelector.SelectedIndex = i;
+						atmFound = true;
 						break;
 					}
+				}
+				if (!atmFound && !IsNoAtmSelection(DefaultAtmTemplate))
+				{
+					atmSelector.Items.Add(DefaultAtmTemplate);
+					atmSelector.SelectedItem = DefaultAtmTemplate;
+					atmFound = true;
 				}
 			}
 			ApplyAtmSelection(atmSelector.SelectedItem);
