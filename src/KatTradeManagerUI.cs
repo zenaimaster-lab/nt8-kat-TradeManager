@@ -492,7 +492,9 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			if (!IsTradingProfileConfigured(idx)) return false;
 			// compare live indicator properties/cached toggles to stored profile snapshot (clamp numeric to valid ranges as Apply does)
 			if (!string.Equals(AccountName ?? string.Empty, GetTradingProfileAccount(idx) ?? string.Empty, StringComparison.OrdinalIgnoreCase)) return false;
-			if (!string.Equals(DefaultAtmTemplate ?? string.Empty, GetTradingProfileAtm(idx) ?? string.Empty, StringComparison.OrdinalIgnoreCase)) return false;
+			string liveAtm = IsNoAtmSelection(DefaultAtmTemplate) ? string.Empty : (DefaultAtmTemplate ?? string.Empty);
+			string profAtm = IsNoAtmSelection(GetTradingProfileAtm(idx)) ? string.Empty : (GetTradingProfileAtm(idx) ?? string.Empty);
+			if (!string.Equals(liveAtm, profAtm, StringComparison.OrdinalIgnoreCase)) return false;
 			int profQty = Math.Max(1, Math.Min(100, GetTradingProfileQuantity(idx)));
 			if (DefaultQuantity != profQty) return false;
 			if (DefaultTimeframe != GetTradingProfileTimeframe(idx)) return false;
@@ -546,6 +548,13 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				string expected = GetTradingProfileName(i);
 				if (tradingProfileButtons[i].Content as string != expected)
 					tradingProfileButtons[i].Content = expected;
+				try
+				{
+					string tAcc2 = GetTradingProfileAccount(i);
+					string tAtm2 = GetTradingProfileAtm(i);
+					if (IsNoAtmSelection(tAtm2)) tAtm2 = "None";
+					tradingProfileButtons[i].ToolTip = string.Format("{0}: {1} / {2}  DD {3}  TP {4}", expected, string.IsNullOrWhiteSpace(tAcc2) ? "(no acc)" : tAcc2, tAtm2, GetTradingProfileDailyMaxDD(i), GetTradingProfileDailyMaxProfit(i));
+				} catch {}
 			}
 		}
 
@@ -681,8 +690,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				try { EvaluateDailyRiskLimits(); } catch {}
 			}
 
-			// ATM — use same path as quick set (dropdown + ApplyAtmSelection)
-			if (!string.IsNullOrWhiteSpace(atm))
+			// ATM — use same path as quick set (dropdown + ApplyAtmSelection) — "None" treated as empty (no ATM)
+			if (!IsNoAtmSelection(atm))
 			{
 				bool found = false;
 				if (atmSelector != null)
@@ -702,12 +711,12 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					}
 				}
 				ApplyAtmSelection(atm); // ensures cachedAtmTemplate + LoadAtmTemplateSettings + UpdateAtmSetButtons
-				if (!found)
+				if (!found && !HasAtmTemplate(atm))
 					ShowHudStatus(string.Format("Profile {0}: ATM '{1}' not found on disk (still selected)", GetTradingProfileName(idx), atm), Brushes.Orange);
 			}
 			else
 			{
-				// profile wants None
+				// profile wants None (empty or "None")
 				if (atmSelector != null) atmSelector.SelectedIndex = 0;
 				ApplyAtmSelection(NoAtmTemplateLabel);
 			}
@@ -715,10 +724,10 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			activeTradingProfile = idx;
 			UpdateTradingProfileButtons();
 			UpdateAtmSetButtons();
-			// if ATM was missing we already showed orange status — keep it, don't overwrite with green
-			bool atmMissing = !string.IsNullOrWhiteSpace(atm) && !HasAtmTemplate(atm);
+			// if ATM was missing we already showed orange status — keep it, don't overwrite with green; "None" is not missing
+			bool atmMissing = !IsNoAtmSelection(atm) && !HasAtmTemplate(atm);
 			if (!atmMissing)
-				ShowHudStatus(string.Format("Profile {0} applied: {1} / {2}", GetTradingProfileName(idx), string.IsNullOrWhiteSpace(acc) ? "(no acc)" : acc, string.IsNullOrWhiteSpace(atm) ? "None" : atm), Brushes.LightGreen);
+				ShowHudStatus(string.Format("Profile {0} applied: {1} / {2}", GetTradingProfileName(idx), string.IsNullOrWhiteSpace(acc) ? "(no acc)" : acc, IsNoAtmSelection(atm) ? "None" : atm), Brushes.LightGreen);
 		}
 
 		private void ToggleDiscipline(int idx)
@@ -1388,6 +1397,17 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			}
 			sec1Panel.Children.Add(profileStack);
 			UpdateTradingProfileButtons();
+			// update tooltips with live profile snapshot (account/ATM/DD/Profit) after buttons created
+			try
+			{
+				for (int i = 0; i < 6; i++) if (tradingProfileButtons[i] != null)
+				{
+					string tAcc = GetTradingProfileAccount(i);
+					string tAtm = GetTradingProfileAtm(i);
+					if (IsNoAtmSelection(tAtm)) tAtm = "None";
+					tradingProfileButtons[i].ToolTip = string.Format("{0}: {1} / {2}  DD {3}  TP {4}", GetTradingProfileName(i), string.IsNullOrWhiteSpace(tAcc) ? "(no acc)" : tAcc, tAtm, GetTradingProfileDailyMaxDD(i), GetTradingProfileDailyMaxProfit(i));
+				}
+			} catch {}
 
 			accSelector = new ComboBox { FontSize = 11, Height = 22, Margin = new Thickness(0, 0, 0, 4), HorizontalAlignment = HorizontalAlignment.Stretch };
 			if (Account.All != null)
