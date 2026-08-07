@@ -23,6 +23,14 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.24] — 2026-08-06
+- **Merge SL/TP consolidation actually fires (silent no-op fix) + post-flatten leftovers**:
+  - Root cause of "dozens of separate 1-lot SL/TP that never merge": v1.23 planner round-tripped anchors through broker `OrderId` strings; with null/empty `OrderId` (working orders on Sim/Rithmic) anchor lookup returned null → zero changes, zero cancels, silent no-op. Planner is now index-based (`KeepStopIndex`/`KeepTargetIndex`/`ChangeIndices`/`CancelIndices`) — immune to null ids and null Oco (all-null Oco degrades to one group and still consolidates).
+  - Anti-churn guard: `MergeAtmBrackets` skips a cycle while any bracket is in a broker-pending state (Submitted/ChangePending/CancelPending/...), so reconciliation can never stack mutations on in-flight operations — kills the cancel/recreate loop.
+  - `IsAtmStartupPending` got a 10s ceiling: an entry stuck non-terminal (silent ATM start failure) previously deferred flat-position cleanup forever, leaving SL/TP markers after Close/flatten; now the sweep always runs.
+  - Regression tests: 3 scale-in pairs consolidate to one pair at live quantity; null/empty Oco still consolidates; canonical state is a no-op plan (zero broker messages). 169/169 tests passing; CompileCheck 0 errors.
+  - Graphify entity mapping: `KatTradeCalculator.PlanAtmBracketMerge`, `KatTradeCalculator.KatAtmMergePlan`, `KatTradeManager.MergeAtmBrackets`, `KatTradeManager.IsAtmStartupPending`.
+
 ### [v1.23] — 2026-08-06
 - **Critical order-spam / broker-flood fix (SL/TP, Close/flatten, MERGE)**:
   - Root cause: `MergeAtmBrackets` chose the stop and target anchors independently, so with multi-bracket ATMs or interleaved Rithmic order feeds the retained stop/target could come from DIFFERENT OCO pairs. Cancelling the "duplicate" legs then made the broker's OCO linkage cancel the retained anchors too; NT8's ATM engine recreated brackets and every OrderUpdate callback re-triggered merge — a cancel/recreate storm that flooded the broker (visible at 20–70 contracts, froze NT8 with platform warning popups).

@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 1.23 (2026-08-06)
+ * Version: 1.24 (2026-08-06)
  * NinjaTrader 8 TradeManager Indicator
  */
  
@@ -69,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "1.23";
+		public const string VERSION = "1.24";
 		public const string RELEASE_DATE = "2026-08-06";
 
 		private volatile Account account;

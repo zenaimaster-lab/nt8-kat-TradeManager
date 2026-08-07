@@ -77,7 +77,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		public sealed class KatAtmBracketOrder
 		{
-			public string Id;
 			public string Oco;
 			public bool IsStop;
 			public int Quantity;
@@ -86,56 +85,56 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		public sealed class KatAtmMergePlan
 		{
-			public string KeepStopId;
-			public string KeepTargetId;
+			public int KeepStopIndex = -1;
+			public int KeepTargetIndex = -1;
 			public int DesiredStopQuantity;
 			public int DesiredTargetQuantity;
-			public string[] ChangeIds;
-			public string[] CancelIds;
-			public bool IsNoop => ChangeIds.Length == 0 && CancelIds.Length == 0;
+			public int[] ChangeIndices = new int[0];
+			public int[] CancelIndices = new int[0];
+			public bool IsNoop => ChangeIndices.Length == 0 && CancelIndices.Length == 0;
 		}
 
 		/// <summary>
 		/// Chooses one canonical stop/target pair from SAME OCO only; quantity is merged to that pair.
 		/// Different OCO brackets are never merged into each other to avoid broker-side OCO cascades.
+		/// Index-based so it is immune to null/empty broker OrderId or Oco values.
 		/// </summary>
-		public static KatAtmMergePlan PlanAtmBracketMerge(IEnumerable<KatAtmBracketOrder> orders, int livePositionQuantity)
+		public static KatAtmMergePlan PlanAtmBracketMerge(IList<KatAtmBracketOrder> orders, int livePositionQuantity)
 		{
-			KatAtmMergePlan plan = new KatAtmMergePlan
-			{
-				ChangeIds = Array.Empty<string>(),
-				CancelIds = Array.Empty<string>(),
-			};
+			KatAtmMergePlan plan = new KatAtmMergePlan();
 			if (orders == null || livePositionQuantity <= 0) return plan;
 
-			List<KatAtmBracketOrder> valid = orders.Where(o => o != null && o.Quantity > 0).ToList();
+			List<int> valid = new List<int>();
+			for (int i = 0; i < orders.Count; i++)
+			{
+				if (orders[i] != null && orders[i].Quantity > 0) valid.Add(i);
+			}
 			if (valid.Count == 0) return plan;
 
-			// Group by OCO; only pairs with BOTH stop and target are complete.
-			var groups = valid.GroupBy(o => o.Oco ?? string.Empty).ToList();
-			var complete = groups.Where(g => g.Any(o => o.IsStop) && g.Any(o => !o.IsStop)).ToList();
-			var chosen = complete.Count > 0
-				? complete.OrderByDescending(g => g.Sum(o => o.Quantity)).First()
-				: null;
-			if (chosen == null) return plan;
+			// Group by OCO; only groups with BOTH a stop and a target are complete pairs.
+			var groups = valid.GroupBy(i => orders[i].Oco ?? string.Empty).ToList();
+			var complete = groups
+				.Where(g => g.Any(i => orders[i].IsStop) && g.Any(i => !orders[i].IsStop))
+				.ToList();
+			if (complete.Count == 0) return plan;
+			var chosen = complete.OrderByDescending(g => g.Sum(i => orders[i].Quantity)).First();
 
-			KatAtmBracketOrder stop = chosen.Where(o => o.IsStop).OrderByDescending(o => o.Quantity).ThenBy(o => o.Price).First();
-			KatAtmBracketOrder target = chosen.Where(o => !o.IsStop).OrderByDescending(o => o.Quantity).ThenBy(o => o.Price).First();
+			int keepStop = chosen.Where(i => orders[i].IsStop)
+				.OrderByDescending(i => orders[i].Quantity).ThenBy(i => orders[i].Price).First();
+			int keepTarget = chosen.Where(i => !orders[i].IsStop)
+				.OrderByDescending(i => orders[i].Quantity).ThenBy(i => orders[i].Price).First();
 
-			plan.KeepStopId = stop.Id;
-			plan.KeepTargetId = target.Id;
-			plan.DesiredStopQuantity = Math.Max(livePositionQuantity, stop.Quantity);
-			plan.DesiredTargetQuantity = Math.Max(livePositionQuantity, target.Quantity);
+			plan.KeepStopIndex = keepStop;
+			plan.KeepTargetIndex = keepTarget;
+			plan.DesiredStopQuantity = Math.Max(livePositionQuantity, orders[keepStop].Quantity);
+			plan.DesiredTargetQuantity = Math.Max(livePositionQuantity, orders[keepTarget].Quantity);
 
-			var changes = new List<string>();
-			if (stop.Quantity != plan.DesiredStopQuantity) changes.Add(stop.Id);
-			if (target.Quantity != plan.DesiredTargetQuantity) changes.Add(target.Id);
-			plan.ChangeIds = changes.ToArray();
+			List<int> changes = new List<int>();
+			if (orders[keepStop].Quantity != plan.DesiredStopQuantity) changes.Add(keepStop);
+			if (orders[keepTarget].Quantity != plan.DesiredTargetQuantity) changes.Add(keepTarget);
+			plan.ChangeIndices = changes.ToArray();
 
-			plan.CancelIds = valid
-				.Where(o => o.Id != stop.Id && o.Id != target.Id)
-				.Select(o => o.Id)
-				.ToArray();
+			plan.CancelIndices = valid.Where(i => i != keepStop && i != keepTarget).ToArray();
 			return plan;
 		}
 

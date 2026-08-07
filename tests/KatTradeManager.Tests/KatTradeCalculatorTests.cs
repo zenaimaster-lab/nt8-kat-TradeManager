@@ -84,23 +84,84 @@ namespace KatTradeManager.Tests
 		[Fact]
 		public void PlanAtmBracketMerge_ChoosesLargestCompleteOcoPair_Only()
 		{
-			// stopA(5)+targetA(5) is a full pair; stopB(70) alone is incomplete; targetC(70) alone is incomplete.
+			// pair oco1 (5+5) complete; oco2 stop-only and oco3 target-only are incomplete.
 			var orders = new[]
 			{
-				new KatTradeCalculator.KatAtmBracketOrder { Id = "stopA", Oco = "oco1", IsStop = true, Quantity = 5, Price = 100.0 },
-				new KatTradeCalculator.KatAtmBracketOrder { Id = "targetA", Oco = "oco1", IsStop = false, Quantity = 5, Price = 110.0 },
-				new KatTradeCalculator.KatAtmBracketOrder { Id = "stopB", Oco = "oco2", IsStop = true, Quantity = 70, Price = 99.0 },
-				new KatTradeCalculator.KatAtmBracketOrder { Id = "targetC", Oco = "oco3", IsStop = false, Quantity = 70, Price = 120.0 },
+				new KatTradeCalculator.KatAtmBracketOrder { Oco = "oco1", IsStop = true, Quantity = 5, Price = 100.0 },
+				new KatTradeCalculator.KatAtmBracketOrder { Oco = "oco1", IsStop = false, Quantity = 5, Price = 110.0 },
+				new KatTradeCalculator.KatAtmBracketOrder { Oco = "oco2", IsStop = true, Quantity = 70, Price = 99.0 },
+				new KatTradeCalculator.KatAtmBracketOrder { Oco = "oco3", IsStop = false, Quantity = 70, Price = 120.0 },
 			};
 
 			var plan = KatTradeCalculator.PlanAtmBracketMerge(orders, 70);
 
-			Assert.Equal("stopA", plan.KeepStopId);
-			Assert.Equal("targetA", plan.KeepTargetId);
+			Assert.Equal(0, plan.KeepStopIndex);
+			Assert.Equal(1, plan.KeepTargetIndex);
 			Assert.Equal(70, plan.DesiredStopQuantity);
 			Assert.Equal(70, plan.DesiredTargetQuantity);
-			Assert.Equal(new[] { "stopA", "targetA" }, plan.ChangeIds);
-			Assert.Equal(new[] { "stopB", "targetC" }, plan.CancelIds);
+			Assert.Equal(new[] { 0, 1 }, plan.ChangeIndices);
+			Assert.Equal(new[] { 2, 3 }, plan.CancelIndices);
+		}
+
+		[Fact]
+		public void PlanAtmBracketMerge_ThreeScaleInPairs_ConsolidatesToOnePair()
+		{
+			// User scenario: 3 scale-in entries -> 3 ATM OCO pairs qty 1, live position 4.
+			var orders = new[]
+			{
+				new KatTradeCalculator.KatAtmBracketOrder { Oco = "a", IsStop = true, Quantity = 1, Price = 29524.25 },
+				new KatTradeCalculator.KatAtmBracketOrder { Oco = "a", IsStop = false, Quantity = 1, Price = 29569.25 },
+				new KatTradeCalculator.KatAtmBracketOrder { Oco = "b", IsStop = true, Quantity = 1, Price = 29524.25 },
+				new KatTradeCalculator.KatAtmBracketOrder { Oco = "b", IsStop = false, Quantity = 1, Price = 29569.25 },
+				new KatTradeCalculator.KatAtmBracketOrder { Oco = "c", IsStop = true, Quantity = 1, Price = 29524.25 },
+				new KatTradeCalculator.KatAtmBracketOrder { Oco = "c", IsStop = false, Quantity = 1, Price = 29569.25 },
+			};
+
+			var plan = KatTradeCalculator.PlanAtmBracketMerge(orders, 4);
+
+			Assert.Equal(0, plan.KeepStopIndex);
+			Assert.Equal(1, plan.KeepTargetIndex);
+			Assert.Equal(4, plan.DesiredStopQuantity);
+			Assert.Equal(4, plan.DesiredTargetQuantity);
+			Assert.Equal(new[] { 0, 1 }, plan.ChangeIndices);
+			Assert.Equal(new[] { 2, 3, 4, 5 }, plan.CancelIndices);
+		}
+
+		[Fact]
+		public void PlanAtmBracketMerge_NullOrEmptyOco_StillConsolidates()
+		{
+			// Broker left Oco null/empty: all brackets collapse into one group and must still merge.
+			var orders = new[]
+			{
+				new KatTradeCalculator.KatAtmBracketOrder { Oco = null, IsStop = true, Quantity = 1, Price = 100.0 },
+				new KatTradeCalculator.KatAtmBracketOrder { Oco = "", IsStop = false, Quantity = 1, Price = 110.0 },
+				new KatTradeCalculator.KatAtmBracketOrder { Oco = null, IsStop = true, Quantity = 1, Price = 100.0 },
+				new KatTradeCalculator.KatAtmBracketOrder { Oco = "", IsStop = false, Quantity = 1, Price = 110.0 },
+			};
+
+			var plan = KatTradeCalculator.PlanAtmBracketMerge(orders, 4);
+
+			Assert.False(plan.IsNoop);
+			Assert.Equal(4, plan.DesiredStopQuantity);
+			Assert.Equal(4, plan.DesiredTargetQuantity);
+			Assert.Equal(2, plan.ChangeIndices.Length);
+			Assert.Equal(2, plan.CancelIndices.Length);
+		}
+
+		[Fact]
+		public void PlanAtmBracketMerge_AlreadyCanonical_IsNoop()
+		{
+			var orders = new[]
+			{
+				new KatTradeCalculator.KatAtmBracketOrder { Oco = "a", IsStop = true, Quantity = 4, Price = 100.0 },
+				new KatTradeCalculator.KatAtmBracketOrder { Oco = "a", IsStop = false, Quantity = 4, Price = 110.0 },
+			};
+
+			var plan = KatTradeCalculator.PlanAtmBracketMerge(orders, 4);
+
+			Assert.True(plan.IsNoop);
+			Assert.Empty(plan.ChangeIndices);
+			Assert.Empty(plan.CancelIndices);
 		}
 
 		[Fact]
@@ -108,15 +169,15 @@ namespace KatTradeManager.Tests
 		{
 			var orders = new[]
 			{
-				new KatTradeCalculator.KatAtmBracketOrder { Id = "stop1", Oco = "oco1", IsStop = true, Quantity = 70, Price = 100.0 },
-				new KatTradeCalculator.KatAtmBracketOrder { Id = "stop2", Oco = "oco2", IsStop = true, Quantity = 70, Price = 99.0 },
+				new KatTradeCalculator.KatAtmBracketOrder { Oco = "oco1", IsStop = true, Quantity = 70, Price = 100.0 },
+				new KatTradeCalculator.KatAtmBracketOrder { Oco = "oco2", IsStop = true, Quantity = 70, Price = 99.0 },
 			};
 
 			var plan = KatTradeCalculator.PlanAtmBracketMerge(orders, 70);
 
 			Assert.True(plan.IsNoop);
-			Assert.Empty(plan.ChangeIds);
-			Assert.Empty(plan.CancelIds);
+			Assert.Empty(plan.ChangeIndices);
+			Assert.Empty(plan.CancelIndices);
 		}
 
 		[Fact]
@@ -125,8 +186,8 @@ namespace KatTradeManager.Tests
 			// stop1 in oco1, target1 in oco2 — must NOT pair across OCO.
 			var orders = new[]
 			{
-				new KatTradeCalculator.KatAtmBracketOrder { Id = "stop1", Oco = "oco1", IsStop = true, Quantity = 70, Price = 100.0 },
-				new KatTradeCalculator.KatAtmBracketOrder { Id = "target1", Oco = "oco2", IsStop = false, Quantity = 70, Price = 110.0 },
+				new KatTradeCalculator.KatAtmBracketOrder { Oco = "oco1", IsStop = true, Quantity = 70, Price = 100.0 },
+				new KatTradeCalculator.KatAtmBracketOrder { Oco = "oco2", IsStop = false, Quantity = 70, Price = 110.0 },
 			};
 
 			var plan = KatTradeCalculator.PlanAtmBracketMerge(orders, 70);
