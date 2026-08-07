@@ -921,6 +921,16 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		public KatEmaTimeframe EmaPlace3Timeframe { get; set; }
 		#endregion
 
+		#region HUD Master Toggles
+		[NinjaScriptProperty]
+		[Display(Name="Stop-Limit Enabled", Order=1, GroupName="HUD Master Toggles", Description="Pending StopMarket entries become StopLimit when ON.")]
+		public bool StopLimitEnabled { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="EMA Protect Enabled", Order=2, GroupName="HUD Master Toggles", Description="Enforce EMA Place rules for entries when ON.")]
+		public bool EmaProtectEnabled { get; set; }
+		#endregion
+
 		#region Hotkey Properties
 		[NinjaScriptProperty]
 		[Display(Name="Enable Hotkeys", Order=40, GroupName="Hotkeys")]

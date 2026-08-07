@@ -23,6 +23,19 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.34] — 2026-08-08
+- **Re-audit Trading Profiles — 6 bug fix + 3 improve**:
+  - **Fix1** `SyncCachedValues` trước thiếu sync DailyMaxDD/Profit (chỉ discipline) -> property grid đổi DD/Profit không phản ánh vào cached, breach check dùng stale. Thêm `cachedIsDailyMaxDD/DailyMaxProfit` sync `src/KatTradeManagerUI.cs:182`.
+  - **Fix2** Switch account khi profile target chưa connected để lại `account` cũ (order vẫn đi account cũ). `ApplyTradingProfile:628` giờ `SwitchAccount(null)` + persist `AccountName`, watchdog auto-recover đúng, không stale trade.
+  - **Fix3** ATM missing: `HasAtmTemplate(atm)` thay `File.Exists` trực tiếp, add missing ATM vào dropdown để HUD hiển thị đúng, giữ orange warning không bị green overwrite `ApplyTradingProfile:676`.
+  - **Fix4** Stop-Limit/EmaProtect master toggle trước volatile-only, không persist sau restart -> profile highlight luôn false sau restart nếu profile STOP=ON. Thêm global `StopLimitEnabled/EmaProtectEnabled` props `HUD Master Toggles` `src/KatTradeManager.Properties.cs:923`, `SetDefaults` `DataLoaded` `SyncCachedValues` + HUD click persist + `ApplyTradingProfile` set cả property + migration cho chart cũ. `UpdateStopLimit/EmaPlaceButton` giờ đọc cached từ property.
+  - **Fix5** Highlight sau restart: cũ `active==-1` thì không highlight dù chart được save với single profile values. Giờ `UpdateTradingProfileButtons:495` tính `uniqueMatch` — nếu `active==-1` và đúng 1 profile khớp equality thì highlight unica đó; nếu 6 profile giống nhau (fresh default) thì 0 highlight (tránh all-ON). Manual tweak diverge thì OFF, `uniqueMatch` tự phát hiện nếu edit tay khớp 1 profile.
+  - **Fix6** Debounce ATM/account filter: profile account bị `AccountFilter` loại vẫn biến mất sau rebuild. `CreateWpfControls:1333` giờ thêm saved account vào `accSelector` dù filtered, giữ visible.
+  - **Improve1** `UpdateTradingProfileButtons` uniqueMatch giúp chart template save/load giữ highlight đúng, không cần re-click.
+  - **Improve2** Row colors đã đổi R1 rose `#872341` distinct khỏi ATM amber `#B45A14` và Daily purple.
+  - **Improve3** `ApplyTradingProfile` đã set `StopLimitEnabled/EmaProtectEnabled` property + cached, đảm bảo `IsTradingProfileActive` so sánh cached (đã sync từ property) chính xác.
+  - Verify: 169/169 tests pass; CompileCheck 0 errors; deploy OK.
+  - Graphify: `KatTradeManager.StopLimitEnabled/EmaProtectEnabled`, `KatTradeManagerUI.SyncCachedValues` daily sync.
 ### [v1.33] — 2026-08-08
 - **Trading Profile presets P1–P6 — 6 one-click full-config switches at top of HUD**:
   - Vị trí: 2 rows ×3 cols đặt ở trên đầu HUD, trên dòng account selector (`sec1Panel` top), mỗi button cao 22 (= ATM row) font 10, OFF gray `#2D3241` `profileOffBg`, Row0 (P1-P3) ON teal `#146E6E` `20,110,110`, Row1 (P4-P6) ON rose `#872341` `135,35,65` (`profileRowOnBgs:41`), mỗi dòng cùng màu khi ON.

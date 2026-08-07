@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 1.33 (2026-08-08)
+ * Version: 1.34 (2026-08-08)
  * NinjaTrader 8 TradeManager Indicator
  */
  
@@ -69,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "1.33";
+		public const string VERSION = "1.34";
 		public const string RELEASE_DATE = "2026-08-08";
 
 		private volatile Account account;
@@ -480,6 +480,10 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				TradingProfile6LossTimesMaxLosses   = 3;
 				TradingProfile6LossTimesLockMinutes = 30;
 
+				// HUD Master Toggles Defaults
+				StopLimitEnabled                    = false;
+				EmaProtectEnabled                   = true;
+
 				// Hotkey Defaults
 				HotkeyEnabled                       = true;
 				HotkeyBuyEma34                      = Key.None;
@@ -547,6 +551,9 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				cachedTw3StartMinute = TradingWindow3StartMinute;
 				cachedTw3EndHour = TradingWindow3EndHour;
 				cachedTw3EndMinute = TradingWindow3EndMinute;
+				// HUD master toggles
+				cachedIsStopLimit = StopLimitEnabled;
+				cachedIsEmaPlace = EmaProtectEnabled;
 				// Migration: pre-v1.25 instances have all discipline props 0/false -> force ON defaults
 				if (LossTimesMaxLosses == 0 && LossTimesLockMinutes == 0 && !SizingProtectEnabled && !SlPullProtectEnabled && !LossDcaProtectEnabled && !TpEarlyProtectEnabled && !LossTimesProtectEnabled && !TimingWindowsProtectEnabled)
 				{
@@ -574,6 +581,9 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					if (string.IsNullOrWhiteSpace(TradingProfile4Account)) TradingProfile4Account = "Sim101";
 					if (string.IsNullOrWhiteSpace(TradingProfile5Account)) TradingProfile5Account = "Sim101";
 					if (string.IsNullOrWhiteSpace(TradingProfile6Account)) TradingProfile6Account = "Sim101";
+					// HUD master toggles migration for old charts (default Ema ON, StopLimit OFF)
+					StopLimitEnabled = false; EmaProtectEnabled = true;
+					cachedIsStopLimit = false; cachedIsEmaPlace = true;
 				}
 				isRenkoChart = BarsPeriod.BarsPeriodType == BarsPeriodType.Renko
 

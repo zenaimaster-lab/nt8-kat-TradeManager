@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.33 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.34 (2026-08-08) */
 
 using System;
 using System.Collections.Generic;
@@ -179,6 +179,10 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			cachedHudDragEnabled = HudDragEnabled;
 			if (wasHudDragEnabled && !cachedHudDragEnabled && isHudDragging)
 				StopHudDrag();
+			cachedIsDailyMaxDD = DailyMaxDDEnabled;
+			cachedDailyMaxDD = DailyMaxDD;
+			cachedIsDailyMaxProfit = DailyMaxProfitEnabled;
+			cachedDailyMaxProfit = DailyMaxProfit;
 			cachedSizingProtect = SizingProtectEnabled;
 			cachedSlPullProtect = SlPullProtectEnabled;
 			cachedLossDcaProtect = LossDcaProtectEnabled;
@@ -202,6 +206,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			cachedTw3StartMinute = TradingWindow3StartMinute;
 			cachedTw3EndHour = TradingWindow3EndHour;
 			cachedTw3EndMinute = TradingWindow3EndMinute;
+			cachedIsStopLimit = StopLimitEnabled;
+			cachedIsEmaPlace = EmaProtectEnabled;
 		}
 
 		// "None" = trade without ATM, matching NT8 Chart Trader's own None selection. Empty cachedAtmTemplate
@@ -480,16 +486,18 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private void UpdateTradingProfileButtons()
 		{
 			if (tradingProfileButtons == null) return;
-			// stale active clears when manual tweak diverges
-			if (activeTradingProfile >= 0 && activeTradingProfile < 6 && !IsTradingProfileActive(activeTradingProfile))
+			// after restart active==-1 but chart may have been saved with single profile's values -> highlight unique match
+			int uniqueMatch = -1;
+			if (activeTradingProfile == -1)
 			{
-				// keep highlight briefly until next tick still shows? ponytail: clear lazily on next Update
-				// if equality false, we will show OFF this cycle, but keep index until explicit new apply
+				int matches = 0;
+				for (int j = 0; j < 6; j++) if (IsTradingProfileActive(j)) { matches++; uniqueMatch = j; }
+				if (matches != 1) uniqueMatch = -1;
 			}
 			for (int i = 0; i < tradingProfileButtons.Length; i++)
 			{
 				if (tradingProfileButtons[i] == null) continue;
-				bool on = activeTradingProfile == i && IsTradingProfileActive(i);
+				bool on = (activeTradingProfile == i && IsTradingProfileActive(i)) || (activeTradingProfile == -1 && uniqueMatch == i);
 				if (on)
 				{
 					int row = i / 3; // 0 for P1-P3, 1 for P4-P6
@@ -552,9 +560,9 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			cachedBufferTicks = buf;
 
 			bool isStop = GetTradingProfileStopLimit(idx);
-			cachedIsStopLimit = isStop;
+			cachedIsStopLimit = isStop; StopLimitEnabled = isStop;
 			bool isEma = GetTradingProfileEmaProtect(idx);
-			cachedIsEmaPlace = isEma;
+			cachedIsEmaPlace = isEma; EmaProtectEnabled = isEma;
 
 			// Daily risk — enabled + values
 			bool ddEn = GetTradingProfileDailyMaxDDEnabled(idx);
@@ -620,7 +628,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				}
 				else
 				{
-					// account not connected yet — still persist name for watchdog auto-recovery
+					// account not connected yet — clear live account so no orders go to stale account, persist name for watchdog auto-recovery
+					SwitchAccount(null);
 					AccountName = acc;
 					if (accSelector != null)
 					{
@@ -666,7 +675,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			UpdateTradingProfileButtons();
 			UpdateAtmSetButtons();
 			// if ATM was missing we already showed orange status — keep it, don't overwrite with green
-			bool atmMissing = !string.IsNullOrWhiteSpace(atm) && atmSelector != null && !System.IO.File.Exists(System.IO.Path.Combine(NinjaTrader.Core.Globals.UserDataDir, "templates", "AtmStrategy", atm + ".xml"));
+			bool atmMissing = !string.IsNullOrWhiteSpace(atm) && !HasAtmTemplate(atm);
 			if (!atmMissing)
 				ShowHudStatus(string.Format("Profile {0} applied: {1} / {2}", GetTradingProfileName(idx), string.IsNullOrWhiteSpace(acc) ? "(no acc)" : acc, string.IsNullOrWhiteSpace(atm) ? "None" : atm), Brushes.LightGreen);
 		}
@@ -1648,6 +1657,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			btnStopLimit.Click += (s, ev) =>
 			{
 				cachedIsStopLimit = !cachedIsStopLimit;
+				StopLimitEnabled = cachedIsStopLimit;
 				btnStopLimit.Content = cachedIsStopLimit ? "Stop-Limit: ON" : "Stop-Limit: OFF";
 				btnStopLimit.Background = cachedIsStopLimit ? stopLimitOnBg : toggleOffBg;
 				btnStopLimit.Foreground = cachedIsStopLimit ? Brushes.White : Brushes.LightGray;
@@ -1662,6 +1672,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			btnEmaPlace.Click += (s, ev) =>
 			{
 				cachedIsEmaPlace = !cachedIsEmaPlace;
+				EmaProtectEnabled = cachedIsEmaPlace;
 				btnEmaPlace.Content = cachedIsEmaPlace ? "Ema protect: ON" : "Ema protect: OFF";
 				btnEmaPlace.Background = cachedIsEmaPlace ? emaPlaceOnBg : toggleOffBg;
 				btnEmaPlace.Foreground = cachedIsEmaPlace ? Brushes.White : Brushes.LightGray;
