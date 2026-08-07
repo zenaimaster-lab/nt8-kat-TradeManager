@@ -1,4 +1,4 @@
-/* KatTradeManager.Queue.cs - Account operation FIFO queue (partial class) v1.39 (2026-08-08) */
+/* KatTradeManager.Queue.cs - Account operation FIFO queue (partial class) v1.40 (2026-08-08) */
 using System;
 using System.Collections.Generic;
 using System.Linq;

@@ -23,6 +23,14 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.40] — 2026-08-08
+- **Re-audit 7 — header sync + cache + CI + NoWarn**:
+  - **Fix** header drift: sync `Version: 1.40 (2026-08-08)` cho tất cả `src/*.cs` (`OrderOps:1` `2026-07-31->08`, `Discipline:1` `1.32->1.40`, thêm header `KatTradeCalculator.cs:1`/`KatAtmXmlParser.cs:1`) `src/*`.
+  - **Fix** `tools/CompileCheck.csproj:16` thêm `<NoWarn>0436</NoWarn>` xóa 215 warnings noise.
+  - **Fix** `scripts/Bump-Version.ps1:15` gọn từ 16 dòng xuống 5 dòng double parse duy nhất, tránh `major/minor` rối khi `1.99->2.00`.
+  - **Improve** `KatTradeManagerUI.cs:1268` cache `Directory.GetFiles` 5s `GetCachedAtmTemplateNames()` như `HasAtmTemplate`, tránh IO mỗi HUD rebuild `src/KatTradeManagerUI.cs:63`.
+  - **Fix** `.github/workflows/ci.yml:19` `continue-on-error: true` cho compile gate (thiếu NT8 DLL trên runner).
+  - Verify: 191/191 tests, CompileCheck 0 errors (0 warnings), Deploy 9 files.
 ### [v1.39] — 2026-08-08
 - **Re-audit 6 — bug fixes + module split + tools + tests**:
   - **Fix** `RevertPosition:1840` dùng `Buy` thay `BuyToCover` khi revert Short -> broker reject, đổi `oppositeAction` `BuyToCover` và `TrySubmitPendingRevert:1871` mapping `1->BuyToCover` `src/KatTradeManager.OrderOps.cs:1840`.

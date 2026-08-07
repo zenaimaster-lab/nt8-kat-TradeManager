@@ -1,16 +1,16 @@
 # Graph Report - nt8-kat-TradeManager  (2026-08-07)
 
 ## Corpus Check
-- 37 files · ~57,271 words
+- 37 files · ~57,323 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 686 nodes · 1277 edges · 40 communities (17 shown, 23 thin omitted)
+- 687 nodes · 1281 edges · 40 communities (17 shown, 23 thin omitted)
 - Extraction: 87% EXTRACTED · 13% INFERRED · 0% AMBIGUOUS · INFERRED: 163 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `ce758514`
+- Built from commit: `1479eb42`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -48,7 +48,7 @@
 
 ## God Nodes (most connected - your core abstractions)
 1. `KatTradeManager` - 97 edges
-2. `KatTradeManager` - 90 edges
+2. `KatTradeManager` - 93 edges
 3. `KatTradeManager` - 49 edges
 4. `KatTradeCalculator` - 48 edges
 5. `KatCalculatorGapTests` - 45 edges
@@ -88,7 +88,7 @@ Nodes (12): Account, AtmLevels, Border, ComboBox, DispatcherTimer, EMA, Grid, In
 Cohesion: 0.07
 Nodes (26): AccountOperationType, Action, bool, DateTime, double, int, List, MarketPosition (+18 more)
 
-### Community 13 - "Community 13"
+### Community 14 - "Community 14"
 Cohesion: 0.15
 Nodes (5): AtmTemplateNameConverter, KatTradeManager, NinjaTrader.NinjaScript.Indicators, NinjaTrader.NinjaScript.Indicators.KAT, TypeConverter
 
@@ -108,12 +108,12 @@ Nodes (3): KatTradeManager, NinjaTrader.NinjaScript.Indicators, NinjaTrader.Ninj
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `KatTradeManager` connect `Community 0` to `Community 1`, `Community 11`, `Community 4`, `Community 5`?**
+- **Why does `KatTradeManager` connect `Community 0` to `Community 11`, `Community 4`, `Community 5`?**
   _High betweenness centrality (0.108) - this node is a cross-community bridge._
-- **Why does `string` connect `Community 5` to `Community 0`, `Community 1`, `Community 2`, `Community 4`, `Community 13`?**
-  _High betweenness centrality (0.095) - this node is a cross-community bridge._
 - **Why does `KatTradeManager` connect `Community 1` to `Community 0`, `Community 4`, `Community 5`?**
-  _High betweenness centrality (0.093) - this node is a cross-community bridge._
+  _High betweenness centrality (0.096) - this node is a cross-community bridge._
+- **Why does `string` connect `Community 5` to `Community 0`, `Community 1`, `Community 2`, `Community 4`, `Community 14`?**
+  _High betweenness centrality (0.094) - this node is a cross-community bridge._
 - **What connects `NinjaTrader.NinjaScript.Indicators.KAT`, `Account`, `Grid` to the rest of the system?**
   _57 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**

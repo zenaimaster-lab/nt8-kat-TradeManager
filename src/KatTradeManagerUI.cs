@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.39 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.40 (2026-08-08) */
 
 using System;
 using System.Collections.Generic;
@@ -58,6 +58,9 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private readonly SolidColorBrush offAllBg = new SolidColorBrush(Color.FromRgb(55, 20, 85));  // Un-Discipline - same dark purple
 		private bool isHotkeyAttached = false;
 		private Window hotkeyWindow; // cached at attach — chart can move to a new window before detach
+		private static readonly object atmFileCacheLock = new object();
+		private static List<string> cachedAtmFileNames;
+		private static DateTime cachedAtmFileNamesUtc = DateTime.MinValue;
 		private bool hasHudDragPosition;
 		private double hudDragLeft;
 		private double hudDragTop;
@@ -74,6 +77,26 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private UIElement hudDragEventHost;
 		private bool isHudDragging;
 		private const double DefaultHudLeft = 10;
+
+		private List<string> GetCachedAtmTemplateNames()
+		{
+			lock (atmFileCacheLock)
+			{
+				if (cachedAtmFileNames != null && (DateTime.UtcNow - cachedAtmFileNamesUtc).TotalSeconds < 5)
+					return new List<string>(cachedAtmFileNames);
+			}
+			string atmDir = System.IO.Path.Combine(NinjaTrader.Core.Globals.UserDataDir, "templates", "AtmStrategy");
+			List<string> result = new List<string>();
+			try
+			{
+				if (System.IO.Directory.Exists(atmDir))
+					foreach (var f in System.IO.Directory.GetFiles(atmDir, "*.xml"))
+						result.Add(System.IO.Path.GetFileNameWithoutExtension(f));
+				result.Sort(StringComparer.OrdinalIgnoreCase);
+			} catch {}
+			lock (atmFileCacheLock) { cachedAtmFileNames = new List<string>(result); cachedAtmFileNamesUtc = DateTime.UtcNow; }
+			return result;
+		}
 
 		private void StartPanelWatchdog()
 		{
@@ -1262,17 +1285,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				HorizontalAlignment = HorizontalAlignment.Stretch
 			};
 			atmSelector.Items.Add(NoAtmTemplateLabel); // first item, also the fallback when no template matches
-			string atmDir = System.IO.Path.Combine(NinjaTrader.Core.Globals.UserDataDir, "templates", "AtmStrategy");
-			if (System.IO.Directory.Exists(atmDir))
-			{
-				var files = System.IO.Directory.GetFiles(atmDir, "*.xml");
-				Array.Sort(files, StringComparer.OrdinalIgnoreCase); // deterministic order -> deterministic default selection
-				foreach (var file in files)
-				{
-					string name = System.IO.Path.GetFileNameWithoutExtension(file);
-					atmSelector.Items.Add(name);
-				}
-			}
+			foreach (var name in GetCachedAtmTemplateNames())
+				atmSelector.Items.Add(name);
 			atmSelector.SelectedIndex = 0;
 			bool atmFound = false;
 			if (!string.IsNullOrEmpty(DefaultAtmTemplate))
