@@ -505,6 +505,92 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return !isCaptured || currentSessionStartUtc > lastSessionStartUtc;
 		}
 
+		// ponytail: discipline — trading windows
+		public struct KatTradingWindow
+		{
+			public bool Enabled;
+			public int StartHour;
+			public int StartMinute;
+			public int EndHour;
+			public int EndMinute;
+			public TimeSpan Start => new TimeSpan(StartHour, StartMinute, 0);
+			public TimeSpan End => new TimeSpan(EndHour, EndMinute, 0);
+		}
+
+		public static DateTime GetNyTime(DateTime utc)
+		{
+			TimeZoneInfo nyZone;
+			try { nyZone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"); }
+			catch { nyZone = TimeZoneInfo.Local; }
+			return TimeZoneInfo.ConvertTimeFromUtc(utc.Kind == DateTimeKind.Utc ? utc : utc.ToUniversalTime(), nyZone);
+		}
+
+		public static bool IsWithinTradingWindows(TimeSpan nyTimeOfDay, IList<KatTradingWindow> windows)
+		{
+			if (windows == null || windows.Count == 0) return false;
+			bool anyEnabled = false;
+			foreach (var w in windows)
+			{
+				if (!w.Enabled) continue;
+				anyEnabled = true;
+				TimeSpan start = w.Start;
+				TimeSpan end = w.End;
+				if (start == end) continue; // zero-length window = disabled
+				bool inside;
+				if (start < end) inside = nyTimeOfDay >= start && nyTimeOfDay < end;
+				else inside = nyTimeOfDay >= start || nyTimeOfDay < end; // overnight
+				if (inside) return true;
+			}
+			return !anyEnabled ? false : false;
+		}
+
+		public static bool IsSizingBlocked(bool hasPosition, bool isLongPosition, KatOrderAction action, int positionQty, int initialQty, int orderQty)
+		{
+			if (!hasPosition) return false;
+			if (initialQty <= 0) return false;
+			bool isScaleIn = isLongPosition ? action == KatOrderAction.Buy : action == KatOrderAction.Sell;
+			if (!isScaleIn) return false;
+			if (positionQty >= initialQty) return true;
+			if (orderQty <= 0) orderQty = 1;
+			return positionQty + orderQty > initialQty;
+		}
+
+		public static bool IsSlPullBlocked(bool isLong, double initialSl, double newSl, double tickSize)
+		{
+			if (initialSl <= 0 || newSl <= 0) return false;
+			double tol = (tickSize > 0 ? tickSize : 0.01) * 0.5;
+			if (isLong) return newSl < initialSl - tol;
+			return newSl > initialSl + tol;
+		}
+
+		public static bool IsLossDcaBlocked(bool isLong, double entryPrice, double curPrice, double tickSize)
+		{
+			if (entryPrice <= 0 || curPrice <= 0) return false;
+			double tol = (tickSize > 0 ? tickSize : 0.01) * 0.5;
+			if (isLong) return curPrice < entryPrice - tol;
+			return curPrice > entryPrice + tol;
+		}
+
+		public static bool IsScaleIn(bool isLong, KatOrderAction action)
+		{
+			return isLong ? action == KatOrderAction.Buy : action == KatOrderAction.Sell;
+		}
+
+		public static bool IsScaleOut(bool isLong, KatOrderAction action)
+		{
+			return isLong ? action == KatOrderAction.Sell : action == KatOrderAction.Buy;
+		}
+
+		public static bool IsLossTimesLockActive(DateTime lockUntilUtc, DateTime nowUtc)
+		{
+			return lockUntilUtc != DateTime.MinValue && nowUtc < lockUntilUtc;
+		}
+
+		public static bool ShouldTriggerLossLock(int consecutiveLosses, int maxLosses)
+		{
+			return maxLosses > 0 && consecutiveLosses >= maxLosses;
+		}
+
 		/// <summary>
 		/// Calculates UTC timestamp corresponding to 6:00 PM NY time (Eastern Time) of active trading session.
 		/// </summary>

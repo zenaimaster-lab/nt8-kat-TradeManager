@@ -1205,6 +1205,14 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				return false;
 			}
 
+			int discQty = atmQuantity > 0 ? atmQuantity : DefaultQuantity;
+			if (TryRejectDisciplineForEntry(action, discQty, triggerPrice, out string discReason))
+			{
+				Print(string.Format("[KatTradeManager] Order REJECTED by Discipline: {0}", discReason));
+				ShowHudStatus(discReason, System.Windows.Media.Brushes.OrangeRed);
+				return false;
+			}
+
 			try
 
 			{
@@ -1418,6 +1426,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				ProcessAtmScaleInUpdate(observed);
 				ScheduleAtmBracketMerge();
 			}
+			try { UpdateDisciplineFromPosition(); } catch {}
+			try { EvaluateDisciplineLockVisual(); } catch {}
 		}
 
 		private void SchedulePendingRevertRetry()
@@ -1501,6 +1511,12 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			}
 			try
 			{
+				if (TryRejectDisciplineForClose(out string discCloseReason))
+				{
+					Print(string.Format("[KatTradeManager] Close REJECTED by Discipline: {0}", discCloseReason));
+					ShowHudStatus(discCloseReason, System.Windows.Media.Brushes.OrangeRed);
+					return;
+				}
 				if (System.Threading.Volatile.Read(ref closeOperationQueued) != 0
 					|| IsCloseInFlight()
 					|| IsAccountCloseInFlight())
@@ -1537,6 +1553,12 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			}
 			try
 			{
+				if (TryRejectDisciplineForClose(out string discFlatReason))
+				{
+					Print(string.Format("[KatTradeManager] Flatten REJECTED by Discipline: {0}", discFlatReason));
+					ShowHudStatus(discFlatReason, System.Windows.Media.Brushes.OrangeRed);
+					return;
+				}
 				if (System.Threading.Volatile.Read(ref closeOperationQueued) != 0
 					|| IsCloseInFlight()
 					|| IsAccountCloseInFlight())
@@ -1666,12 +1688,18 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			if (!hasFilledPosition && TryRejectEmaProtect(action, mktCheckPrice))
 				return false;
 
+			int mktQty = quantityOverride > 0 ? quantityOverride : (atmQuantity > 0 ? atmQuantity : DefaultQuantity);
+			if (TryRejectDisciplineForEntry(action, mktQty, mktCheckPrice, out string discMktReason))
+			{
+				Print(string.Format("[KatTradeManager] Market Order REJECTED by Discipline: {0}", discMktReason));
+				ShowHudStatus(discMktReason, System.Windows.Media.Brushes.OrangeRed);
+				return false;
+			}
+
 			try
 
 			{
-				int qty = quantityOverride > 0
-					? quantityOverride
-					: (atmQuantity > 0 ? atmQuantity : DefaultQuantity);
+				int qty = mktQty;
 				// NinjaTrader ATM contract: CreateOrder name MUST be "Entry".
 				// A custom name leaves StartAtmStrategy stuck at Initialized.
 				string entryName = HasAtmTemplate(cachedAtmTemplate) ? "Entry" : (action == OrderAction.Buy ? "MarketBuy" : "MarketSell");
@@ -1732,6 +1760,13 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				{
 					Print(string.Format("[KatTradeManager] BE skipped: stop {0} invalid vs current market {1}.", bePrice, livePrice));
 					ShowHudStatus(string.Format("BE skipped: stop {0} invalid", bePrice), System.Windows.Media.Brushes.OrangeRed);
+					return;
+				}
+
+				if (TryRejectDisciplineForSlMove(bePrice, out string beDiscReason))
+				{
+					Print(string.Format("[KatTradeManager] BE REJECTED by Discipline: {0}", beDiscReason));
+					ShowHudStatus(beDiscReason, System.Windows.Media.Brushes.OrangeRed);
 					return;
 				}
 
@@ -2027,6 +2062,13 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				{
 					Print(string.Format("[KatTradeManager] Swing SL skipped: {0} invalid vs current market {1}.", targetPrice, livePrice));
 					ShowHudStatus(string.Format("SL skipped: stop {0} invalid", targetPrice), System.Windows.Media.Brushes.OrangeRed);
+					return;
+				}
+
+				if (TryRejectDisciplineForSlMove(targetPrice, out string slDiscReason))
+				{
+					Print(string.Format("[KatTradeManager] SL shift REJECTED by Discipline: {0}", slDiscReason));
+					ShowHudStatus(slDiscReason, System.Windows.Media.Brushes.OrangeRed);
 					return;
 				}
 

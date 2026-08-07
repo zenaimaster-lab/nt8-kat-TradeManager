@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 1.24 (2026-08-06)
+ * Version: 1.25 (2026-08-07)
  * NinjaTrader 8 TradeManager Indicator
  */
  
@@ -69,8 +69,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "1.24";
-		public const string RELEASE_DATE = "2026-08-06";
+		public const string VERSION = "1.25";
+		public const string RELEASE_DATE = "2026-08-07";
 
 		private volatile Account account;
 		private Account subscribedAccount;
@@ -106,6 +106,31 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 		// Pending stop order mode (default OFF = StopMarket)
 		private volatile bool cachedIsStopLimit = false;
+
+		// Discipline Protects cached toggles (default ON)
+		private volatile bool cachedSizingProtect = true;
+		private volatile bool cachedSlPullProtect = true;
+		private volatile bool cachedLossDcaProtect = true;
+		private volatile bool cachedTpEarlyProtect = true;
+		private volatile bool cachedLossTimesProtect = true;
+		private volatile bool cachedTimingProtect = true;
+		private volatile int cachedLossTimesMaxLosses = 3;
+		private volatile int cachedLossTimesLockMinutes = 30;
+		private volatile bool cachedTw1Enabled = true;
+		private volatile int cachedTw1StartHour = 2;
+		private volatile int cachedTw1StartMinute = 0;
+		private volatile int cachedTw1EndHour = 15;
+		private volatile int cachedTw1EndMinute = 0;
+		private volatile bool cachedTw2Enabled = false;
+		private volatile int cachedTw2StartHour = 12;
+		private volatile int cachedTw2StartMinute = 0;
+		private volatile int cachedTw2EndHour = 13;
+		private volatile int cachedTw2EndMinute = 0;
+		private volatile bool cachedTw3Enabled = false;
+		private volatile int cachedTw3StartHour = 0;
+		private volatile int cachedTw3StartMinute = 0;
+		private volatile int cachedTw3EndHour = 0;
+		private volatile int cachedTw3EndMinute = 0;
 
 		// MERGE scale-ins use plain entry orders, then resize first ATM bracket after fills.
 		private sealed class AtmScaleInState
@@ -289,6 +314,33 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				DailyRiskSet6MaxDD                  = 2000.0;
 				DailyRiskSet6MaxProfit              = 5000.0;
 
+				// Discipline Protects Defaults (all ON)
+				SizingProtectEnabled                = true;
+				SlPullProtectEnabled                = true;
+				LossDcaProtectEnabled               = true;
+				TpEarlyProtectEnabled               = true;
+				LossTimesProtectEnabled             = true;
+				TimingWindowsProtectEnabled         = true;
+				LossTimesMaxLosses                  = 3;
+				LossTimesLockMinutes                = 30;
+
+				// Trading Windows Defaults (NY time)
+				TradingWindow1Enabled               = true;
+				TradingWindow1StartHour             = 2;
+				TradingWindow1StartMinute           = 0;
+				TradingWindow1EndHour               = 15;
+				TradingWindow1EndMinute             = 0;
+				TradingWindow2Enabled               = false;
+				TradingWindow2StartHour             = 12;
+				TradingWindow2StartMinute           = 0;
+				TradingWindow2EndHour               = 13;
+				TradingWindow2EndMinute             = 0;
+				TradingWindow3Enabled               = false;
+				TradingWindow3StartHour             = 0;
+				TradingWindow3StartMinute           = 0;
+				TradingWindow3EndHour               = 0;
+				TradingWindow3EndMinute             = 0;
+
 				// EMA Place Filter Defaults
 
 				EmaPlace1Enabled                    = true;
@@ -344,6 +396,30 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				cachedDailyMaxDD = DailyMaxDD;
 				cachedIsDailyMaxProfit = DailyMaxProfitEnabled;
 				cachedDailyMaxProfit = DailyMaxProfit;
+				// Discipline protects cache from persisted properties (default ON)
+				cachedSizingProtect = SizingProtectEnabled;
+				cachedSlPullProtect = SlPullProtectEnabled;
+				cachedLossDcaProtect = LossDcaProtectEnabled;
+				cachedTpEarlyProtect = TpEarlyProtectEnabled;
+				cachedLossTimesProtect = LossTimesProtectEnabled;
+				cachedTimingProtect = TimingWindowsProtectEnabled;
+				cachedLossTimesMaxLosses = Math.Max(1, LossTimesMaxLosses);
+				cachedLossTimesLockMinutes = Math.Max(1, LossTimesLockMinutes);
+				cachedTw1Enabled = TradingWindow1Enabled;
+				cachedTw1StartHour = TradingWindow1StartHour;
+				cachedTw1StartMinute = TradingWindow1StartMinute;
+				cachedTw1EndHour = TradingWindow1EndHour;
+				cachedTw1EndMinute = TradingWindow1EndMinute;
+				cachedTw2Enabled = TradingWindow2Enabled;
+				cachedTw2StartHour = TradingWindow2StartHour;
+				cachedTw2StartMinute = TradingWindow2StartMinute;
+				cachedTw2EndHour = TradingWindow2EndHour;
+				cachedTw2EndMinute = TradingWindow2EndMinute;
+				cachedTw3Enabled = TradingWindow3Enabled;
+				cachedTw3StartHour = TradingWindow3StartHour;
+				cachedTw3StartMinute = TradingWindow3StartMinute;
+				cachedTw3EndHour = TradingWindow3EndHour;
+				cachedTw3EndMinute = TradingWindow3EndMinute;
 				isRenkoChart = BarsPeriod.BarsPeriodType == BarsPeriodType.Renko
 
 				               || (BarsPeriod.BarsPeriodTypeName != null && BarsPeriod.BarsPeriodTypeName.IndexOf("Renko", StringComparison.OrdinalIgnoreCase) >= 0)

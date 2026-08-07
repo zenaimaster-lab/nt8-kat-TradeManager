@@ -1,16 +1,16 @@
-# Graph Report - nt8-kat-TradeManager  (2026-08-06)
+# Graph Report - nt8-kat-TradeManager  (2026-08-07)
 
 ## Corpus Check
-- 32 files · ~43,655 words
+- 33 files · ~48,011 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 568 nodes · 967 edges · 33 communities (15 shown, 18 thin omitted)
-- Extraction: 90% EXTRACTED · 10% INFERRED · 0% AMBIGUOUS · INFERRED: 101 edges (avg confidence: 0.8)
+- 602 nodes · 1054 edges · 36 communities (16 shown, 20 thin omitted)
+- Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 128 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `8ca6886a`
+- Built from commit: `0f805c23`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -31,7 +31,6 @@
 - [[_COMMUNITY_Community 13|Community 13]]
 - [[_COMMUNITY_Community 14|Community 14]]
 - [[_COMMUNITY_Community 15|Community 15]]
-- [[_COMMUNITY_Community 16|Community 16]]
 - [[_COMMUNITY_Community 17|Community 17]]
 - [[_COMMUNITY_Community 18|Community 18]]
 - [[_COMMUNITY_Community 19|Community 19]]
@@ -39,18 +38,21 @@
 - [[_COMMUNITY_Community 21|Community 21]]
 - [[_COMMUNITY_Community 22|Community 22]]
 - [[_COMMUNITY_Community 23|Community 23]]
+- [[_COMMUNITY_Community 24|Community 24]]
+- [[_COMMUNITY_Community 25|Community 25]]
+- [[_COMMUNITY_Community 26|Community 26]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `KatTradeManager` - 96 edges
-2. `KatTradeManager` - 58 edges
+2. `KatTradeManager` - 61 edges
 3. `KatTradeManager` - 49 edges
-4. `KatCalculatorGapTests` - 45 edges
-5. `KatTradeCalculator` - 38 edges
+4. `KatTradeCalculator` - 47 edges
+5. `KatCalculatorGapTests` - 45 edges
 6. `KatOrderLifecycleTests` - 30 edges
 7. `KatTradeCalculatorTests` - 22 edges
-8. `KatAccountFilterSwingSessionTests` - 20 edges
-9. `KatFreezeTrailTests` - 17 edges
-10. `KatRenkoAndHalfCandleTests` - 14 edges
+8. `KatTradeManager` - 20 edges
+9. `KatAccountFilterSwingSessionTests` - 20 edges
+10. `KatFreezeTrailTests` - 17 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `KatTradeManager` --references--> `string`  [EXTRACTED]
@@ -64,51 +66,51 @@
 - `KatTradeManager` --references--> `DateTime`  [EXTRACTED]
   KatTradeManager.cs → tests/KatTradeManager.Tests/KatEntryShiftTests.cs
 
-## Communities (33 total, 18 thin omitted)
+## Communities (36 total, 20 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.05
-Nodes (25): Account, AtmLevels, Border, Brush, Button, Canvas, ComboBox, DispatcherTimer (+17 more)
-
-### Community 1 - "Community 1"
-Cohesion: 0.09
+Cohesion: 0.08
 Nodes (3): OrderAction, Queue, KatTradeManager
 
-### Community 4 - "Community 4"
+### Community 1 - "Community 1"
 Cohesion: 0.07
-Nodes (21): AccountOperationType, Action, bool, int, List, AtmScaleInState, NinjaTrader.NinjaScript.Indicators, NinjaTrader.NinjaScript.Indicators.KAT (+13 more)
+Nodes (12): Brush, Button, Canvas, IInputElement, Point, SolidColorBrush, KatTradeManager, NinjaTrader.NinjaScript.Indicators (+4 more)
 
-### Community 6 - "Community 6"
+### Community 2 - "Community 2"
+Cohesion: 0.05
+Nodes (31): AccountOperationType, Action, bool, DateTime, double, int, List, MarketPosition (+23 more)
+
+### Community 5 - "Community 5"
 Cohesion: 0.1
-Nodes (9): DateTime, double, KatEntryShiftTests, KatTradeManager.Tests, OrderType, FreezeExitCapture, KatTradeManager, NinjaTrader.NinjaScript.Indicators (+1 more)
+Nodes (12): Account, AtmLevels, Border, ComboBox, DispatcherTimer, EMA, Grid, Indicator (+4 more)
 
-### Community 10 - "Community 10"
-Cohesion: 0.25
-Nodes (3): KatTradeManager, NinjaTrader.NinjaScript.Indicators, NinjaTrader.NinjaScript.Indicators.KAT
-
-### Community 18 - "Community 18"
+### Community 20 - "Community 20"
 Cohesion: 0.38
 Nodes (3): AtmTemplateData, KatAtmXmlParser, NinjaTrader.NinjaScript.Indicators
 
+### Community 21 - "Community 21"
+Cohesion: 0.38
+Nodes (3): KatTradeManager, NinjaTrader.NinjaScript.Indicators, NinjaTrader.NinjaScript.Indicators.KAT
+
 ## Knowledge Gaps
-- **54 isolated node(s):** `NinjaTrader.NinjaScript.Indicators.KAT`, `Account`, `Grid`, `Border`, `StackPanel` (+49 more)
+- **56 isolated node(s):** `NinjaTrader.NinjaScript.Indicators.KAT`, `Account`, `Grid`, `Border`, `StackPanel` (+51 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **18 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **20 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `KatTradeManager` connect `Community 1` to `Community 0`, `Community 10`, `Community 4`, `Community 6`?**
-  _High betweenness centrality (0.110) - this node is a cross-community bridge._
-- **Why does `string` connect `Community 4` to `Community 0`, `Community 1`, `Community 3`, `Community 6`?**
-  _High betweenness centrality (0.092) - this node is a cross-community bridge._
-- **Why does `KatTradeManager` connect `Community 0` to `Community 10`, `Community 4`, `Community 6`?**
-  _High betweenness centrality (0.064) - this node is a cross-community bridge._
+- **Why does `KatTradeManager` connect `Community 0` to `Community 16`, `Community 9`, `Community 2`, `Community 5`?**
+  _High betweenness centrality (0.116) - this node is a cross-community bridge._
+- **Why does `string` connect `Community 2` to `Community 0`, `Community 1`, `Community 4`, `Community 5`?**
+  _High betweenness centrality (0.103) - this node is a cross-community bridge._
+- **Why does `KatTradeCalculator` connect `Community 4` to `Community 2`?**
+  _High betweenness centrality (0.075) - this node is a cross-community bridge._
 - **What connects `NinjaTrader.NinjaScript.Indicators.KAT`, `Account`, `Grid` to the rest of the system?**
-  _54 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _56 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.05 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.09 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
-  _Cohesion score 0.04 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05 - nodes in this community are weakly interconnected._

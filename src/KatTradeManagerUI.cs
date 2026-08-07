@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v0.94 (2026-07-31) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.25 (2026-08-07) */
 
 using System;
 using System.Collections.Generic;
@@ -27,6 +27,21 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private Button[] dailyRiskPresetButtons;
 		private readonly SolidColorBrush dailyRiskPresetOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
 		private readonly SolidColorBrush dailyRiskPresetOnBg = new SolidColorBrush(Color.FromRgb(36, 7, 72)); // darker than Max DD purple
+		private Button[] disciplineButtons;
+		private Button btnDisciplineOnAll;
+		private Button btnDisciplineOffAll;
+		private readonly SolidColorBrush disciplineOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
+		private readonly SolidColorBrush[] disciplineOnBgs = new SolidColorBrush[]
+		{
+			new SolidColorBrush(Color.FromRgb(14, 58, 90)),   // Sizing - deep navy
+			new SolidColorBrush(Color.FromRgb(20, 75, 115)),  // SL-pull - blue 2
+			new SolidColorBrush(Color.FromRgb(26, 92, 140)),  // Loss-DCA - blue 3
+			new SolidColorBrush(Color.FromRgb(32, 110, 168)), // TP-early - blue 4
+			new SolidColorBrush(Color.FromRgb(45, 130, 190)), // LossTimes - blue 5
+			new SolidColorBrush(Color.FromRgb(70, 155, 210)), // Timing - light blue
+		};
+		private readonly SolidColorBrush onAllBg = new SolidColorBrush(Color.FromRgb(15, 76, 58)); // emerald
+		private readonly SolidColorBrush offAllBg = new SolidColorBrush(Color.FromRgb(55, 71, 79)); // slate
 		private bool isHotkeyAttached = false;
 		private Window hotkeyWindow; // cached at attach — chart can move to a new window before detach
 		private bool hasHudDragPosition;
@@ -36,6 +51,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private TextBlock hudStatusText;
 		private string pendingHudStatusMessage;
 		private Brush pendingHudStatusBrush;
+		private bool pendingHudStatusMessageIsPersistent;
 		private System.Windows.Threading.DispatcherTimer hudStatusTimer;
 		private Point hudDragStart;
 		private double hudDragStartLeft;
@@ -108,13 +124,15 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 				AttachHotkeyHandler();
 
+				// Sync UI control values to thread-safe cached fields
+				SyncCachedValues();
+
 				// Evaluate real-time daily risk protection limits
 				EvaluateDailyRiskLimits();
 				TrySubmitPendingRevert();
 				ScheduleAtmBracketMerge();
-
-				// Sync UI control values to thread-safe cached fields
-				SyncCachedValues();
+				try { UpdateDisciplineFromPosition(); } catch {}
+				try { EvaluateDisciplineLockVisual(); } catch {}
 
 				if (!IsPanelAttached())
 				{
@@ -143,6 +161,29 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			cachedHudDragEnabled = HudDragEnabled;
 			if (wasHudDragEnabled && !cachedHudDragEnabled && isHudDragging)
 				StopHudDrag();
+			cachedSizingProtect = SizingProtectEnabled;
+			cachedSlPullProtect = SlPullProtectEnabled;
+			cachedLossDcaProtect = LossDcaProtectEnabled;
+			cachedTpEarlyProtect = TpEarlyProtectEnabled;
+			cachedLossTimesProtect = LossTimesProtectEnabled;
+			cachedTimingProtect = TimingWindowsProtectEnabled;
+			cachedLossTimesMaxLosses = Math.Max(1, LossTimesMaxLosses);
+			cachedLossTimesLockMinutes = Math.Max(1, LossTimesLockMinutes);
+			cachedTw1Enabled = TradingWindow1Enabled;
+			cachedTw1StartHour = TradingWindow1StartHour;
+			cachedTw1StartMinute = TradingWindow1StartMinute;
+			cachedTw1EndHour = TradingWindow1EndHour;
+			cachedTw1EndMinute = TradingWindow1EndMinute;
+			cachedTw2Enabled = TradingWindow2Enabled;
+			cachedTw2StartHour = TradingWindow2StartHour;
+			cachedTw2StartMinute = TradingWindow2StartMinute;
+			cachedTw2EndHour = TradingWindow2EndHour;
+			cachedTw2EndMinute = TradingWindow2EndMinute;
+			cachedTw3Enabled = TradingWindow3Enabled;
+			cachedTw3StartHour = TradingWindow3StartHour;
+			cachedTw3StartMinute = TradingWindow3StartMinute;
+			cachedTw3EndHour = TradingWindow3EndHour;
+			cachedTw3EndMinute = TradingWindow3EndMinute;
 		}
 
 		// "None" = trade without ATM, matching NT8 Chart Trader's own None selection. Empty cachedAtmTemplate
@@ -298,6 +339,80 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					&& DailyMaxProfit == GetDailyRiskPresetMaxProfit(i);
 				dailyRiskPresetButtons[i].Background = on ? dailyRiskPresetOnBg : dailyRiskPresetOffBg;
 				dailyRiskPresetButtons[i].Foreground = on ? Brushes.White : Brushes.LightGray;
+			}
+		}
+
+		private void ToggleDiscipline(int idx)
+		{
+			switch (idx)
+			{
+				case 0: cachedSizingProtect = !cachedSizingProtect; SizingProtectEnabled = cachedSizingProtect; break;
+				case 1: cachedSlPullProtect = !cachedSlPullProtect; SlPullProtectEnabled = cachedSlPullProtect; break;
+				case 2: cachedLossDcaProtect = !cachedLossDcaProtect; LossDcaProtectEnabled = cachedLossDcaProtect; break;
+				case 3: cachedTpEarlyProtect = !cachedTpEarlyProtect; TpEarlyProtectEnabled = cachedTpEarlyProtect; break;
+				case 4: cachedLossTimesProtect = !cachedLossTimesProtect; LossTimesProtectEnabled = cachedLossTimesProtect; break;
+				case 5: cachedTimingProtect = !cachedTimingProtect; TimingWindowsProtectEnabled = cachedTimingProtect; break;
+				default: return;
+			}
+			UpdateDisciplineButton(idx);
+			// if disabling LossTimes while locked, clear persistent status immediately
+			if (idx == 4 && !cachedLossTimesProtect && hudStatusText != null)
+			{
+				DisciplineState st = GetCurrentDisciplineState();
+				bool locked = false;
+				try { lock (disciplineLock) { locked = KatTradeCalculator.IsLossTimesLockActive(st.LockUntilUtc, DateTime.UtcNow); } } catch {}
+				if (locked)
+				{
+					// keep lock data but visual will be suppressed because gate now OFF; clear HUD
+					if (hudStatusTimer != null) hudStatusTimer.Stop();
+					hudStatusText.Text = "LossTimes OFF - trading unlocked";
+					hudStatusText.Foreground = Brushes.LightGray;
+				}
+			}
+		}
+
+		private void UpdateDisciplineButton(int idx)
+		{
+			if (disciplineButtons == null || idx < 0 || idx >= disciplineButtons.Length) return;
+			Button btn = disciplineButtons[idx];
+			if (btn == null) return;
+			string[] labels = new[] { "Sizing protect", "SL-pull protect", "Loss-DCA protect", "TP-early protect", "LossTimes protect", "TimingWindows" };
+			bool isOn = false;
+			switch (idx)
+			{
+				case 0: isOn = cachedSizingProtect; break;
+				case 1: isOn = cachedSlPullProtect; break;
+				case 2: isOn = cachedLossDcaProtect; break;
+				case 3: isOn = cachedTpEarlyProtect; break;
+				case 4: isOn = cachedLossTimesProtect; break;
+				case 5: isOn = cachedTimingProtect; break;
+			}
+			btn.Content = labels[idx] + (isOn ? ": ON" : ": OFF");
+			btn.Background = isOn ? disciplineOnBgs[idx] : disciplineOffBg;
+			btn.Foreground = isOn ? Brushes.White : Brushes.LightGray;
+		}
+
+		private void SetAllDiscipline(bool isOn)
+		{
+			cachedSizingProtect = isOn; SizingProtectEnabled = isOn;
+			cachedSlPullProtect = isOn; SlPullProtectEnabled = isOn;
+			cachedLossDcaProtect = isOn; LossDcaProtectEnabled = isOn;
+			cachedTpEarlyProtect = isOn; TpEarlyProtectEnabled = isOn;
+			cachedLossTimesProtect = isOn; LossTimesProtectEnabled = isOn;
+			cachedTimingProtect = isOn; TimingWindowsProtectEnabled = isOn;
+			for (int i = 0; i < 6; i++) UpdateDisciplineButton(i);
+			if (!isOn)
+			{
+				// clearing loss lock visual when OFF ALL disables it
+				DisciplineState st = GetCurrentDisciplineState();
+				bool locked = false;
+				try { lock (disciplineLock) { locked = KatTradeCalculator.IsLossTimesLockActive(st.LockUntilUtc, DateTime.UtcNow); } } catch {}
+				if (locked && hudStatusText != null)
+				{
+					if (hudStatusTimer != null) hudStatusTimer.Stop();
+					hudStatusText.Text = "Discipline OFF ALL - all locks released";
+					hudStatusText.Foreground = Brushes.LightGray;
+				}
 			}
 		}
 
@@ -836,8 +951,32 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				hudStatusText.Text = pendingHudStatusMessage;
 				hudStatusText.Foreground = pendingHudStatusBrush ?? Brushes.White;
 				hudStatusText.Visibility = Visibility.Visible;
+				bool wasPersistent = pendingHudStatusMessageIsPersistent;
 				pendingHudStatusMessage = null;
 				pendingHudStatusBrush = null;
+				pendingHudStatusMessageIsPersistent = false;
+				if (!wasPersistent)
+				{
+					if (hudStatusTimer == null)
+					{
+						hudStatusTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+						hudStatusTimer.Tick += (s, e) =>
+						{
+							if (hudStatusText != null)
+							{
+								DisciplineState stChk2 = GetCurrentDisciplineState();
+								bool stillLocked2 = false;
+								try { lock (disciplineLock) { stillLocked2 = cachedLossTimesProtect && KatTradeCalculator.IsLossTimesLockActive(stChk2.LockUntilUtc, DateTime.UtcNow); } } catch {}
+								if (stillLocked2) { EvaluateDisciplineLockVisual(); return; }
+								hudStatusText.Text = string.Empty;
+								hudStatusText.Foreground = Brushes.White;
+							}
+							hudStatusTimer.Stop();
+						};
+					}
+					hudStatusTimer.Stop();
+					hudStatusTimer.Start();
+				}
 			}
 
 			ComboBox accSelector = new ComboBox { FontSize = 11, Height = 22, Margin = new Thickness(0, 0, 0, 4), HorizontalAlignment = HorizontalAlignment.Stretch };
@@ -1228,8 +1367,54 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			sec4Panel.Children.Add(dailyRiskPresetGrid);
 			UpdateDailyRiskPresetButtons();
 
-			mainPanel.Children.Add(CreateSectionCard(sec4Panel, 0));
+			mainPanel.Children.Add(CreateSectionCard(sec4Panel, 6));
 
+			// --- SECTION 5: Discipline Protects (bottom) ---
+			StackPanel sec5Panel = new StackPanel();
+			disciplineButtons = new Button[6];
+			string[] discLabels = new[] { "Sizing protect", "SL-pull protect", "Loss-DCA protect", "TP-early protect", "LossTimes protect", "TimingWindows" };
+			bool[] discStates = new[] { cachedSizingProtect, cachedSlPullProtect, cachedLossDcaProtect, cachedTpEarlyProtect, cachedLossTimesProtect, cachedTimingProtect };
+
+			// Row 0: ON ALL / OFF ALL (full width controls for all bottom protects)
+			Grid allToggleGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
+			allToggleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			allToggleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
+			allToggleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			btnDisciplineOnAll = CreateButton("ON ALL", onAllBg, null, 24, 10);
+			btnDisciplineOnAll.Foreground = Brushes.White;
+			btnDisciplineOnAll.Click += (s, ev) => SetAllDiscipline(true);
+			Grid.SetColumn(btnDisciplineOnAll, 0);
+			allToggleGrid.Children.Add(btnDisciplineOnAll);
+			btnDisciplineOffAll = CreateButton("OFF ALL", offAllBg, null, 24, 10);
+			btnDisciplineOffAll.Foreground = Brushes.White;
+			btnDisciplineOffAll.Click += (s, ev) => SetAllDiscipline(false);
+			Grid.SetColumn(btnDisciplineOffAll, 2);
+			allToggleGrid.Children.Add(btnDisciplineOffAll);
+			sec5Panel.Children.Add(allToggleGrid);
+
+			// 3 rows x 2 cols for 6 protects (same font/size, blue shades when ON)
+			for (int row = 0; row < 3; row++)
+			{
+				Grid rowGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
+				rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+				rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
+				rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+				for (int col = 0; col < 2; col++)
+				{
+					int idx = row * 2 + col;
+					bool isOn = discStates[idx];
+					Button discBtn = CreateButton(discLabels[idx] + (isOn ? ": ON" : ": OFF"), isOn ? disciplineOnBgs[idx] : disciplineOffBg, null, 24, 10);
+					discBtn.Foreground = isOn ? Brushes.White : Brushes.LightGray;
+					int capturedIdx = idx;
+					discBtn.Click += (s, ev) => ToggleDiscipline(capturedIdx);
+					disciplineButtons[idx] = discBtn;
+					Grid.SetColumn(discBtn, col == 0 ? 0 : 2);
+					rowGrid.Children.Add(discBtn);
+				}
+				sec5Panel.Children.Add(rowGrid);
+			}
+
+			mainPanel.Children.Add(CreateSectionCard(sec5Panel, 0));
 
 			panelBorder.Child = mainPanel;
 		}
@@ -1255,6 +1440,11 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 		private void ShowHudStatus(string message, Brush foreground)
 		{
+			ShowHudStatus(message, foreground, false);
+		}
+
+		private void ShowHudStatus(string message, Brush foreground, bool isPersistent)
+		{
 			if (ChartControl == null || ChartControl.Dispatcher == null) return;
 
 			Action update = () =>
@@ -1263,6 +1453,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				{
 					pendingHudStatusMessage = message;
 					pendingHudStatusBrush = foreground;
+					pendingHudStatusMessageIsPersistent = isPersistent;
 					return;
 				}
 
@@ -1280,6 +1471,20 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					{
 						if (hudStatusText != null)
 						{
+							// don't clear persistent LossTimes lock — watchdog re-asserts it, but flicker
+							// if timer fires while lock active, keep it visible
+							DisciplineState stChk = GetCurrentDisciplineState();
+							bool stillLocked = false;
+							try
+							{
+								lock (disciplineLock) { stillLocked = cachedLossTimesProtect && KatTradeCalculator.IsLossTimesLockActive(stChk.LockUntilUtc, DateTime.UtcNow); }
+							}
+							catch {}
+							if (stillLocked)
+							{
+								EvaluateDisciplineLockVisual();
+								return;
+							}
 							hudStatusText.Text = string.Empty;
 							hudStatusText.Foreground = Brushes.White;
 						}
@@ -1288,7 +1493,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				}
 
 				hudStatusTimer.Stop();
-				hudStatusTimer.Start();
+				if (!isPersistent)
+					hudStatusTimer.Start();
 			};
 
 			if (ChartControl.Dispatcher.CheckAccess())

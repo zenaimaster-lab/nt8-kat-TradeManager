@@ -316,6 +316,116 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		public double DailyRiskSet6MaxProfit { get; set; }
 		#endregion
 
+		#region Discipline Protects Properties
+		[NinjaScriptProperty]
+		[Display(Name="Sizing Protect", Order=1, GroupName="Discipline Protects", Description="When ON, blocks adding size after first fill (max = first fill / ATM qty).")]
+		public bool SizingProtectEnabled { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="SL-Pull Protect", Order=2, GroupName="Discipline Protects", Description="When ON, blocks moving SL farther from entry (pulling tighter allowed, trailing still works).")]
+		public bool SlPullProtectEnabled { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Loss-DCA Protect", Order=3, GroupName="Discipline Protects", Description="When ON, blocks DCA adds when price is against position (toward SL).")]
+		public bool LossDcaProtectEnabled { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="TP-Early Protect", Order=4, GroupName="Discipline Protects", Description="When ON, blocks Close/flatten & scale-out (must run to TP; trailing SL still works).")]
+		public bool TpEarlyProtectEnabled { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="LossTimes Protect", Order=5, GroupName="Discipline Protects", Description="When ON, locks new entries for N minutes after N consecutive losses.")]
+		public bool LossTimesProtectEnabled { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="TimingWindows Protect", Order=6, GroupName="Discipline Protects", Description="When ON, blocks entries outside configured Trading Windows (NY time).")]
+		public bool TimingWindowsProtectEnabled { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(1, 20)]
+		[Display(Name="LossTimes Max Losses", Order=7, GroupName="Discipline Protects", Description="Consecutive losses to trigger lock (default 3).")]
+		public int LossTimesMaxLosses { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(1, 1440)]
+		[Display(Name="LossTimes Lock (min)", Order=8, GroupName="Discipline Protects", Description="Lock duration in minutes after LossTimes breach (default 30).")]
+		public int LossTimesLockMinutes { get; set; }
+		#endregion
+
+		#region Trading Windows Properties
+		[NinjaScriptProperty]
+		[Display(Name="Window 1 Enabled", Order=1, GroupName="Trading Windows", Description="Enable Trading Window 1 (NY time).")]
+		public bool TradingWindow1Enabled { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0, 23)]
+		[Display(Name="Window 1 Start Hour (NY)", Order=2, GroupName="Trading Windows")]
+		public int TradingWindow1StartHour { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0, 59)]
+		[Display(Name="Window 1 Start Minute", Order=3, GroupName="Trading Windows")]
+		public int TradingWindow1StartMinute { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0, 23)]
+		[Display(Name="Window 1 End Hour (NY)", Order=4, GroupName="Trading Windows")]
+		public int TradingWindow1EndHour { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0, 59)]
+		[Display(Name="Window 1 End Minute", Order=5, GroupName="Trading Windows")]
+		public int TradingWindow1EndMinute { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Window 2 Enabled", Order=6, GroupName="Trading Windows")]
+		public bool TradingWindow2Enabled { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0, 23)]
+		[Display(Name="Window 2 Start Hour (NY)", Order=7, GroupName="Trading Windows")]
+		public int TradingWindow2StartHour { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0, 59)]
+		[Display(Name="Window 2 Start Minute", Order=8, GroupName="Trading Windows")]
+		public int TradingWindow2StartMinute { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0, 23)]
+		[Display(Name="Window 2 End Hour (NY)", Order=9, GroupName="Trading Windows")]
+		public int TradingWindow2EndHour { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0, 59)]
+		[Display(Name="Window 2 End Minute", Order=10, GroupName="Trading Windows")]
+		public int TradingWindow2EndMinute { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Window 3 Enabled", Order=11, GroupName="Trading Windows")]
+		public bool TradingWindow3Enabled { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0, 23)]
+		[Display(Name="Window 3 Start Hour (NY)", Order=12, GroupName="Trading Windows")]
+		public int TradingWindow3StartHour { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0, 59)]
+		[Display(Name="Window 3 Start Minute", Order=13, GroupName="Trading Windows")]
+		public int TradingWindow3StartMinute { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0, 23)]
+		[Display(Name="Window 3 End Hour (NY)", Order=14, GroupName="Trading Windows")]
+		public int TradingWindow3EndHour { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0, 59)]
+		[Display(Name="Window 3 End Minute", Order=15, GroupName="Trading Windows")]
+		public int TradingWindow3EndMinute { get; set; }
+		#endregion
+
 		#region EMA Place Filter Properties
 
 		[NinjaScriptProperty]
