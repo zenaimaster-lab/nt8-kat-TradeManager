@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 1.21 (2026-08-06)
+ * Version: 1.22 (2026-08-06)
  * NinjaTrader 8 TradeManager Indicator
  */
  
@@ -69,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "1.21";
+		public const string VERSION = "1.22";
 		public const string RELEASE_DATE = "2026-08-06";
 
 		private volatile Account account;
@@ -268,6 +268,26 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				DailyMaxDD                          = 500.0;
 				DailyMaxProfitEnabled               = true;
 				DailyMaxProfit                      = 1000.0;
+
+				// Daily Risk Quick Set Defaults
+				DailyRiskSet1Name                   = "1";
+				DailyRiskSet1MaxDD                  = 200.0;
+				DailyRiskSet1MaxProfit              = 500.0;
+				DailyRiskSet2Name                   = "2";
+				DailyRiskSet2MaxDD                  = 100.0;
+				DailyRiskSet2MaxProfit              = 300.0;
+				DailyRiskSet3Name                   = "3";
+				DailyRiskSet3MaxDD                  = 500.0;
+				DailyRiskSet3MaxProfit              = 1000.0;
+				DailyRiskSet4Name                   = "4";
+				DailyRiskSet4MaxDD                  = 1000.0;
+				DailyRiskSet4MaxProfit              = 2000.0;
+				DailyRiskSet5Name                   = "5";
+				DailyRiskSet5MaxDD                  = 1500.0;
+				DailyRiskSet5MaxProfit              = 3000.0;
+				DailyRiskSet6Name                   = "6";
+				DailyRiskSet6MaxDD                  = 2000.0;
+				DailyRiskSet6MaxProfit              = 5000.0;
 
 				// EMA Place Filter Defaults
 

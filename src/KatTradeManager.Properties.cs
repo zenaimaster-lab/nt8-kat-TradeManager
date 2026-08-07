@@ -230,6 +230,92 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		public double DailyMaxProfit { get; set; }
 		#endregion
 
+		#region Daily Risk Quick Set Properties
+		[NinjaScriptProperty]
+		[Display(Name="Set 1 Name", Order=1, GroupName="Daily Risk Quick Sets")]
+		public string DailyRiskSet1Name { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0, 1000000)]
+		[Display(Name="Set 1 Max DD ($)", Order=2, GroupName="Daily Risk Quick Sets")]
+		public double DailyRiskSet1MaxDD { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0, 1000000)]
+		[Display(Name="Set 1 Max Profit ($)", Order=3, GroupName="Daily Risk Quick Sets")]
+		public double DailyRiskSet1MaxProfit { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Set 2 Name", Order=4, GroupName="Daily Risk Quick Sets")]
+		public string DailyRiskSet2Name { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0, 1000000)]
+		[Display(Name="Set 2 Max DD ($)", Order=5, GroupName="Daily Risk Quick Sets")]
+		public double DailyRiskSet2MaxDD { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0, 1000000)]
+		[Display(Name="Set 2 Max Profit ($)", Order=6, GroupName="Daily Risk Quick Sets")]
+		public double DailyRiskSet2MaxProfit { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Set 3 Name", Order=7, GroupName="Daily Risk Quick Sets")]
+		public string DailyRiskSet3Name { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0, 1000000)]
+		[Display(Name="Set 3 Max DD ($)", Order=8, GroupName="Daily Risk Quick Sets")]
+		public double DailyRiskSet3MaxDD { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0, 1000000)]
+		[Display(Name="Set 3 Max Profit ($)", Order=9, GroupName="Daily Risk Quick Sets")]
+		public double DailyRiskSet3MaxProfit { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Set 4 Name", Order=10, GroupName="Daily Risk Quick Sets")]
+		public string DailyRiskSet4Name { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0, 1000000)]
+		[Display(Name="Set 4 Max DD ($)", Order=11, GroupName="Daily Risk Quick Sets")]
+		public double DailyRiskSet4MaxDD { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0, 1000000)]
+		[Display(Name="Set 4 Max Profit ($)", Order=12, GroupName="Daily Risk Quick Sets")]
+		public double DailyRiskSet4MaxProfit { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Set 5 Name", Order=13, GroupName="Daily Risk Quick Sets")]
+		public string DailyRiskSet5Name { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0, 1000000)]
+		[Display(Name="Set 5 Max DD ($)", Order=14, GroupName="Daily Risk Quick Sets")]
+		public double DailyRiskSet5MaxDD { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0, 1000000)]
+		[Display(Name="Set 5 Max Profit ($)", Order=15, GroupName="Daily Risk Quick Sets")]
+		public double DailyRiskSet5MaxProfit { get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Set 6 Name", Order=16, GroupName="Daily Risk Quick Sets")]
+		public string DailyRiskSet6Name { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0, 1000000)]
+		[Display(Name="Set 6 Max DD ($)", Order=17, GroupName="Daily Risk Quick Sets")]
+		public double DailyRiskSet6MaxDD { get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0, 1000000)]
+		[Display(Name="Set 6 Max Profit ($)", Order=18, GroupName="Daily Risk Quick Sets")]
+		public double DailyRiskSet6MaxProfit { get; set; }
+		#endregion
+
 		#region EMA Place Filter Properties
 
 		[NinjaScriptProperty]

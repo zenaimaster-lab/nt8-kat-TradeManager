@@ -1,6 +1,6 @@
 # NT8 Kat TradeManager
 
-**Current Version**: `v1.21` (Released: `2026-08-06`)
+**Current Version**: `v1.22` (Released: `2026-08-06`)
 
 An advanced TradeManager Indicator for **NinjaTrader 8 (NT8)** designed for fast execution, candle-based pending stop orders, and dynamic risk management.
 
@@ -18,6 +18,7 @@ An advanced TradeManager Indicator for **NinjaTrader 8 (NT8)** designed for fast
 - **Account-wide Close/flatten**: cancels all active account orders, then submits one market close per open position across every instrument; Revert and daily-risk remain instrument-scoped.
 - **Swing Stop Loss Shift Controls (`◀ SL` & `SL ▶`)**: Dynamic gray HUD buttons below Section 2 to shift active Stop Loss orders back to historical Swing Lows (Long) or Swing Highs (Short) step-by-step with full Redo functionality.
 - **Daily Max Drawdown & Daily Max Profit Controls**: Side-by-side HUD toggle buttons (darker purple background `#3A136B`) with 6:00 PM NY session reset. Max DD always starts ON every session regardless of the previous toggle; Max Profit keeps its persisted state. Replaces entry blocking and auto-flattens positions/orders on breach with instant HUD toggle reactivity.
+- **Daily Risk Quick Set buttons (1–6)**: One row below Max DD / Max Profit; each button writes its configured Max DD and Max Profit pair without changing either ON/OFF toggle. Labels and six value pairs are configurable under "Daily Risk Quick Sets"; selected pair uses darker purple `#240748`.
 - **Configurable Hotkeys**: Assign WPF Hotkeys for all 13 order types directly in Indicator Settings, overriding default NT hotkeys (`e.Handled = true`) with repeat protection.
 - **EMA Place Filter**: HUD toggle button (default OFF, very dark blue background, paired with Stop-Limit) enforcing 5m multi-EMA position rules only for direct candle Buy/Sell entry buttons when enabled.
 - **EMA 34 & EMA 89 Touch/Cross Orders**: Place Buy/Sell orders based on the most recent candle touching or crossing EMA 34 or EMA 89 lines.

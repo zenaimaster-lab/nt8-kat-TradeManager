@@ -23,6 +23,13 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.22] — 2026-08-06
+- **Daily Risk Quick Sets**:
+  - Added six persisted preset groups under `Daily Risk Quick Sets`, each with configurable label, Max DD, and Max Profit values.
+  - Added one-row HUD buttons below Max DD / Max Profit. Clicking a preset updates only `DailyMaxDD` and `DailyMaxProfit`; both enabled flags remain unchanged.
+  - Selected value pair renders darker purple (`#240748`) than the Max DD / Max Profit ON buttons (`#3A136B`).
+  - Graphify entity mapping: `KatTradeManagerUI.ApplyDailyRiskPreset`, `KatTradeManagerUI.UpdateDailyRiskPresetButtons`, `KatTradeManager.DailyRiskSet1Name`–`DailyRiskSet6MaxProfit`.
+
 ### [v1.19] — 2026-08-06
 - **Ema protect default ON + clearer gate**:
   - `cachedIsEmaPlace` default `true` (HUD starts `Ema protect: ON`).

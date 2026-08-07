@@ -24,6 +24,9 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private Button[] atmSetButtons;
 		private readonly SolidColorBrush atmSetOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65)); // same gray as other OFF buttons
 		private readonly SolidColorBrush atmSetOnBg = new SolidColorBrush(Color.FromRgb(180, 90, 20)); // amber when its ATM is selected
+		private Button[] dailyRiskPresetButtons;
+		private readonly SolidColorBrush dailyRiskPresetOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
+		private readonly SolidColorBrush dailyRiskPresetOnBg = new SolidColorBrush(Color.FromRgb(36, 7, 72)); // darker than Max DD purple
 		private bool isHotkeyAttached = false;
 		private Window hotkeyWindow; // cached at attach — chart can move to a new window before detach
 		private bool hasHudDragPosition;
@@ -232,6 +235,69 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					&& tpl.Equals(cachedAtmTemplate, StringComparison.OrdinalIgnoreCase);
 				atmSetButtons[i].Background = on ? atmSetOnBg : atmSetOffBg;
 				atmSetButtons[i].Foreground = on ? Brushes.White : Brushes.LightGray;
+			}
+		}
+
+		private string GetDailyRiskPresetName(int idx)
+		{
+			switch (idx)
+			{
+				case 0: return DailyRiskSet1Name;
+				case 1: return DailyRiskSet2Name;
+				case 2: return DailyRiskSet3Name;
+				case 3: return DailyRiskSet4Name;
+				case 4: return DailyRiskSet5Name;
+				default: return DailyRiskSet6Name;
+			}
+		}
+
+		private double GetDailyRiskPresetMaxDD(int idx)
+		{
+			switch (idx)
+			{
+				case 0: return DailyRiskSet1MaxDD;
+				case 1: return DailyRiskSet2MaxDD;
+				case 2: return DailyRiskSet3MaxDD;
+				case 3: return DailyRiskSet4MaxDD;
+				case 4: return DailyRiskSet5MaxDD;
+				default: return DailyRiskSet6MaxDD;
+			}
+		}
+
+		private double GetDailyRiskPresetMaxProfit(int idx)
+		{
+			switch (idx)
+			{
+				case 0: return DailyRiskSet1MaxProfit;
+				case 1: return DailyRiskSet2MaxProfit;
+				case 2: return DailyRiskSet3MaxProfit;
+				case 3: return DailyRiskSet4MaxProfit;
+				case 4: return DailyRiskSet5MaxProfit;
+				default: return DailyRiskSet6MaxProfit;
+			}
+		}
+
+		private void ApplyDailyRiskPreset(int idx)
+		{
+			DailyMaxDD = GetDailyRiskPresetMaxDD(idx);
+			DailyMaxProfit = GetDailyRiskPresetMaxProfit(idx);
+			cachedDailyMaxDD = DailyMaxDD;
+			cachedDailyMaxProfit = DailyMaxProfit;
+			UpdateDailyRiskPresetButtons();
+			EvaluateDailyRiskLimits();
+		}
+
+		private void UpdateDailyRiskPresetButtons()
+		{
+			if (dailyRiskPresetButtons == null) return;
+
+			for (int i = 0; i < dailyRiskPresetButtons.Length; i++)
+			{
+				if (dailyRiskPresetButtons[i] == null) continue;
+				bool on = DailyMaxDD == GetDailyRiskPresetMaxDD(i)
+					&& DailyMaxProfit == GetDailyRiskPresetMaxProfit(i);
+				dailyRiskPresetButtons[i].Background = on ? dailyRiskPresetOnBg : dailyRiskPresetOffBg;
+				dailyRiskPresetButtons[i].Foreground = on ? Brushes.White : Brushes.LightGray;
 			}
 		}
 
@@ -1138,6 +1204,29 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			dailyRiskGrid.Children.Add(btnDailyMaxProfit);
 
 			sec4Panel.Children.Add(dailyRiskGrid);
+
+			// Daily Risk Quick Set buttons: values only; enabled states stay unchanged.
+			dailyRiskPresetButtons = new Button[6];
+			Grid dailyRiskPresetGrid = new Grid { Margin = new Thickness(0, 4, 0, 0) };
+			for (int i = 0; i < 6; i++)
+			{
+				dailyRiskPresetGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+				if (i < 5)
+					dailyRiskPresetGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
+			}
+
+			for (int i = 0; i < 6; i++)
+			{
+				int presetIdx = i;
+				Button presetButton = CreateButton(GetDailyRiskPresetName(presetIdx), dailyRiskPresetOffBg, null, 22, 9);
+				presetButton.Foreground = Brushes.LightGray;
+				presetButton.Click += (s, ev) => ApplyDailyRiskPreset(presetIdx);
+				Grid.SetColumn(presetButton, presetIdx * 2);
+				dailyRiskPresetButtons[presetIdx] = presetButton;
+				dailyRiskPresetGrid.Children.Add(presetButton);
+			}
+			sec4Panel.Children.Add(dailyRiskPresetGrid);
+			UpdateDailyRiskPresetButtons();
 
 			mainPanel.Children.Add(CreateSectionCard(sec4Panel, 0));
 
