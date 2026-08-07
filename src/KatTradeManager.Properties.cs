@@ -1,4 +1,4 @@
-/* KatTradeManager.Properties.cs - NinjaScript properties (partial class) v1.40 (2026-08-08) */
+/* KatTradeManager.Properties.cs - NinjaScript properties (partial class) v1.41 (2026-08-08) */
 
 using System;
 using System.ComponentModel;

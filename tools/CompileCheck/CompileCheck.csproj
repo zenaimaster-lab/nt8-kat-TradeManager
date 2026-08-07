@@ -27,6 +27,7 @@
     <Compile Include="..\..\src\KatTradeManager.HudDrag.cs" />
     <Compile Include="..\..\src\KatTradeManager.OrderOps.cs" />
     <Compile Include="..\..\src\KatTradeManager.Queue.cs" />
+    <Compile Include="..\..\src\KatTradeManager.AtmMerge.cs" />
     <Compile Include="..\..\src\KatTradeManager.DailyRisk.cs" />
     <Compile Include="..\..\src\KatTradeManager.Properties.cs" />
     <Compile Include="..\..\src\KatTradeCalculator.cs" />

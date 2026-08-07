@@ -23,6 +23,12 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.41] — 2026-08-08
+- **Re-audit 8 — AtmMerge module split**:
+  - **Split** `OrderOps 2010L -> AtmMerge 550L`: tách `KatTradeManager.AtmMerge.cs` chứa toàn bộ ATM merge/scale-in (`TrackAtmStartup`..`ProcessAtmScaleInUpdate`, `HasAtmTemplate`, `IsAtmBracketCandidate`..`MergeAtmBrackets`) `src/KatTradeManager.AtmMerge.cs:1`; `OrderOps` còn ~1450L chỉ execution/close/market/BE.
+  - `HasAtmTemplate` cache 5s giữ nguyên, `IsHudAtmActive` ở lại OrderOps cho `SubmitOrder`/`Schedule` dùng chung via partial.
+  - Cập nhật `tools/CompileCheck.csproj` + `scripts/Deploy-NT8.ps1` thêm `KatTradeManager.AtmMerge.cs` (10 files deploy).
+  - Verify: 191/191 tests, CompileCheck 0 errors (2 warnings obsolete), Deploy 10 files.
 ### [v1.40] — 2026-08-08
 - **Re-audit 7 — header sync + cache + CI + NoWarn**:
   - **Fix** header drift: sync `Version: 1.40 (2026-08-08)` cho tất cả `src/*.cs` (`OrderOps:1` `2026-07-31->08`, `Discipline:1` `1.32->1.40`, thêm header `KatTradeCalculator.cs:1`/`KatAtmXmlParser.cs:1`) `src/*`.

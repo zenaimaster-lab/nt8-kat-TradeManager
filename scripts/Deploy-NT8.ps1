@@ -18,6 +18,7 @@ $files = @(
     'src\KatTradeManager.HudDrag.cs',
     'src\KatTradeManager.OrderOps.cs',
     'src\KatTradeManager.Queue.cs',
+    'src\KatTradeManager.AtmMerge.cs',
     'src\KatTradeManager.DailyRisk.cs',
     'src\KatTradeManager.Properties.cs',
     'src\KatTradeCalculator.cs',
