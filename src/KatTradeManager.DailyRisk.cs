@@ -1,4 +1,4 @@
-/* KatTradeManager.DailyRisk.cs - Daily Max DD / Max Profit protection (partial class) v0.92 (2026-07-31) */
+/* KatTradeManager.DailyRisk.cs - Daily Max DD / Max Profit protection (partial class) v1.39 (2026-07-31) */
 
 using System;
 using System.Linq;

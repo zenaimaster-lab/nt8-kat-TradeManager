@@ -15,7 +15,9 @@ $customDll  = Join-Path $env:USERPROFILE 'Documents\NinjaTrader 8\bin\Custom\Nin
 $files = @(
     'KatTradeManager.cs',
     'src\KatTradeManagerUI.cs',
+    'src\KatTradeManager.HudDrag.cs',
     'src\KatTradeManager.OrderOps.cs',
+    'src\KatTradeManager.Queue.cs',
     'src\KatTradeManager.DailyRisk.cs',
     'src\KatTradeManager.Properties.cs',
     'src\KatTradeCalculator.cs',
@@ -31,6 +33,14 @@ New-Item -ItemType Directory -Path $katDir -Force | Out-Null
 foreach ($name in $stale) {
     foreach ($p in @((Join-Path $katDir $name), (Join-Path $indicators $name))) {
         if (Test-Path $p) { Remove-Item $p -Force; Write-Host "removed stale: $name" }
+    }
+}
+# Generic orphan sweep: any .cs in KAT not in deploy list is stale (handles renames/splits)
+$allowedLeaves = $files | ForEach-Object { Split-Path $_ -Leaf }
+if (Test-Path $katDir) {
+    Get-ChildItem -Path $katDir -Filter *.cs -ErrorAction SilentlyContinue | Where-Object { $allowedLeaves -notcontains $_.Name } | ForEach-Object {
+        Remove-Item $_.FullName -Force
+        Write-Host "removed orphan: KAT\$($_.Name)"
     }
 }
 

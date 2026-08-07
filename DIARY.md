@@ -23,6 +23,16 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.39] — 2026-08-08
+- **Re-audit 6 — bug fixes + module split + tools + tests**:
+  - **Fix** `RevertPosition:1840` dùng `Buy` thay `BuyToCover` khi revert Short -> broker reject, đổi `oppositeAction` `BuyToCover` và `TrySubmitPendingRevert:1871` mapping `1->BuyToCover` `src/KatTradeManager.OrderOps.cs:1840`.
+  - **Fix** `KatAtmXmlParser:27,44` XXE — set `XmlResolver=null` cho `ParseXml/ParseFile` `src/KatAtmXmlParser.cs:19`.
+  - **Fix** `KatTradeCalculator.IsWithinTradingWindows:551` dead code `return !anyEnabled?false:false` -> `return false` và xóa `anyEnabled` unused `src/KatTradeCalculator.cs:538`.
+  - **Improve** `HasAtmTemplate:499` cache 5s `Dictionary<string,Tuple<bool,DateTime>>` tránh `File.Exists` mỗi 500ms watchdog `src/KatTradeManager.OrderOps.cs:499`.
+  - **Module split** `OrderOps 2345L -> Queue 380L`: tách `KatTradeManager.Queue.cs` chứa FIFO queue (`IsAccountOperationPending`..`ClearFlattenCloseTracking`) `src/KatTradeManager.Queue.cs`; `OrderOps` còn `~1900L` chỉ execution/ATM. `HUD drag 7924b`: tách `KatTradeManager.HudDrag.cs` chứa `GetHudParent`..`DetachHudDragHandlers` `src/KatTradeManager.HudDrag.cs`; `KatTradeManagerUI 2145->1350L`.
+  - **Tool** thêm `ci.yml` (push/PR run test+gate), `scripts/Bump-Version.ps1` (+0.01 auto), `.editorconfig` (tab 4), `Deploy-NT8.ps1` orphan sweep `scripts/Deploy-NT8.ps1:32`.
+  - **Test** +22 tests `KatAuditGapTests.cs`: `NormalizeProfileName` 4, `IsWithinTradingWindows` overnight/boundary/zero/multiple 5, `IsSizing/SlPull/LossDca/ScaleIn/LossTimes` 5, `ShouldDefer` 2, `Clamp/StopLimit/PlanMerge/Xml` 4 — 191/191 pass.
+  - Verify: 191/191 tests, CompileCheck 0 errors, Deploy 9 files.
 ### [v1.38] — 2026-08-08
 - **Re-audit 5 — None normalize + tooltip**:
   - `IsTradingProfileActive` so sánh ATM `IsNoAtmSelection` normalize cả live `DefaultAtmTemplate` và profile `GetTradingProfileAtm` về "" để `None` vs "" không lệch highlight `KatTradeManagerUI.cs:491`.

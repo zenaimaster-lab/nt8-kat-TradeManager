@@ -24,6 +24,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			try
 			{
 				XmlDocument doc = new XmlDocument();
+				doc.XmlResolver = null;
 				doc.LoadXml(xmlContent);
 				return ParseXmlDocument(doc);
 			}
@@ -41,6 +42,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			try
 			{
 				XmlDocument doc = new XmlDocument();
+				doc.XmlResolver = null;
 				doc.Load(filePath);
 				return ParseXmlDocument(doc);
 			}

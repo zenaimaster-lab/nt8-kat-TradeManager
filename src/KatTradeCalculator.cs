@@ -535,11 +535,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public static bool IsWithinTradingWindows(TimeSpan nyTimeOfDay, IList<KatTradingWindow> windows)
 		{
 			if (windows == null || windows.Count == 0) return false;
-			bool anyEnabled = false;
 			foreach (var w in windows)
 			{
 				if (!w.Enabled) continue;
-				anyEnabled = true;
 				TimeSpan start = w.Start;
 				TimeSpan end = w.End;
 				if (start == end) continue; // zero-length window = disabled
@@ -548,7 +546,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				else inside = nyTimeOfDay >= start || nyTimeOfDay < end; // overnight
 				if (inside) return true;
 			}
-			return !anyEnabled ? false : false;
+			return false;
 		}
 
 		public static bool IsSizingBlocked(bool hasPosition, bool isLongPosition, KatOrderAction action, int positionQty, int initialQty, int orderQty)
