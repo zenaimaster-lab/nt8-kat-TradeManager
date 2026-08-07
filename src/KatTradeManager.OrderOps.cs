@@ -1816,6 +1816,14 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			}
 			try
 			{
+				if (TryRejectDisciplineForClose(out string discRevertReason))
+				{
+					Print(string.Format("[KatTradeManager] Revert REJECTED by Discipline: {0}", discRevertReason));
+					ShowHudStatus(discRevertReason, System.Windows.Media.Brushes.OrangeRed);
+					System.Threading.Interlocked.Exchange(ref pendingRevertAction, 0);
+					System.Threading.Interlocked.Exchange(ref pendingRevertQuantity, 0);
+					return;
+				}
 				if (IsCloseInFlight())
 				{
 					Print("[KatTradeManager] Revert: close already in flight — wait for fill before reverting again.");

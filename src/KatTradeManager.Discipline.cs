@@ -1,4 +1,4 @@
-/* KatTradeManager.Discipline.cs - Discipline protects (partial class) v1.25 (2026-08-07) */
+/* KatTradeManager.Discipline.cs - Discipline protects (partial class) v1.26 (2026-08-07) */
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,6 +26,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			// global account-wide loss tracking
 			public double LastGlobalRealized;
 			public int LastGlobalPosCount;
+			public int LastTradesCount = -1;
 			public bool HasGlobalBaseline;
 		}
 
@@ -100,6 +101,32 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		}
 		#endregion
 
+		private double GetTradeProfit(object trade)
+		{
+			if (trade == null) return 0;
+			try
+			{
+				var t = trade.GetType();
+				// try common profit property names
+				string[] names = new[] { "ProfitCurrency", "Profit", "RealizedProfitLoss", "CurrencyProfit", "PnL", "GrossProfit" };
+				foreach (string n in names)
+				{
+					var pi = t.GetProperty(n);
+					if (pi != null)
+					{
+						object v = pi.GetValue(trade);
+						if (v is double d) return d;
+						if (v is float f) return f;
+						if (v is decimal dec) return (double)dec;
+						if (v is int ii) return ii;
+						try { return Convert.ToDouble(v); } catch {}
+					}
+				}
+			}
+			catch {}
+			return 0;
+		}
+
 		#region Discipline Episode Update
 		private void UpdateDisciplineFromPosition()
 		{
@@ -112,8 +139,29 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			// snapshot global account state before lock (avoids nested lock order)
 			double curGlobalRealized = 0;
 			int curGlobalPosCount = 0;
+			int curTradesCount = -1;
+			object tradesObj = null;
 			try { curGlobalRealized = GetRealizedPnLForDiscipline(); } catch {}
 			try { curGlobalPosCount = GetAccountPositionsSnapshot().Count(p => p.MarketPosition != MarketPosition.Flat); } catch {}
+			// snapshot Trades for per-trade loss counting (reflection-safe, no compile-time Trade dependency)
+			try
+			{
+				if (account != null)
+				{
+					var pi = account.GetType().GetProperty("Trades");
+					if (pi != null)
+					{
+						tradesObj = pi.GetValue(account);
+						if (tradesObj is System.Collections.IList list) curTradesCount = list.Count;
+						else if (tradesObj != null)
+						{
+							var cntPi = tradesObj.GetType().GetProperty("Count");
+							if (cntPi != null) curTradesCount = (int)cntPi.GetValue(tradesObj);
+						}
+					}
+				}
+			}
+			catch { curTradesCount = -1; tradesObj = null; }
 
 			double capturedSl = 0;
 			MarketPosition capturedMp = isFlat ? MarketPosition.Flat : pos.MarketPosition;
@@ -121,6 +169,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			{
 				try { capturedSl = CaptureCurrentStopPrice(capturedMp); } catch {}
 			}
+			bool shouldCancelSizing = false;
+			int sizingInitialForLog = 0;
 
 			lock (disciplineLock)
 			{
@@ -139,6 +189,11 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 						else if (DefaultQuantity > 0) st.InitialQty = DefaultQuantity;
 						st.RealizedBeforeEpisode = curGlobalRealized;
 						if (capturedSl > 0) st.InitialSl = capturedSl;
+						if (cachedSizingProtect)
+						{
+							shouldCancelSizing = true;
+							sizingInitialForLog = st.InitialQty;
+						}
 					}
 					else
 					{
@@ -157,16 +212,45 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					}
 				}
 
-				// account-wide LossTimes tracking (independent of instrument)
+				// account-wide LossTimes tracking — per-trade via Trades collection (precise), fallback to realized delta
+				bool useTrades = curTradesCount >= 0 && st.LastTradesCount >= 0;
 				if (!st.HasGlobalBaseline)
 				{
 					st.LastGlobalRealized = curGlobalRealized;
 					st.LastGlobalPosCount = curGlobalPosCount;
+					if (curTradesCount >= 0) st.LastTradesCount = curTradesCount;
 					st.HasGlobalBaseline = true;
+				}
+				else if (useTrades && curTradesCount > st.LastTradesCount && tradesObj is System.Collections.IList list)
+				{
+					for (int i = st.LastTradesCount; i < curTradesCount; i++)
+					{
+						object tr = null;
+						try { tr = list[i]; } catch { try { var gi = tradesObj.GetType().GetMethod("get_Item"); if (gi != null) tr = gi.Invoke(tradesObj, new object[] { i }); } catch {} }
+						double profit = GetTradeProfit(tr);
+						if (Math.Abs(profit) < 0.01) continue; // ignore breakeven/commission noise
+						if (profit < 0)
+						{
+							st.ConsecutiveLosses++;
+							if (cachedLossTimesProtect && KatTradeCalculator.ShouldTriggerLossLock(st.ConsecutiveLosses, cachedLossTimesMaxLosses))
+							{
+								st.LockUntilUtc = DateTime.UtcNow.AddMinutes(Math.Max(1, cachedLossTimesLockMinutes));
+								Print(string.Format("[KatTradeManager] LossTimes lock (trade): {0} losses -> locked until {1:HH:mm:ss} UTC ({2}m) profit={3}", st.ConsecutiveLosses, st.LockUntilUtc, cachedLossTimesLockMinutes, profit));
+							}
+						}
+						else
+						{
+							st.ConsecutiveLosses = 0;
+						}
+					}
+					st.LastTradesCount = curTradesCount;
+					st.LastGlobalRealized = curGlobalRealized;
+					st.LastGlobalPosCount = curGlobalPosCount;
 				}
 				else
 				{
-					// a position closed somewhere (any instrument) -> realized changed
+					// fallback: realized delta + pos count (when Trades not available or no new trades)
+					if (curTradesCount >= 0) st.LastTradesCount = curTradesCount;
 					if (curGlobalPosCount < st.LastGlobalPosCount)
 					{
 						double delta = curGlobalRealized - st.LastGlobalRealized;
@@ -187,14 +271,24 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 							}
 						}
 					}
-					else if (curGlobalPosCount == st.LastGlobalPosCount && Math.Abs(curGlobalRealized - st.LastGlobalRealized) >= 0.05)
-					{
-						// realized changed without position count change (e.g., flat after partial?) — still evaluate as trade result
-						// only if we had a recent close; ignore pure unrealized flutter
-					}
 					st.LastGlobalRealized = curGlobalRealized;
 					st.LastGlobalPosCount = curGlobalPosCount;
 				}
+			}
+			if (shouldCancelSizing)
+			{
+				try
+				{
+					var workingEntries = GetAccountOrdersSnapshot().Where(o => o.Instrument == Instrument
+						&& IsActiveOrderState(o.OrderState)
+						&& (o.Name == "Entry" || o.Name == "MarketBuy" || o.Name == "MarketSell")).ToArray();
+					if (workingEntries.Length > 0)
+					{
+						QueueAccountOperation(AccountOperationType.Cancel, workingEntries, "sizing protect: cancel pending adds after fill");
+						Print(string.Format("[KatTradeManager] Sizing protect: cancelled {0} pending entry orders after fill (max {1})", workingEntries.Length, sizingInitialForLog));
+					}
+				}
+				catch {}
 			}
 		}
 
@@ -250,7 +344,11 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			windows.Add(new KatTradeCalculator.KatTradingWindow { Enabled = cachedTw2Enabled, StartHour = cachedTw2StartHour, StartMinute = cachedTw2StartMinute, EndHour = cachedTw2EndHour, EndMinute = cachedTw2EndMinute });
 			windows.Add(new KatTradeCalculator.KatTradingWindow { Enabled = cachedTw3Enabled, StartHour = cachedTw3StartHour, StartMinute = cachedTw3StartMinute, EndHour = cachedTw3EndHour, EndMinute = cachedTw3EndMinute });
 			bool anyEnabled = windows.Any(w => w.Enabled);
-			if (!anyEnabled) return false; // no restriction if none enabled
+			if (!anyEnabled)
+			{
+				reason = "No Trading Window enabled — trading blocked";
+				return true;
+			}
 
 			DateTime ny = KatTradeCalculator.GetNyTime(DateTime.UtcNow);
 			TimeSpan tod = ny.TimeOfDay;

@@ -23,6 +23,16 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.26] — 2026-08-07
+- **Re-audit fixes for v1.25 discipline protects**:
+  - **Timing no-window**: `IsTimingLocked` previously returned `false` when no window enabled (allowed trading) — now returns `true` with `No Trading Window enabled — trading blocked` so `TimingWindows ON` with all windows OFF correctly blocks all entries (`src/KatTradeManager.Discipline.cs:252`).
+  - **LossTimes per-trade precision**: added `LastTradesCount` + reflection-safe `account.Trades` snapshot + `GetTradeProfit` (tries `ProfitCurrency/Profit/RealizedProfitLoss`), now counts each closed trade individually via `Trades.Count` diff instead of net `GrossRealized` + `Positions.Count` delta — fixes netting bug where 2 simultaneous closes (+100/-50) net +50 was miscounted as win. Fallback to realized delta when `Trades` unavailable. (`src/KatTradeManager.Discipline.cs:131` + `GetTradeProfit`).
+  - **Revert leak**: `RevertPosition` now early-rejects via `TryRejectDisciplineForClose` and clears `pendingRevertAction/Quantity` before `ClosePosition` — prevents `TP-early` blocked close leaving stale pending revert that never fires (`src/KatTradeManager.OrderOps.cs:1819`).
+  - **Sizing pending add**: `UpdateDisciplineFromPosition` now cancels working `Entry/MarketBuy/MarketSell` orders right after first fill when `Sizing protect` ON (moved outside `disciplineLock` to avoid `Account.Orders` ↔ `disciplineLock` deadlock) — pending adds can no longer slip through as scale-ins (`src/KatTradeManager.Discipline.cs:189`).
+  - **Deadlock hardening**: moved `GetAccountOrdersSnapshot`/`QueueAccountOperation` outside `disciplineLock` in sizing cancel path.
+  - 169/169 tests pass; CompileCheck 0 errors; deploy re-verified.
+  - Graphify entity mapping: `KatTradeManager.GetTradeProfit`, `KatTradeManager.DisciplineState.LastTradesCount`, `KatTradeManager.RevertPosition` (discipline guard).
+
 ### [v1.25] — 2026-08-07
 - **Discipline Protects — 6 habit guards + timing + ON/OFF ALL bottom section**:
   - New bottom `Section 5` under Daily Risk presets: row `ON ALL / OFF ALL` + 3 rows ×2 cols = 6 protects (`Sizing protect`, `SL-pull protect`, `Loss-DCA protect`, `TP-early protect`, `LossTimes protect`, `TimingWindows`) — same font/size (10/24) as other toggles, ON = 6 blue shades `#0E3A5A → #469BD2`, OFF = `#2D3241`; each toggle persists to `NinjaScriptProperty` and syncs via `SyncCachedValues` watchdog. `ON ALL`/`OFF ALL` (emerald `#0F4C3A` / slate `#37474F`) flips all 6 in one click.
