@@ -1,4 +1,4 @@
-/* KatTradeManager.OrderOps.cs - Order execution & position management (partial class) v1.43 (2026-08-08) */
+/* KatTradeManager.OrderOps.cs - Order execution & position management (partial class) v1.44 (2026-08-08) */
 
 using System;
 using System.Collections.Generic;
@@ -537,6 +537,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				ScheduleAtmBracketMerge();
 			}
 			try { UpdateDisciplineFromPosition(); } catch {}
+			try { EnforceSlPullManualDrag(observed); } catch {}
 			try { EvaluateDisciplineLockVisual(); } catch {}
 		}
 

@@ -1,4 +1,4 @@
-/* KatTradeManager.AtmMerge.cs - ATM bracket merge & scale-in (partial class) v1.43 (2026-08-08) */
+/* KatTradeManager.AtmMerge.cs - ATM bracket merge & scale-in (partial class) v1.44 (2026-08-08) */
 using System;
 using System.Collections.Generic;
 using System.Linq;

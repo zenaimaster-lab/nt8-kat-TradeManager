@@ -23,6 +23,12 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.44] — 2026-08-08
+- **Fix — No SL-pull manual drag bypass (ON vẫn kéo xa được)**:
+  - **Root cause** `TryRejectDisciplineForSlMove` chỉ được gọi từ `SetBreakeven` và `ShiftSlToSwing` (`src/KatTradeManager.OrderOps.cs:876,1186`); drag thủ công SL trên chart (NT8 `OnOrderUpdate` ChangePending/Working) không qua gate nào nên dù `No SL-pull: ON` vẫn kéo SL ra xa (tăng SL) được. `DIARY.md:163` đã note ceiling “Manual chart drag beyond initial is ponytail ceiling — v2 would revert via OnAccountOrderUpdate”.
+  - **Fix** thêm `EnforceSlPullManualDrag` trong `src/KatTradeManager.Discipline.cs:492` — hook vào `OnAccountOrderUpdateCore` sau `UpdateDisciplineFromPosition` (`src/KatTradeManager.OrderOps.cs:540`). Check `cachedSlPullProtect`, filter `StopMarket/StopLimit` cho đúng instrument + protective direction (Long=Sell*/Short=Buy*), lấy `InitialSl`-lock + `tick`, detect `newSl` từ `StopPriceChanged` (pending) hoặc `StopPrice` (accepted), dùng `KatTradeCalculator.IsSlPullBlocked(isLong, init, newSl, tick)` (Long block `new < init - tol`, Short block `new > init + tol`, tol=0.5 tick). Nếu blocked → set `StopPriceChanged (+ LimitPriceChanged cho StopLimit giữ offset=tick)` = `initSl` và `QueueAccountOperation(Change)` revert, log + `ShowHudStatus` persistent “SL-pull blocked … reverted”. Tighten (kéo gần entry) vẫn pass vì `IsSlPullBlocked` false; trailing tightening không ảnh hưởng.
+  - Verify: 197/197 tests, CompileCheck 0 errors (2 warnings obsolete), Deploy 11 files.
+  - Graphify entity mapping: `KatTradeManager.DisciplineState.InitialSl`, `KatTradeManager.EnforceSlPullManualDrag`, `KatTradeManager.TryRejectDisciplineForSlMove`, `KatTradeCalculator.IsSlPullBlocked`, `KatTradeManager.OnAccountOrderUpdateCore`.
 ### [v1.43] — 2026-08-08
 - **Re-audit scale-out — bổ sung test flat + live=0**:
   - **Thêm** `KatScaleOutTests.cs:80` `Flat_NoChange` và `ScaleOut_ToZero_FlatCleanupPath` — live 0/−1 return noop, flat cleanup cancel hết — 197/197 pass.

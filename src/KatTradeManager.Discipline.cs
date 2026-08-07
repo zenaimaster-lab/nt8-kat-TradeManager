@@ -1,4 +1,4 @@
-/* KatTradeManager.Discipline.cs - Discipline protects (partial class) v1.43 (2026-08-08) */
+/* KatTradeManager.Discipline.cs - Discipline protects (partial class) v1.44 (2026-08-08) */
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -486,6 +486,57 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				return true;
 			}
 			return false;
+		}
+
+		private void EnforceSlPullManualDrag(Order observed)
+		{
+			if (!cachedSlPullProtect) return;
+			if (observed == null) return;
+			if (observed.OrderType != OrderType.StopMarket && observed.OrderType != OrderType.StopLimit) return;
+			if (Instrument == null || observed.Instrument != Instrument) return;
+			if (IsTerminalOrderState(observed.OrderState)) return;
+			Position pos = GetInstrumentPosition();
+			if (pos == null || pos.MarketPosition == MarketPosition.Flat) return;
+			bool isLong = pos.MarketPosition == MarketPosition.Long;
+			bool isProtective = isLong
+				? (observed.OrderAction == OrderAction.Sell || observed.OrderAction == OrderAction.SellShort)
+				: (observed.OrderAction == OrderAction.Buy || observed.OrderAction == OrderAction.BuyToCover);
+			if (!isProtective) return;
+			DisciplineState st = GetCurrentDisciplineState();
+			double initSl;
+			lock (disciplineLock) { initSl = st.InitialSl; }
+			if (initSl <= 0) return;
+			double tick = cachedTickSize > 0 ? cachedTickSize : (Instrument != null ? Instrument.MasterInstrument.TickSize : 0.25);
+			double newSlCandidate = 0;
+			bool hasPending = false;
+			try { if (observed.StopPriceChanged != 0) { newSlCandidate = observed.StopPriceChanged; hasPending = true; } } catch {}
+			if (!hasPending) newSlCandidate = observed.StopPrice;
+			if (newSlCandidate <= 0) return;
+			bool blocked = KatTradeCalculator.IsSlPullBlocked(isLong, initSl, newSlCandidate, tick);
+			if (!blocked && hasPending && observed.StopPrice > 0 && observed.StopPrice != newSlCandidate)
+				blocked = KatTradeCalculator.IsSlPullBlocked(isLong, initSl, observed.StopPrice, tick);
+			if (!blocked) return;
+			// blocked -> revert to initial (tighter moves remain allowed, so reverting to initial is always valid)
+			try
+			{
+				double revertPrice = initSl;
+				if (observed.OrderType == OrderType.StopLimit)
+				{
+					double offset = 0;
+					try { offset = Math.Abs(observed.LimitPrice - observed.StopPrice); } catch {}
+					if (offset <= 0) offset = tick > 0 ? tick : 0.25;
+					observed.StopPriceChanged = revertPrice;
+					observed.LimitPriceChanged = isLong ? revertPrice - offset : revertPrice + offset;
+				}
+				else
+				{
+					observed.StopPriceChanged = revertPrice;
+				}
+				QueueAccountOperation(AccountOperationType.Change, new[] { observed }, "SL-pull protect revert manual drag");
+				Print(string.Format("[KatTradeManager] SL-pull protect: reverted manual SL drag {0} -> {1} (initial {1})", newSlCandidate, revertPrice));
+				ShowHudStatus(string.Format("SL-pull blocked: {0} beyond initial {1} — reverted", newSlCandidate, initSl), Brushes.OrangeRed, true);
+			}
+			catch (Exception ex) { Print(string.Format("[KatTradeManager] SL-pull revert failed: {0}", ex.Message)); }
 		}
 		#endregion
 	}
