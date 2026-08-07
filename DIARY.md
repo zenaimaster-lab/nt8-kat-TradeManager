@@ -23,6 +23,12 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.31] — 2026-08-07
+- **Re-audit 4 — sizing strict block**:
+  - `IsSizingBlocked` previously allowed same-direction adds up to `InitialQty` (`posQty+orderQty > InitialQty`) — with partial fill `pos 2/4` a new 1-lot add was allowed (2+1<=4). Spec `không cho phép add thêm size vào nữa` requires strict block of any scale-in after fill. Now `IsSizingBlocked` returns `true` for any `isScaleIn` when `hasPosition` (`src/KatTradeCalculator.cs:547`), ignoring qty.
+  - 169/169 tests pass; CompileCheck 0 errors; deploy OK.
+  - Graphify entity mapping: `KatTradeCalculator.IsSizingBlocked`.
+
 ### [v1.30] — 2026-08-07
 - **Re-audit 3 — sizing partial-fill + Trades lock + upgrade migration**:
   - **Sizing partial-fill**: `st.InitialQty` previously captured `pos.Quantity` after first partial fill (2) instead of ATM qty (4) — max became 2, second fill of same entry incorrectly blocked as scale-in. Now prefers `atmQuantity` over `liveQty` (`src/KatTradeManager.Discipline.cs:189`).

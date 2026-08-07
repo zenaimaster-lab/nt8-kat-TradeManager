@@ -547,12 +547,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public static bool IsSizingBlocked(bool hasPosition, bool isLongPosition, KatOrderAction action, int positionQty, int initialQty, int orderQty)
 		{
 			if (!hasPosition) return false;
-			if (initialQty <= 0) return false;
 			bool isScaleIn = isLongPosition ? action == KatOrderAction.Buy : action == KatOrderAction.Sell;
 			if (!isScaleIn) return false;
-			if (positionQty >= initialQty) return true;
-			if (orderQty <= 0) orderQty = 1;
-			return positionQty + orderQty > initialQty;
+			// Strict: any same-direction add after fill is blocked when sizing protect ON (max = first fill = ATM qty)
+			return true;
 		}
 
 		public static bool IsSlPullBlocked(bool isLong, double initialSl, double newSl, double tickSize)

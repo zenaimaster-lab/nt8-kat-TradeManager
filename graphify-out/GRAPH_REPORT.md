@@ -1,7 +1,7 @@
 # Graph Report - nt8-kat-TradeManager  (2026-08-07)
 
 ## Corpus Check
-- 33 files · ~49,192 words
+- 33 files · ~49,268 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `f0074be9`
+- Built from commit: `6f5cb2b3`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -26,8 +26,8 @@
 - [[_COMMUNITY_Community 8|Community 8]]
 - [[_COMMUNITY_Community 9|Community 9]]
 - [[_COMMUNITY_Community 10|Community 10]]
-- [[_COMMUNITY_Community 12|Community 12]]
-- [[_COMMUNITY_Community 14|Community 14]]
+- [[_COMMUNITY_Community 11|Community 11]]
+- [[_COMMUNITY_Community 13|Community 13]]
 - [[_COMMUNITY_Community 15|Community 15]]
 - [[_COMMUNITY_Community 16|Community 16]]
 - [[_COMMUNITY_Community 17|Community 17]]
@@ -86,7 +86,7 @@ Cohesion: 0.09
 Nodes (10): Brush, Button, Canvas, IInputElement, Point, SolidColorBrush, KatTradeManager, TextBlock (+2 more)
 
 ### Community 9 - "Community 9"
-Cohesion: 0.12
+Cohesion: 0.14
 Nodes (11): Account, AtmLevels, Border, ComboBox, DispatcherTimer, Grid, Indicator, KatTradeManager (+3 more)
 
 ### Community 22 - "Community 22"
@@ -101,7 +101,7 @@ Nodes (3): AtmTemplateData, KatAtmXmlParser, NinjaTrader.NinjaScript.Indicators
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `KatTradeManager` connect `Community 0` to `Community 1`, `Community 4`, `Community 9`, `Community 11`, `Community 14`?**
+- **Why does `KatTradeManager` connect `Community 0` to `Community 9`, `Community 11`, `Community 4`, `Community 1`?**
   _High betweenness centrality (0.116) - this node is a cross-community bridge._
 - **Why does `string` connect `Community 4` to `Community 0`, `Community 9`, `Community 3`, `Community 5`?**
   _High betweenness centrality (0.103) - this node is a cross-community bridge._
