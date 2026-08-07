@@ -23,6 +23,11 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.32] — 2026-08-07
+- **HUD Discipline All/Un-Discipline dark purple same**:
+  - `Discipline All` + `Un-Discipline` trước `#7C3AED` violet / `#BE123C` rose sáng bão hòa → cùng dark purple `#37145A` `55,20,85` (`onAllBg/offAllBg:43`), border cùng `#4B1E6E` `75,30,110` (`src/KatTradeManagerUI.cs:43` `1383`). Đậm hơn, không bão hòa, nổi bật nhưng hài hòa với 3 row blue.
+  - Graphify entity mapping: `KatTradeManagerUI.onAllBg/offAllBg`.
+
 ### [v1.31] — 2026-08-07
 - **Re-audit 4 — sizing strict block**:
   - `IsSizingBlocked` previously allowed same-direction adds up to `InitialQty` (`posQty+orderQty > InitialQty`) — with partial fill `pos 2/4` a new 1-lot add was allowed (2+1<=4). Spec `không cho phép add thêm size vào nữa` requires strict block of any scale-in after fill. Now `IsSizingBlocked` returns `true` for any `isScaleIn` when `hasPosition` (`src/KatTradeCalculator.cs:547`), ignoring qty.

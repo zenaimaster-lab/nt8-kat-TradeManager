@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.31 (2026-08-07) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.32 (2026-08-07) */
 
 using System;
 using System.Collections.Generic;
@@ -38,9 +38,9 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			new SolidColorBrush(Color.FromRgb(32, 88, 138)),  // Row1: No loss-DCA + No TP-early
 			new SolidColorBrush(Color.FromRgb(48, 120, 180)), // Row2: StopWhenLoss + TradingWindows
 		};
-		// Top Discipline/Un-Discipline row — standout from blue rows
-		private readonly SolidColorBrush onAllBg = new SolidColorBrush(Color.FromRgb(124, 58, 237)); // Discipline All - vivid violet
-		private readonly SolidColorBrush offAllBg = new SolidColorBrush(Color.FromRgb(190, 18, 60));  // Un-Discipline - rose red
+		// Top Discipline/Un-Discipline row — same dark purple (user wants dark, not saturated bright)
+		private readonly SolidColorBrush onAllBg = new SolidColorBrush(Color.FromRgb(55, 20, 85)); // Discipline All - dark purple
+		private readonly SolidColorBrush offAllBg = new SolidColorBrush(Color.FromRgb(55, 20, 85));  // Un-Discipline - same dark purple
 		private bool isHotkeyAttached = false;
 		private Window hotkeyWindow; // cached at attach — chart can move to a new window before detach
 		private bool hasHudDragPosition;
@@ -1383,7 +1383,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			btnDisciplineOnAll = CreateButton("Discipline All", onAllBg, null, 26, 11);
 			btnDisciplineOnAll.Foreground = Brushes.White;
 			btnDisciplineOnAll.FontWeight = FontWeights.Bold;
-			btnDisciplineOnAll.BorderBrush = new SolidColorBrush(Color.FromRgb(167, 139, 250));
+			btnDisciplineOnAll.BorderBrush = new SolidColorBrush(Color.FromRgb(75, 30, 110));
 			btnDisciplineOnAll.BorderThickness = new Thickness(1);
 			btnDisciplineOnAll.Click += (s, ev) => SetAllDiscipline(true);
 			Grid.SetColumn(btnDisciplineOnAll, 0);
@@ -1391,7 +1391,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			btnDisciplineOffAll = CreateButton("Un-Discipline", offAllBg, null, 26, 11);
 			btnDisciplineOffAll.Foreground = Brushes.White;
 			btnDisciplineOffAll.FontWeight = FontWeights.Bold;
-			btnDisciplineOffAll.BorderBrush = new SolidColorBrush(Color.FromRgb(251, 113, 133));
+			btnDisciplineOffAll.BorderBrush = new SolidColorBrush(Color.FromRgb(75, 30, 110));
 			btnDisciplineOffAll.BorderThickness = new Thickness(1);
 			btnDisciplineOffAll.Click += (s, ev) => SetAllDiscipline(false);
 			Grid.SetColumn(btnDisciplineOffAll, 2);
