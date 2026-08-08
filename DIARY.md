@@ -23,6 +23,11 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.84] — 2026-08-08
+- **Polish — thêm pad/margin đen trống dưới cùng mọi section (account → Close/flatten)**
+  - User thấy diagnostic vàng cũ (`2:5 1:3...`) tạo pad đen đẹp ở đáy section; yêu cầu thêm pad đen trống (không text) cho tất cả sections.
+  - Fix: `CreateSectionCard:2117` bọc `child` trong `Grid` 2 hàng — `Row0` `contentHost Padding HudGap`, `Row1` `footer Border Height 10 Background #000000 CornerRadius 0,0,4,4`; outer `Border Background 10,12,18 Border 35,42,56 Radius5 Padding 0 Child=inner`. `CreateAccountInfoSection:268` tương tự — `accContentHost Padding HudGap,HudGap+4` + `accFooter Height10 #000` + `accInner Grid`; outer black `#000` giữ nguyên — footer tạo dải đen đồng nhất đáy card, tròn đáy, sát viền 1px.
+
 ### [v1.83] — 2026-08-08
 - **Fix — ATM/DD label hiện đúng trên button (robust TextBlock template, bỏ diag)**
   - Sau v1.82 diag vàng hiện `abcd17.GH` / `2:5 1:3...` chứng minh `GetAtmSetName`/`GetDailyRiskPresetName` data non-empty, nhưng 8/6 nút vẫn trống; `ClearValue(Template)` dùng default NT8 theme cũng không render string trên star Grid hẹp; diag vàng lại hiện thành 1 dãy dưới button như user báo.

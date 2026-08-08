@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.83 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.84 (2026-08-08) */
 // ponytail: many catch{} for UI button updates are expected (control not yet created, dispatcher not ready) — silent. Critical watchdog tick already logs.
 
 using System;
@@ -265,15 +265,38 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			pnlGrid.Children.Add(accountRealText);
 			inner.Children.Add(pnlGrid);
 
+			// account info also gets empty black footer pad at bottom (same style as other sections) — no text
+			var accContentHost = new Border
+			{
+				Padding = new Thickness(HudGap, HudGap + 4, HudGap, HudGap + 4),
+				Background = Brushes.Transparent,
+				Child = inner,
+				UseLayoutRounding = true,
+				SnapsToDevicePixels = true
+			};
+			var accFooter = new Border
+			{
+				Height = 10,
+				Background = new SolidColorBrush(Color.FromRgb(0, 0, 0)),
+				CornerRadius = new CornerRadius(0, 0, 4, 4),
+				UseLayoutRounding = true,
+				SnapsToDevicePixels = true
+			};
+			var accInner = new Grid { UseLayoutRounding = true, SnapsToDevicePixels = true };
+			accInner.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+			accInner.RowDefinitions.Add(new RowDefinition { Height = new GridLength(10) });
+			Grid.SetRow(accContentHost, 0);
+			Grid.SetRow(accFooter, 1);
+			accInner.Children.Add(accContentHost);
+			accInner.Children.Add(accFooter);
 			accountInfoCard = new Border
 			{
 				Background = new SolidColorBrush(Color.FromRgb(0, 0, 0)),
 				BorderBrush = new SolidColorBrush(Color.FromRgb(35, 42, 56)),
 				BorderThickness = new Thickness(1),
 				CornerRadius = new CornerRadius(5),
-				Padding = new Thickness(HudGap, HudGap + 4, HudGap, HudGap + 4), // extra top/bottom ~1/2 line (6px) per request, inter-line gap unchanged
 				Margin = new Thickness(0, 0, 0, HudGap),
-				Child = inner,
+				Child = accInner,
 				UseLayoutRounding = true,
 				SnapsToDevicePixels = true
 			};
@@ -2116,15 +2139,38 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 		private Border CreateSectionCard(FrameworkElement child, double bottomMargin = 2)
 		{
+			// black footer pad at bottom of every section — empty decorative strip (no text), pure black contrast vs card bg 10,12,18
+			var contentHost = new Border
+			{
+				Padding = new Thickness(HudGap),
+				Background = Brushes.Transparent,
+				Child = child,
+				UseLayoutRounding = true,
+				SnapsToDevicePixels = true
+			};
+			var footer = new Border
+			{
+				Height = 10,
+				Background = new SolidColorBrush(Color.FromRgb(0, 0, 0)),
+				CornerRadius = new CornerRadius(0, 0, 4, 4),
+				UseLayoutRounding = true,
+				SnapsToDevicePixels = true
+			};
+			var inner = new Grid { UseLayoutRounding = true, SnapsToDevicePixels = true };
+			inner.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+			inner.RowDefinitions.Add(new RowDefinition { Height = new GridLength(10) });
+			Grid.SetRow(contentHost, 0);
+			Grid.SetRow(footer, 1);
+			inner.Children.Add(contentHost);
+			inner.Children.Add(footer);
 			return new Border
 			{
 				Background = new SolidColorBrush(Color.FromRgb(10, 12, 18)),
 				BorderBrush = new SolidColorBrush(Color.FromRgb(35, 42, 56)),
 				BorderThickness = new Thickness(1),
 				CornerRadius = new CornerRadius(5),
-				Padding = new Thickness(HudGap),
 				Margin = new Thickness(0, 0, 0, bottomMargin),
-				Child = child,
+				Child = inner,
 				UseLayoutRounding = true,
 				SnapsToDevicePixels = true
 			};
