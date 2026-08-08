@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.70 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.71 (2026-08-08) */
 // ponytail: many catch{} for UI button updates are expected (control not yet created, dispatcher not ready) — silent. Critical watchdog tick already logs.
 
 using System;
@@ -28,7 +28,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private readonly SolidColorBrush atmSetOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65)); // same gray as other OFF buttons
 		private readonly SolidColorBrush atmSetOnBg = new SolidColorBrush(Color.FromArgb(51, 180, 90, 20)); // amber ON — 80% transparent (alpha 51) per request very faint
 		private Button[] dailyRiskPresetButtons;
-		private readonly SolidColorBrush dailyRiskPresetOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
+		private readonly SolidColorBrush dailyRiskPresetOffBg = new SolidColorBrush(Color.FromArgb(128, 45, 50, 65)); // gray OFF 50% transparent per request (dim)
 		private readonly SolidColorBrush dailyRiskPresetOnBg = new SolidColorBrush(Color.FromArgb(51, 36, 7, 72)); // 80% transparent ON per request
 		private Button[] disciplineButtons;
 		private Button btnDisciplineAll;
@@ -1374,7 +1374,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				Grid rowGrid = CreateFourColumnGrid(HudGap, HudGap, HudGap);
 				for (int cc = 0; cc < 4; cc++)
 				{
-					int idx = prow * 4 + cc;
+					int idx = cc * 2 + prow; // pairs 1,2 | 3,4 | 5,6 | 7,8 → row0:1,3,5,7 row1:2,4,6,8 per request
 					double _fsProg = Math.Min(14, GetQuickSetFontSize() + 2);
 					Button pBtn = CreateButton("", profileOffBg, null, 22, _fsProg);
 					SetButtonLabel(pBtn, GetTradingProfileName(idx));

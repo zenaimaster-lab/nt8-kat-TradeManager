@@ -23,6 +23,11 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.71] — 2026-08-08
+- **Layout+Dim — Program pairs 1,2/3,4/5,6/7,8 vertical, preset gray 50%**
+  - `KatTradeManagerUI.CreateWpfControls:1377` `idx = prow*4+cc` → `cc*2+prow` — row0 `1,3,5,7` row1 `2,4,6,8` (cặp 1,2 dọc) per request; `tradingProfileButtons[idx]` mapping giữ profile index.
+  - `KatTradeManagerUI:31` `dailyRiskPresetOffBg` `FromRgb(45,50,65)` → `FromArgb(128,45,50,65)` 50% trong suốt (giảm sáng) cho 6 preset dưới MaxDD.
+
 ### [v1.70] — 2026-08-08
 - **Fix — revert MaxDD/Profit toggle opaque + preset height sync**
   - `KatTradeManagerUI:1697` `dailyOnBg` `58,19,107` revert `FromArgb(51)` → `FromRgb` opaque — chỉ quick-set `atmSetOnBg` + `dailyRiskPresetOnBg` giữ `51` (80% transperant) per correction; toggle ON/OFF MaxDD/Profit đặc như cũ.
