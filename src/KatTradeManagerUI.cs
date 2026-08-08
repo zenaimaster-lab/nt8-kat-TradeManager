@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.78 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.79 (2026-08-08) */
 // ponytail: many catch{} for UI button updates are expected (control not yet created, dispatcher not ready) — silent. Critical watchdog tick already logs.
 
 using System;
@@ -546,14 +546,14 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		{
 			switch (idx)
 			{
-				case 0: return AtmSet1Name;
-				case 1: return AtmSet2Name;
-				case 2: return AtmSet3Name;
-				case 3: return AtmSet4Name;
-				case 4: return AtmSet5Name;
-				case 5: return AtmSet6Name;
-				case 6: return AtmSet7Name;
-				default: return AtmSet8Name;
+				case 0: return string.IsNullOrWhiteSpace(AtmSet1Name) ? "A" : AtmSet1Name;
+				case 1: return string.IsNullOrWhiteSpace(AtmSet2Name) ? "B" : AtmSet2Name;
+				case 2: return string.IsNullOrWhiteSpace(AtmSet3Name) ? "C" : AtmSet3Name;
+				case 3: return string.IsNullOrWhiteSpace(AtmSet4Name) ? "D" : AtmSet4Name;
+				case 4: return string.IsNullOrWhiteSpace(AtmSet5Name) ? "E" : AtmSet5Name;
+				case 5: return string.IsNullOrWhiteSpace(AtmSet6Name) ? "F" : AtmSet6Name;
+				case 6: return string.IsNullOrWhiteSpace(AtmSet7Name) ? "G" : AtmSet7Name;
+				default: return string.IsNullOrWhiteSpace(AtmSet8Name) ? "H" : AtmSet8Name;
 			}
 		}
 

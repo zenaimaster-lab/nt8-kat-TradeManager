@@ -23,6 +23,11 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.79] — 2026-08-08
+- **Fix — ATM quick-set label still empty (getter fallback triệt để)**
+  - Screenshot v1.78 Program `FN-Eva` thấy, ATM 8 ô nâu/xám trống → `GetAtmSetName` return `AtmSet1Name` trực tiếp, chart cũ lưu `""` nên `""` hiện trống dù setting có text (setter `Normalize` chỉ chạy khi set mới).
+  - Fix: `KatTradeManagerUI.GetAtmSetName:545` `return AtmSetXName` → `IsNullOrWhiteSpace ? "A".."H" : AtmSetXName` đảm bảo fallback `"A".."H"` khi trống, khớp `GetDailyRiskPresetName` đã fallback `"1".."6"`; giữ `GetSmallQuickSetLabelBrush` `255` opaque, font nhỏ `8`; ko đụng chỗ khác per request.
+
 ### [v1.78] — 2026-08-08
 - **Fix — quick-set label still empty (triệt để, ko đụng chỗ khác)**
   - So sánh Program (thấy) vs ATM/DailyRisk (trống) trên screenshot v1.77: background OK, chỉ text missing → `NormalizeAtmSetName` cho phép `""` empty làm chart cũ `""` hiện trống dù setting có text; `GetSmallQuickSetLabelBrush` `alpha 51/204` vẫn mờ.
