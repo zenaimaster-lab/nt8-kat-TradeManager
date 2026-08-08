@@ -52,11 +52,18 @@ foreach ($f in $files) {
     $name = Split-Path $f -Leaf
     $dst = Join-Path $katDir $name
     Copy-Item $src $dst -Force
-    # NT file-watcher sometimes ignores same-second stamps; nudge LastWriteTime forward.
-    (Get-Item $dst).LastWriteTime = (Get-Date).AddSeconds(2)
     $flat = Join-Path $indicators $name
     if (Test-Path $flat) { Remove-Item $flat -Force }
     Write-Host "deployed: KAT\$name"
+}
+
+# Final atomic nudge: the NT8 file-watcher can recompile MID-copy (new KatTradeManager.cs +
+# stale UI file = mismatched dll). Nudging ALL files after the last copy guarantees one more
+# recompile that sees the complete, consistent source set.
+Start-Sleep -Seconds 1
+$finalStamp = (Get-Date).AddSeconds(2)
+foreach ($f in $files) {
+    (Get-Item (Join-Path $katDir (Split-Path $f -Leaf))).LastWriteTime = $finalStamp
 }
 
 # NT8 recompiles automatically when NinjaTrader is running. A newer dll = accepted; older = rejected

@@ -23,6 +23,14 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.57] — 2026-08-08
+- **Definitive fix — quick-set label still right-shifted on live NT8 (theme-independent template)**
+  - **Evidence**: Headless repro loading the real `NinjaTrader.Gui` theme (`themes/generic.xaml` via pack BAML) rendered P1–P8 perfectly centered with the v1.56 alignment code, yet the live chart still showed right-clipped labels. Conclusion: the active NT8 theme's `Button` ControlTemplate positions the `ContentPresenter` via its own bindings, so alignment set on the button/content is not honored on some installs.
+  - **Fix**: `CreateButton` now assigns a self-owned `ControlTemplate` (`GetHudButtonTemplate`): `Border` (TemplateBinding Background) + `ContentPresenter` hard-centered (`HorizontalAlignment/VerticalAlignment.Center`, margin 2,0). Owning the template removes ALL dependence on the theme's presenter placement, guaranteeing centered, unclipped labels for every HUD button (profiles, ATM sets, presets, toggles).
+  - **Deploy hardening**: `scripts/Deploy-NT8.ps1` previously nudged each file's timestamp during the copy loop, letting the NT8 watcher recompile MID-copy (new `KatTradeManager.cs` + stale UI = mismatched dll). Now all files are copied first, then a single atomic timestamp nudge forces one consistent recompile.
+  - Verify: CompileCheck 0 errors; headless theme repro + template repro both render P1–P8 centered.
+  - Graphify entity mapping: `KatTradeManagerUI.GetHudButtonTemplate`, `KatTradeManagerUI.CreateButton(Template)`.
+
 ### [v1.56] — 2026-08-08
 - **Hotfix — Program buttons label clipped to "P" (must be centered)**
   - **Root cause**: `KatTradeManagerUI.CreateButton` tạo `TextBlock` với `HorizontalAlignment Stretch` + `HorizontalContentAlignment Stretch` + `Padding 1,0` + `TextTrimming CharacterEllipsis` nhưng `TextAlignment Center` chỉ center trong `TextBlock` đã stretch 53px — trông đúng trong unit test nhưng trên NT8 theme `Button` style có `Padding`/`Border` mặc định làm `ContentPresenter` không stretch, `TextBlock` bị measure với `Stretch` vẫn cho `DesiredSize` nhỏ, `Grid` star + gap 1.5px sub-pixel làm rounding 0.5px khiến cột star cuối bị thiếu 1-2px, `TextBlock` 53px bị clip phải 1px → "P1" với font 8 mảnh ("1" chỉ 1px stroke) bị anti-alias + alpha 128 (50% `QuickSetLabelOpacityPercent`) làm "1" gần như tàng hình, screenshot nén thấp thành "P".

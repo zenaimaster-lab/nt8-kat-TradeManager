@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.56 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.57 (2026-08-08) */
 
 using System;
 using System.Collections.Generic;
@@ -1784,11 +1784,30 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				HorizontalContentAlignment = HorizontalAlignment.Center,
 				VerticalContentAlignment = VerticalAlignment.Center,
 				HorizontalAlignment = HorizontalAlignment.Stretch,
-				VerticalAlignment = VerticalAlignment.Center
+				VerticalAlignment = VerticalAlignment.Center,
+				Template = GetHudButtonTemplate()
 			};
 			if (handler != null)
 				btn.Click += handler;
 			return btn;
+		}
+
+		// Own the Button template: NT8 theme variants place ContentPresenter per their own bindings,
+		// which shifted quick-set labels right on some installs. A fixed centered presenter guarantees
+		// labels stay centered and unclipped regardless of the active theme.
+		private static ControlTemplate _hudButtonTemplate;
+		private static ControlTemplate GetHudButtonTemplate()
+		{
+			if (_hudButtonTemplate != null) return _hudButtonTemplate;
+			var border = new FrameworkElementFactory(typeof(Border), "root");
+			border.SetBinding(Border.BackgroundProperty, new System.Windows.Data.Binding("Background") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent) });
+			var cp = new FrameworkElementFactory(typeof(ContentPresenter));
+			cp.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+			cp.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
+			cp.SetValue(ContentPresenter.MarginProperty, new Thickness(2, 0, 2, 0));
+			border.AppendChild(cp);
+			_hudButtonTemplate = new ControlTemplate(typeof(Button)) { VisualTree = border };
+			return _hudButtonTemplate;
 		}
 
 		private void ShowHudStatus(string message, Brush foreground)

@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 1.56 (2026-08-08)
+ * Version: 1.57 (2026-08-08)
  * NinjaTrader 8 TradeManager Indicator
  */
  
