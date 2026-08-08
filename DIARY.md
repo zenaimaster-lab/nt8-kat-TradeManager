@@ -23,6 +23,11 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.75] — 2026-08-08
+- **Program ON colors — parity (odd cyan / even pink)**
+  - Yêu cầu: P2,4,6,8 hồng (rose `#872341` 135,35,65 ex P5-P8), P1,3,5,7 cyan (`#146E6E` 20,110,110 ex P1-P4).
+  - Đổi `KatTradeManagerUI.profileRowOnBgs:122` comment odd/even + `UpdateTradingProfileButtons:703` `i/4` → `i%2` parity; layout `idx=cc*2+prow` nên hàng trên (P1,P3,P5,P7) toàn cyan, hàng dưới (P2,P4,P6,P8) toàn hồng.
+
 ### [v1.74] — 2026-08-08
 - **Fix — ATM/DailyRisk quick-set empty label, small 80% transparent text**
   - Root: `DailyRiskSet*Name` null (chart cũ chưa có default) → `GetDailyRiskPresetName` return null → button empty dù setting có text; `NormalizeAtmSetName` `""` → fallback `"A"` chặn empty theo spec.

@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.74 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.75 (2026-08-08) */
 // ponytail: many catch{} for UI button updates are expected (control not yet created, dispatcher not ready) — silent. Critical watchdog tick already logs.
 
 using System;
@@ -121,8 +121,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private readonly SolidColorBrush profileOffBg = new SolidColorBrush(Color.FromArgb(128, 45, 50, 65)); // gray OFF 50% transparent per request (dim)
 		private readonly SolidColorBrush[] profileRowOnBgs = new SolidColorBrush[]
 		{
-			new SolidColorBrush(Color.FromRgb(20, 110, 110)), // Row0 (P1-P4) teal — distinct from discipline blues
-			new SolidColorBrush(Color.FromRgb(135, 35, 65)),  // Row1 (P5-P8) rose — distinct from ATM amber
+			new SolidColorBrush(Color.FromRgb(20, 110, 110)), // odd P1,P3,P5,P7 — cyan/teal (ex Row0)
+			new SolidColorBrush(Color.FromRgb(135, 35, 65)),  // even P2,P4,P6,P8 — rose/pink (ex Row1)
 		};
 		// Row-based ON colors: 2 buttons per row share same shade (3 rows)
 		private readonly SolidColorBrush[] disciplineRowBgs = new SolidColorBrush[]
@@ -700,8 +700,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				bool on = (uniqueMatch != -1 && i == uniqueMatch) || (uniqueMatch == -1 && activeTradingProfile == i && IsTradingProfileActive(i));
 				if (on)
 				{
-					int row = i / 4; // 0 for P1-P4, 1 for P5-P8
-					tradingProfileButtons[i].Background = profileRowOnBgs[Math.Min(row, profileRowOnBgs.Length - 1)];
+					int parity = i % 2; // 0: P1,P3,P5,P7 cyan, 1: P2,P4,P6,P8 pink
+					tradingProfileButtons[i].Background = profileRowOnBgs[parity];
 					tradingProfileButtons[i].Foreground = labelBrush;
 				}
 				else
