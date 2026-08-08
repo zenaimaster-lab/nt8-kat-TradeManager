@@ -95,10 +95,12 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 		// Submits via ATM template when it exists on disk; falls back to plain submit otherwise.
 		// StartAtmStrategy requires the entry order name "Entry"; callers must preserve that contract.
+		// ponytail: Market orders bypass FIFO queue (head-of-line block ~1s via BeginInvoke+settle). Brackets stay queued.
 		private bool SubmitOrder(Order order)
 		{
 			if (account == null || order == null) return false;
 			string tpl = cachedAtmTemplate;
+			bool isMarket = order.OrderType == OrderType.Market;
 			try
 			{
 				if (HasAtmTemplate(tpl))
@@ -106,12 +108,26 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					if (TryPrepareAtmScaleIn(order))
 					{
 						TrackAtmScaleIn(order);
+						if (isMarket)
+						{
+							account.Submit(new[] { order });
+							Print(string.Format("[KatTradeManager] ATM MERGE scale-in submitted IMMEDIATE: name={0} type={1} state={2}",
+								order.Name, order.OrderType, order.OrderState));
+							return true;
+						}
 						QueueAccountOperation(AccountOperationType.Submit, new[] { order }, "ATM MERGE scale-in submit");
 						Print(string.Format("[KatTradeManager] ATM MERGE scale-in submitted: name={0} type={1} state={2}",
 							order.Name, order.OrderType, order.OrderState));
 						return true;
 					}
 					TrackAtmStartup(order);
+					if (isMarket)
+					{
+						NinjaTrader.NinjaScript.AtmStrategy.StartAtmStrategy(tpl, order);
+						Print(string.Format("[KatTradeManager] ATM start IMMEDIATE: template={0} name={1} state={2}",
+							tpl, order.Name, order.OrderState));
+						return true;
+					}
 					QueueAccountOperation(
 						AccountOperationType.Submit,
 						new[] { order },
@@ -124,6 +140,13 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				if (!string.IsNullOrEmpty(tpl))
 					Print(string.Format("[KatTradeManager] ATM template '{0}' not found — submitting order WITHOUT ATM strategy", tpl));
 
+				if (isMarket)
+				{
+					account.Submit(new[] { order });
+					Print(string.Format("[KatTradeManager] Native submit IMMEDIATE: name={0} type={1} state={2}",
+						order.Name, order.OrderType, order.OrderState));
+					return true;
+				}
 				QueueAccountOperation(AccountOperationType.Submit, new[] { order }, "native submit");
 				Print(string.Format("[KatTradeManager] Native submit requested: name={0} type={1} state={2}",
 					order.Name, order.OrderType, order.OrderState));

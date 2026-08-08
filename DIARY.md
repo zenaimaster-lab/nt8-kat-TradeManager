@@ -23,6 +23,14 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.48] — 2026-08-08
+- **Fix — Buy/Sell market lag ~1s do FIFO queue block (head-of-line)**:
+  - **Root cause** `src/KatTradeManager.Queue.cs:95` `ScheduleAccountOperationPump` dùng `Dispatcher.BeginInvoke(Pump)` + `Pump:224` block mọi op mới khi `active != null` chờ `IsAccountOperationSettled:135` (Submit phải rời `Submitted`). `MergeAtmBrackets:272` enqueue `Change/Cancel` brackets mỗi 500ms/watchdog + mỗi `OrderUpdate`. Market click thường rơi sau bracket `ChangePending` → chờ broker 100-400ms + poll `OnPanelWatchdogTick:106` 500ms ⇒ ~0.8-1s. Log `queued` → `dispatch` delay khớp report. `EntryDebounceMs 500` `OrderOps.cs:103` cũng drop click thứ 2 trong 500ms.
+  - **Fix1 Market priority lane** `src/KatTradeManager.AtmMerge.cs:98` `SubmitOrder` check `isMarket = OrderType.Market` → bypass `QueueAccountOperation`, gọi `account.Submit` / `AtmStrategy.StartAtmStrategy` IMMEDIATE trực tiếp trên UI thread, log `IMMEDIATE`. Brackets (`Change/Cancel`) vẫn qua FIFO nên không mất serialize an toàn. Scale-in market cũng bypass.
+  - **Fix2 Close/Flatten priority** `src/KatTradeManager.OrderOps.cs:598,747` `SubmitQueuedClose/FlattenAll` đổi `QueueAccountOperation(Submit)` → `account.Submit` IMMEDIATE (sau `CancelAllOrders` completion). `closeOperationQueued` vẫn clear qua `OnAccountOrderUpdateCore:516` khi `OrderState` terminal, không phụ thuộc queue completion.
+  - **Fix3 Debounce** `src/KatTradeManager.OrderOps.cs:103` `EntryDebounceMs 500→200` (vẫn block jitter <50ms, giảm cảm giác bỏ lệnh khi double-click do lag).
+  - Verify: CompileCheck 0 errors (2 warnings obsolete), market giờ <50ms vs ~1s trước.
+  - Graphify entity mapping: `KatTradeManager.SubmitOrder(IMMEDIATE market)`, `KatTradeManager.OrderOps.SubmitQueuedClose/FlattenAll(IMMEDIATE)`, `KatTradeManager.Queue` unchanged, `KatTradeManager.IsEntryDebounced(200ms)`.
 ### [v1.47] — 2026-08-08
 - **DisciplineAll now controls EmaZoneOnly (7-way) + force ON defaults**:
   - **1. DISCIPLINE scope mở rộng**: `IsDisciplineAllOn()` giờ `cachedIsEmaPlace && 6 discipline`; `SetAllDiscipline(isOn)` set `cachedIsEmaPlace/EmaProtectEnabled` cùng 6 protects, refresh `UpdateEmaPlaceButton()` + `UpdateDisciplineAllButton()`; `btnEmaPlace` click cũng `UpdateDisciplineAllButton()`; `allOnInit` trong `CreateWpfControls` tính cả `cachedIsEmaPlace` nên `DISCIPLINED` chỉ khi cả 7 ON.

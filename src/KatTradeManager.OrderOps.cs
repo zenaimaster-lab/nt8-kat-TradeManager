@@ -100,7 +100,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			// ponytail: ATM merge extracted to KatTradeManager.AtmMerge.cs (partial class)
 
 	private DateTime lastEntrySubmitTime = DateTime.MinValue;
-		private const double EntryDebounceMs = 500;
+		private const double EntryDebounceMs = 200; // ponytail: 500→200 market lag feel, still blocks jitter <50ms
 
 		// Blocks accidental duplicate entry submissions (mouse-jitter double-click, hotkey bounce).
 		// Callers are UI-thread only, so check-then-set needs no lock.
@@ -595,17 +595,19 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					return;
 				}
 
-				QueueAccountOperation(
-					AccountOperationType.Submit,
-					new[] { closeOrder },
-					"close/flatten submit",
-					completion: () =>
-					{
-						if (IsTerminalOrderState(closeOrder.OrderState))
-							System.Threading.Interlocked.Exchange(ref closeOperationQueued, 0);
-					});
-				Print(string.Format("[KatTradeManager] Close submit queued: action={0} qty={1} state={2}",
-					action, pos.Quantity, closeOrder.OrderState));
+				// ponytail: close market = priority lane — bypass FIFO (same head-of-line as entry market)
+				try
+				{
+					account.Submit(new[] { closeOrder });
+					Print(string.Format("[KatTradeManager] Close submit IMMEDIATE: action={0} qty={1} state={2}",
+						action, pos.Quantity, closeOrder.OrderState));
+				}
+				catch (Exception ex2)
+				{
+					System.Threading.Interlocked.Exchange(ref closeOperationQueued, 0);
+					Print(string.Format("[KatTradeManager] Close submit failed: {0}", ex2));
+					return;
+				}
 			}
 			catch (Exception ex)
 			{
@@ -744,16 +746,19 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					flattenCloseOrders.AddRange(closeOrders);
 				}
 
-				QueueAccountOperation(
-					AccountOperationType.Submit,
-					closeOrders,
-					"flatten-all close submit",
-					completion: () =>
-					{
-						if (closeOrders.All(o => IsTerminalOrderState(o.OrderState)))
-							System.Threading.Interlocked.Exchange(ref closeOperationQueued, 0);
-					});
-				Print(string.Format("[KatTradeManager] Flatten-all close submit queued: positions={0}", closeOrders.Count));
+				// ponytail: flatten market = priority lane — bypass FIFO
+				try
+				{
+					account.Submit(closeOrders.ToArray());
+					Print(string.Format("[KatTradeManager] Flatten-all close submit IMMEDIATE: positions={0}", closeOrders.Count));
+				}
+				catch (Exception ex2)
+				{
+					ClearFlattenCloseTracking();
+					System.Threading.Interlocked.Exchange(ref closeOperationQueued, 0);
+					Print(string.Format("[KatTradeManager] Flatten submit failed: {0}", ex2));
+					return;
+				}
 			}
 			catch (Exception ex)
 			{
