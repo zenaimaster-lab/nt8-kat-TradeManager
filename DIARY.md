@@ -23,6 +23,13 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.86] — 2026-08-08
+- **HUD layout + Entry/SL shift universal pending**
+  - Yêu cầu 4 điểm: 1) ◀ Entry candle / Entry candle ▶ xuống dưới dòng Entry 89/34 vào cùng section Buy/sell last 34/89; 2) ◀ SL / SL ▶ vào section Close/flatten nằm trên Revert+Break Even; 3) Entry candle back/forward tác dụng cho mọi pending (Buy/Sell current, previous, Buy/Sell last 34/89); 4) SL back/forward tác dụng cho mọi pending hoặc lệnh đã filled (vẫn bị Discipline SL-pull kiểm soát).
+  - Layout: `KatTradeManagerUI.CreateWpfControls` sec2Panel thứ tự `entryShiftGrid` → `candleShiftGrid` → `ema34Grid` → `ema89Grid` (ema89 0 bottom), sec3Panel chỉ giữ `mktBtnGrid` + `curr/prev` (bỏ candle), sec3bPanel `swingSlGrid` → `beRevertGrid` → `Close/flatten`; tinh chỉnh `prevOrderGrid`/`ema89Grid` 0 bottom giữ pad đen 10 đồng nhất.
+  - Entry candle universal: `KatTradeManager.SwingOps.ShiftCandleEntry` check `hasCandleOrder || lastEma 34/89 || workingEntries.Any()`, resolve `resolvedAction` ưu tiên working entry, map `lastEmaTouchBarTime` sang candle index qua `candleBarLists`, `CalculateShiftedBarIndex` với `refTime/refBarsAgo`, cancel all pending entries rồi `PlaceOrderInternal`, unify state `hasCandleOrder=true` sau shift.
+  - SL universal: `ShiftSlToSwing` suy `effectivePos/effectiveQty` từ `pos` nếu có position, ngược lại từ `pendingEntries[0].OrderAction` (Buy→Long), reset `slMoveHistory` khi `effectivePos` đổi, lọc `workingStops` theo `effectivePos`, seed `currentStop` từ pending price khi chưa có stop, validation `IsStopOnValidSide` + gate `TryRejectDisciplineForSlMove` giữ nguyên, tạo/change SL với `effectivePos/effectiveQty`.
+
 ### [v1.85] — 2026-08-08
 - **Fix — Program 8 label 50% transparent mờ như yêu cầu**
   - User báo Program 8 nút đang trắng 100% quá rõ, muốn mờ 50% như thiết kế; ATM/DD đã trắng rõ ở v1.83 với `GetQuickSetButtonTemplate`.

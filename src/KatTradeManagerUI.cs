@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.85 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.86 (2026-08-08) */
 // ponytail: many catch{} for UI button updates are expected (control not yet created, dispatcher not ready) — silent. Critical watchdog tick already logs.
 
 using System;
@@ -1625,6 +1625,22 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			sec2Panel.Children.Add(entryShiftGrid);
 
+			Grid candleShiftGrid = CreateTwoColumnGrid(HudGap, HudGap);
+
+			SolidColorBrush candleShiftBg = new SolidColorBrush(Color.FromRgb(20, 20, 20));
+
+			Button btnCandleBack = CreateButton("◀ Entry candle", candleShiftBg, (s, ev) => ShiftCandleEntry(false), 30, 12);
+			btnCandleBack.Foreground = new SolidColorBrush(Color.FromArgb(77, 255, 255, 255));
+			Grid.SetColumn(btnCandleBack, 0);
+			candleShiftGrid.Children.Add(btnCandleBack);
+
+			Button btnCandleRedo = CreateButton("Entry candle ▶", candleShiftBg, (s, ev) => ShiftCandleEntry(true), 30, 12);
+			btnCandleRedo.Foreground = new SolidColorBrush(Color.FromArgb(77, 255, 255, 255));
+			Grid.SetColumn(btnCandleRedo, 2);
+			candleShiftGrid.Children.Add(btnCandleRedo);
+
+			sec2Panel.Children.Add(candleShiftGrid);
+
 			Grid ema34Grid = CreateTwoColumnGrid(HudGap, HudGap);
 
 			Button btnSell34 = CreateButton("Sell last 34", sell34Bg, (s, ev) => PlaceEmaOrder(OrderAction.Sell, 34), 43, 12);
@@ -1637,7 +1653,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			sec2Panel.Children.Add(ema34Grid);
 
-			Grid ema89Grid = CreateTwoColumnGrid(HudGap, HudGap);
+			Grid ema89Grid = CreateTwoColumnGrid(0, HudGap);
 
 			Button btnSell89 = CreateButton("Sell last 89", sell89Bg, (s, ev) => PlaceEmaOrder(OrderAction.Sell, 89), 43, 12);
 			Grid.SetColumn(btnSell89, 0);
@@ -1649,22 +1665,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			sec2Panel.Children.Add(ema89Grid);
 
-			// --- SECTION 2b: Swing Stop Loss Shift Controls ---
-			Grid swingSlGrid = CreateTwoColumnGrid(0, HudGap);
-
-			SolidColorBrush swingSlBg = new SolidColorBrush(Color.FromRgb(20, 20, 20)); // Same dark color as Close/flatten
-
-			Button btnSlBack = CreateButton("◀ SL", swingSlBg, (s, ev) => ShiftSlToSwing(false), 30, 12);
-			btnSlBack.Foreground = new SolidColorBrush(Color.FromArgb(77, 255, 255, 255));
-			Grid.SetColumn(btnSlBack, 0);
-			swingSlGrid.Children.Add(btnSlBack);
-
-			Button btnSlRedo = CreateButton("SL ▶", swingSlBg, (s, ev) => ShiftSlToSwing(true), 30, 12);
-			btnSlRedo.Foreground = new SolidColorBrush(Color.FromArgb(77, 255, 255, 255));
-			Grid.SetColumn(btnSlRedo, 2);
-			swingSlGrid.Children.Add(btnSlRedo);
-
-			sec2Panel.Children.Add(swingSlGrid);
 			mainPanel.Children.Add(CreateSectionCard(sec2Panel, HudGap));
 
 
@@ -1687,23 +1687,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			sec3Panel.Children.Add(mktBtnGrid);
 
-			// --- Candle Entry Shift Controls ---
-			Grid candleShiftGrid = CreateTwoColumnGrid(HudGap, HudGap);
-
-			SolidColorBrush candleShiftBg = new SolidColorBrush(Color.FromRgb(20, 20, 20)); // Same dark color as SL moving buttons
-
-			Button btnCandleBack = CreateButton("◀ Entry candle", candleShiftBg, (s, ev) => ShiftCandleEntry(false), 30, 12);
-			btnCandleBack.Foreground = new SolidColorBrush(Color.FromArgb(77, 255, 255, 255));
-			Grid.SetColumn(btnCandleBack, 0);
-			candleShiftGrid.Children.Add(btnCandleBack);
-
-			Button btnCandleRedo = CreateButton("Entry candle ▶", candleShiftBg, (s, ev) => ShiftCandleEntry(true), 30, 12);
-			btnCandleRedo.Foreground = new SolidColorBrush(Color.FromArgb(77, 255, 255, 255));
-			Grid.SetColumn(btnCandleRedo, 2);
-			candleShiftGrid.Children.Add(btnCandleRedo);
-
-			sec3Panel.Children.Add(candleShiftGrid);
-
 			SolidColorBrush buyPrevBg  = new SolidColorBrush(Color.FromRgb(34, 112, 62));
 			SolidColorBrush buyCurrBg  = new SolidColorBrush(Color.FromRgb(16, 55, 30));
 			SolidColorBrush sellPrevBg = new SolidColorBrush(Color.FromRgb(148, 48, 54));
@@ -1719,7 +1702,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			currOrderGrid.Children.Add(btnBuyCurr);
 			sec3Panel.Children.Add(currOrderGrid);
 
-			Grid prevOrderGrid = CreateTwoColumnGrid(HudGap, HudGap);
+			Grid prevOrderGrid = CreateTwoColumnGrid(0, HudGap);
 			Button btnSellPrev = CreateButton("Sell previous", sellPrevBg, (s, ev) => PlaceOrder(OrderAction.Sell, false), 43, 12);
 			Grid.SetColumn(btnSellPrev, 0);
 			prevOrderGrid.Children.Add(btnSellPrev);
@@ -1733,6 +1716,22 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			// --- SECTION 3b: BE / Revert / Close (separate for clarity) ---
 			StackPanel sec3bPanel = new StackPanel { UseLayoutRounding = true, SnapsToDevicePixels = true };
+			Grid swingSlGrid = CreateTwoColumnGrid(HudGap, HudGap);
+
+			SolidColorBrush swingSlBg = new SolidColorBrush(Color.FromRgb(20, 20, 20));
+
+			Button btnSlBack = CreateButton("◀ SL", swingSlBg, (s, ev) => ShiftSlToSwing(false), 30, 12);
+			btnSlBack.Foreground = new SolidColorBrush(Color.FromArgb(77, 255, 255, 255));
+			Grid.SetColumn(btnSlBack, 0);
+			swingSlGrid.Children.Add(btnSlBack);
+
+			Button btnSlRedo = CreateButton("SL ▶", swingSlBg, (s, ev) => ShiftSlToSwing(true), 30, 12);
+			btnSlRedo.Foreground = new SolidColorBrush(Color.FromArgb(77, 255, 255, 255));
+			Grid.SetColumn(btnSlRedo, 2);
+			swingSlGrid.Children.Add(btnSlRedo);
+
+			sec3bPanel.Children.Add(swingSlGrid);
+
 			Grid beRevertGrid = CreateTwoColumnGrid(HudGap, HudGap);
 
 			SolidColorBrush beBg     = new SolidColorBrush(Color.FromRgb(22, 22, 22)); // very dark gray near black

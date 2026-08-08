@@ -70,25 +70,50 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			try
 			{
 				Position pos = GetInstrumentPosition();
-				if (pos == null || pos.MarketPosition == MarketPosition.Flat)
+				bool hasPosition = pos != null && pos.MarketPosition != MarketPosition.Flat;
+				MarketPosition effectivePos = MarketPosition.Flat;
+				int effectiveQty = 0;
+				double effectiveEntry = 0;
+				List<Order> pendingEntries = null;
+				if (hasPosition)
 				{
-					Print("[KatTradeManager] Swing SL: No active position to shift SL.");
-					ShowHudStatus("SL: no active position", System.Windows.Media.Brushes.OrangeRed);
-					return;
+					effectivePos = pos.MarketPosition;
+					effectiveQty = pos.Quantity;
+					effectiveEntry = pos.AveragePrice;
+				}
+				else
+				{
+					pendingEntries = GetAccountOrdersSnapshot().Where(o => o.Instrument == Instrument &&
+						IsActiveOrderState(o.OrderState) &&
+						(o.Name == "Entry" || o.Name == "MarketBuy" || o.Name == "MarketSell")).ToList();
+					if (pendingEntries.Count == 0)
+					{
+						Print("[KatTradeManager] Swing SL: No active position or pending entry to shift SL.");
+						ShowHudStatus("SL: no position or pending", System.Windows.Media.Brushes.OrangeRed);
+						return;
+					}
+					OrderAction entryAction = pendingEntries[0].OrderAction;
+					effectivePos = (entryAction == OrderAction.Buy || entryAction == OrderAction.BuyToCover) ? MarketPosition.Long : MarketPosition.Short;
+					effectiveQty = pendingEntries[0].Quantity > 0 ? pendingEntries[0].Quantity : (atmQuantity > 0 ? atmQuantity : DefaultQuantity);
+					// pending has no average price — track 0 so history resets only on direction change
+					effectiveEntry = 0;
 				}
 
-				if (pos.MarketPosition != slTrackedPosition || Math.Abs(pos.AveragePrice - slTrackedEntryPrice) > 1e-5)
+				bool posChanged = effectivePos != slTrackedPosition;
+				bool entryChanged = hasPosition && Math.Abs(effectiveEntry - slTrackedEntryPrice) > 1e-5;
+				bool pendingReset = !hasPosition && slTrackedEntryPrice != 0;
+				if (posChanged || entryChanged || pendingReset)
 				{
 					slMoveHistory.Clear();
 					currentSlHistoryIndex = -1;
-					slTrackedPosition = pos.MarketPosition;
-					slTrackedEntryPrice = pos.AveragePrice;
+					slTrackedPosition = effectivePos;
+					slTrackedEntryPrice = effectiveEntry;
 				}
 
 				var workingStops = GetAccountOrdersSnapshot().Where(o => o.Instrument == Instrument &&
 					IsActiveOrderState(o.OrderState) &&
 					(o.OrderType == OrderType.StopMarket || o.OrderType == OrderType.StopLimit) &&
-					(pos.MarketPosition == MarketPosition.Long ? (o.OrderAction == OrderAction.Sell || o.OrderAction == OrderAction.SellShort) : (o.OrderAction == OrderAction.Buy || o.OrderAction == OrderAction.BuyToCover))).ToList();
+					(effectivePos == MarketPosition.Long ? (o.OrderAction == OrderAction.Sell || o.OrderAction == OrderAction.SellShort) : (o.OrderAction == OrderAction.Buy || o.OrderAction == OrderAction.BuyToCover))).ToList();
 				double livePrice = GetSwingValidationPrice();
 
 				if (slMoveHistory.Count == 0)
@@ -101,7 +126,27 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					else
 					{
 						double tickSize = GetEffectiveTickSize();
-						currentStop = pos.MarketPosition == MarketPosition.Long ? pos.AveragePrice - 20 * tickSize : pos.AveragePrice + 20 * tickSize;
+						if (hasPosition)
+							currentStop = effectivePos == MarketPosition.Long ? effectiveEntry - 20 * tickSize : effectiveEntry + 20 * tickSize;
+						else
+						{
+							// pending with no stop yet — seed from pending entry price +/- 20 ticks
+							double pendingPrice = 0;
+							try { pendingPrice = pendingEntries[0].StopPrice != 0 ? pendingEntries[0].StopPrice : pendingEntries[0].LimitPrice; } catch {}
+							if (pendingPrice <= 0) pendingPrice = livePrice;
+							if (pendingPrice <= 0) pendingPrice = effectiveEntry;
+							if (pendingPrice <= 0) pendingPrice = 0;
+							if (pendingPrice > 0)
+								currentStop = effectivePos == MarketPosition.Long ? pendingPrice - 20 * tickSize : pendingPrice + 20 * tickSize;
+							else
+								currentStop = 0;
+						}
+					}
+					if (currentStop <= 0)
+					{
+						Print("[KatTradeManager] Swing SL: Cannot seed initial SL (no price).");
+						ShowHudStatus("SL: no price to seed", System.Windows.Media.Brushes.OrangeRed);
+						return;
 					}
 					slMoveHistory.Add(currentStop);
 					currentSlHistoryIndex = 0;
@@ -132,12 +177,12 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					}
 					else
 					{
-						List<double> swings = GetSwingPoints(pos.MarketPosition, 20, 3);
+						List<double> swings = GetSwingPoints(effectivePos, 20, 3);
 						double refPrice = slMoveHistory[currentSlHistoryIndex];
 						double tickSize = GetEffectiveTickSize();
 						double nextSwing = KatTradeCalculator.FindNextSwingStopPrice(
 							swings,
-							pos.MarketPosition == MarketPosition.Long ? KatOrderAction.Buy : KatOrderAction.Sell,
+							effectivePos == MarketPosition.Long ? KatOrderAction.Buy : KatOrderAction.Sell,
 							refPrice,
 							tickSize);
 
@@ -146,7 +191,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 						if (nextSwing > 0)
 						{
 							// Validate BEFORE recording — an invalid-side swing must never enter history
-							if (livePrice > 0 && !KatTradeCalculator.IsStopOnValidSide(pos.MarketPosition == MarketPosition.Long, nextSwing, livePrice))
+							if (livePrice > 0 && !KatTradeCalculator.IsStopOnValidSide(effectivePos == MarketPosition.Long, nextSwing, livePrice))
 							{
 								Print(string.Format("[KatTradeManager] Swing SL skipped: {0} invalid vs current market {1}.", nextSwing, livePrice));
 								ShowHudStatus(string.Format("SL skipped: swing {0} invalid", nextSwing), System.Windows.Media.Brushes.OrangeRed);
@@ -167,7 +212,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 				// Historical swing can sit on the wrong side of current market (price already moved past it)
 				// -> changing the stop there would be rejected by the broker.
-				if (livePrice > 0 && !KatTradeCalculator.IsStopOnValidSide(pos.MarketPosition == MarketPosition.Long, targetPrice, livePrice))
+				if (livePrice > 0 && !KatTradeCalculator.IsStopOnValidSide(effectivePos == MarketPosition.Long, targetPrice, livePrice))
 				{
 					Print(string.Format("[KatTradeManager] Swing SL skipped: {0} invalid vs current market {1}.", targetPrice, livePrice));
 					ShowHudStatus(string.Format("SL skipped: stop {0} invalid", targetPrice), System.Windows.Media.Brushes.OrangeRed);
@@ -195,7 +240,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 							if (limitOffset <= 0)
 								limitOffset = GetEffectiveTickSize(0.01);
 							if (limitOffset <= 0) limitOffset = 0.01;
-							stopOrder.LimitPriceChanged = pos.MarketPosition == MarketPosition.Long
+							stopOrder.LimitPriceChanged = effectivePos == MarketPosition.Long
 								? targetPrice - limitOffset
 								: targetPrice + limitOffset;
 						}
@@ -206,8 +251,9 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				}
 				else
 				{
-					OrderAction slAction = pos.MarketPosition == MarketPosition.Long ? OrderAction.Sell : OrderAction.BuyToCover;
-					Order slOrder = account.CreateOrder(Instrument, slAction, OrderType.StopMarket, OrderEntry.Manual, TimeInForce.Gtc, pos.Quantity, 0, targetPrice, "", "KAT_SL_SWING", NinjaTrader.Core.Globals.MaxDate, null);
+					OrderAction slAction = effectivePos == MarketPosition.Long ? OrderAction.Sell : OrderAction.BuyToCover;
+					int qty = hasPosition ? pos.Quantity : effectiveQty;
+					Order slOrder = account.CreateOrder(Instrument, slAction, OrderType.StopMarket, OrderEntry.Manual, TimeInForce.Gtc, qty, 0, targetPrice, "", "KAT_SL_SWING", NinjaTrader.Core.Globals.MaxDate, null);
 					if (slOrder != null)
 						QueueAccountOperation(AccountOperationType.Submit, new[] { slOrder }, "swing stop submit");
 					Print(string.Format("[KatTradeManager] Submitted Swing Stop Loss @ {0}", targetPrice));
@@ -367,10 +413,15 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					return;
 				}
 
-				if (!hasCandleOrder)
+				// expanded: works for ANY pending entry (candle current/prev or EMA 34/89)
+				var workingEntries = GetAccountOrdersSnapshot().Where(o => o.Instrument == Instrument &&
+					IsActiveOrderState(o.OrderState) &&
+					(o.Name == "Entry" || o.Name == "MarketBuy" || o.Name == "MarketSell")).ToList();
+				bool hasAnyRef = hasCandleOrder || lastEmaOrderPeriod == 34 || lastEmaOrderPeriod == 89 || workingEntries.Count > 0;
+				if (!hasAnyRef)
 				{
-					Print("[KatTradeManager] Shift Candle Entry: No previous Candle order placed in this session.");
-					ShowHudStatus("Entry: place Candle order first", System.Windows.Media.Brushes.OrangeRed);
+					Print("[KatTradeManager] Shift Candle Entry: No previous pending order to shift (place any Buy/Sell pending first).");
+					ShowHudStatus("Entry: place any pending order first", System.Windows.Media.Brushes.OrangeRed);
 					return;
 				}
 
@@ -385,8 +436,50 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 				if (allBars == null || allBars.Count == 0) return;
 
+				// resolve action + reference time/barsAgo from the most relevant source
+				OrderAction resolvedAction;
+				DateTime refTime = DateTime.MinValue;
+				int refBarsAgo = 0;
+				if (workingEntries.Count > 0)
+				{
+					resolvedAction = workingEntries[0].OrderAction;
+					if (hasCandleOrder)
+					{
+						refTime = lastCandleBarTime;
+						refBarsAgo = currentCandleBarsAgo;
+					}
+					else if (lastEmaOrderPeriod == 34 || lastEmaOrderPeriod == 89)
+					{
+						refTime = lastEmaTouchBarTime;
+						// map EMA touch time to candle index for fallback
+						int mapped = -1;
+						for (int i = 0; i < allBars.Count; i++) if (allBars[i].Time == lastEmaTouchBarTime) { mapped = i; break; }
+						refBarsAgo = mapped >= 0 ? mapped : 0;
+					}
+					else
+					{
+						// infer from working entry price — find closest bar by time proximity to newest, fallback newest
+						refTime = DateTime.MinValue;
+						refBarsAgo = 0;
+					}
+				}
+				else if (hasCandleOrder)
+				{
+					resolvedAction = lastCandleOrderAction;
+					refTime = lastCandleBarTime;
+					refBarsAgo = currentCandleBarsAgo;
+				}
+				else
+				{
+					resolvedAction = lastEmaOrderAction;
+					refTime = lastEmaTouchBarTime;
+					int mapped = -1;
+					for (int i = 0; i < allBars.Count; i++) if (allBars[i].Time == lastEmaTouchBarTime) { mapped = i; break; }
+					refBarsAgo = mapped >= 0 ? mapped : 0;
+				}
+
 				var barTimes = allBars.Select(b => b.Time).ToList();
-				int targetIndex = KatTradeCalculator.CalculateShiftedBarIndex(barTimes, lastCandleBarTime, currentCandleBarsAgo, isForward, out string boundaryStatus);
+				int targetIndex = KatTradeCalculator.CalculateShiftedBarIndex(barTimes, refTime, refBarsAgo, isForward, out string boundaryStatus);
 
 				if (targetIndex < 0)
 				{
@@ -404,7 +497,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				}
 
 				CandleBarInfo targetBar = allBars[targetIndex];
-				KatOrderAction katAction = ToKatAction(lastCandleOrderAction);
+				KatOrderAction katAction = ToKatAction(resolvedAction);
 
 				double basePrice = KatTradeCalculator.CalculateCandlePrice(katAction, targetBar.High, targetBar.Low);
 
@@ -421,14 +514,17 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 				CancelWorkingEntryOrders();
 
-				if (!PlaceOrderInternal(lastCandleOrderAction, triggerPrice, orderType, limitPrice, stopPrice, string.Format("shifting Candle order to bar #{0}", targetBar.BarsAgo), true))
+				if (!PlaceOrderInternal(resolvedAction, triggerPrice, orderType, limitPrice, stopPrice, string.Format("shifting Candle order to bar #{0}", targetBar.BarsAgo), true))
 					return;
+				// unify state so next candle shift stays on candle track regardless of origin
+				hasCandleOrder = true;
+				lastCandleOrderAction = resolvedAction;
 				currentCandleBarsAgo = targetBar.BarsAgo;
 				lastCandleBarTime = targetBar.Time;
 
 				string typeLabel = orderType == OrderType.StopMarket ? "Stop" : (orderType == OrderType.Limit ? "Limit" : orderType.ToString());
 				Print(string.Format("[KatTradeManager] Shifted Candle entry: bar #{0} (time {1}, index {2}/{3}), action={4}, type={5}, trig={6}",
-					targetBar.BarsAgo, targetBar.Time != DateTime.MinValue ? targetBar.Time.ToString("HH:mm:ss") : "N/A", targetIndex, allBars.Count, lastCandleOrderAction, typeLabel, triggerPrice));
+					targetBar.BarsAgo, targetBar.Time != DateTime.MinValue ? targetBar.Time.ToString("HH:mm:ss") : "N/A", targetIndex, allBars.Count, resolvedAction, typeLabel, triggerPrice));
 
 				ShowHudStatus(string.Format("Shift Entry Candle: bar #{0} ({1} @ {2})",
 					targetBar.BarsAgo, typeLabel, triggerPrice),
