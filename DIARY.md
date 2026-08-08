@@ -23,6 +23,12 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.62] — 2026-08-08
+- **Fix BE/Revert sync + UN-DISCIPLINED + full UseLayoutRounding**
+  - **Bug1 BE/Revert lệch + gap rộng**: `BE 33→48` `cs:1585/1588` sync với `SELL/BUY previous/market 48` (trước secondary 33 lệch nhịp), `main/sec StackPanel` + `Create*Grid` + `ComboBox` + `Button` `UseLayoutRounding/SnapsToDevicePixels true` hết → gap `HudGap 2` pixel-perfect giữa mọi hàng.
+  - **Bug2 UN-DISCIPLINED kẹt**: `SetButtonLabel` guard `if StackPanel return` chặn OFF `KatTradeManagerUI.cs:719` khi đang ON (StackPanel) → `UpdateDisciplineAllButton` else bypass tạo `TextBlock UN-DISCIPLINED` trực tiếp + `Horizontal/Vertical Center/Padding 2,0`.
+  - Verify: `Run-AllChecks` 197 tests + CompileCheck 0 errors; width 250 inner 238 gap2 vẫn perfect.
+
 ### [v1.61] — 2026-08-08
 - **HUD pixel-perfect align — 0.5px sub-pixel root cause fix**
   - **Root cause 0.5px**: `panelBorder 240→232 inner` với gap2 cho 4/8 cột `(W-6)/4=56.5` `(W-14)/8=27.25` → WPF star chia dư 0.5px phân phối lệch 1px giữa `Max DD/Profit (2-col)` vs `preset 6-col` vs `ATM 8-col` vs `BE`; cộng `DisciplineAll Border 1.5` half-pixel + template không bind `BorderBrush/Thickness` + thiếu `UseLayoutRounding/SnapsToDevicePixels`.

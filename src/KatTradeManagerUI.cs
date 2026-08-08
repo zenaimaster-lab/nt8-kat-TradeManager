@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.61 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.62 (2026-08-08) */
 
 using System;
 using System.Collections.Generic;
@@ -716,7 +716,12 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			}
 			else
 			{
-				SetButtonLabel(btnDisciplineAll, "UN-DISCIPLINED");
+				// ponytail: bypass SetButtonLabel StackPanel guard — must overwrite blaze panel when switching OFF
+				var tbOff = new TextBlock { Text = "UN-DISCIPLINED", TextAlignment = TextAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap };
+				btnDisciplineAll.Content = tbOff;
+				btnDisciplineAll.HorizontalContentAlignment = HorizontalAlignment.Center;
+				btnDisciplineAll.VerticalContentAlignment = VerticalAlignment.Center;
+				btnDisciplineAll.Padding = new Thickness(2, 0, 2, 0);
 				btnDisciplineAll.Background = disciplineAllOffBg;
 				btnDisciplineAll.Foreground = Brushes.White;
 				btnDisciplineAll.BorderBrush = new SolidColorBrush(Color.FromRgb(75, 30, 110));
@@ -1242,10 +1247,10 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				hudCanvas as UIElement
 				?? panelBorder.Parent as UIElement
 				?? chartGrid as UIElement);
-			mainPanel = new StackPanel();
+			mainPanel = new StackPanel { UseLayoutRounding = true, SnapsToDevicePixels = true };
 
 			// --- SECTION 1: Parameters & ATM Selection ---
-			StackPanel sec1Panel = new StackPanel();
+			StackPanel sec1Panel = new StackPanel { UseLayoutRounding = true, SnapsToDevicePixels = true };
 
 			TextBlock hudHeader = new TextBlock
 			{
@@ -1341,7 +1346,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				}
 			} catch {}
 
-			accSelector = new ComboBox { FontSize = 11, Height = 22, Margin = new Thickness(0, 0, 0, HudGap), HorizontalAlignment = HorizontalAlignment.Stretch };
+			accSelector = new ComboBox { FontSize = 11, Height = 22, Margin = new Thickness(0, 0, 0, HudGap), HorizontalAlignment = HorizontalAlignment.Stretch, UseLayoutRounding = true, SnapsToDevicePixels = true };
 			if (Account.All != null)
 			{
 				var allowedAccs = Account.All.Where(a => IsAccountAllowed(a.Name)).ToList();
@@ -1405,7 +1410,9 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				FontSize = 11,
 				Height = 22,
 				Margin = new Thickness(0, 0, 0, HudGap),
-				HorizontalAlignment = HorizontalAlignment.Stretch
+				HorizontalAlignment = HorizontalAlignment.Stretch,
+				UseLayoutRounding = true,
+				SnapsToDevicePixels = true
 			};
 			atmSelector.Items.Add(NoAtmTemplateLabel); // first item, also the fallback when no template matches
 			foreach (var name in GetCachedAtmTemplateNames())
@@ -1456,7 +1463,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 
 			// --- SECTION 2: EMA 34 & EMA 89 Touch/Cross Orders ---
-			StackPanel sec2Panel = new StackPanel();
+			StackPanel sec2Panel = new StackPanel { UseLayoutRounding = true, SnapsToDevicePixels = true };
 
 			SolidColorBrush buy34Bg  = new SolidColorBrush(Color.FromRgb(100, 115, 30));
 			SolidColorBrush sell34Bg = new SolidColorBrush(Color.FromRgb(175, 75, 25));
@@ -1518,7 +1525,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 
 			// --- SECTION 3: Market & Candle Orders + Position Management ---
-			StackPanel sec3Panel = new StackPanel();
+			StackPanel sec3Panel = new StackPanel { UseLayoutRounding = true, SnapsToDevicePixels = true };
 
 			// --- Market Orders (top of execution section) ---
 			Grid mktBtnGrid = CreateTwoColumnGrid(HudGap, HudGap);
@@ -1582,11 +1589,11 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			SolidColorBrush beBg     = new SolidColorBrush(Color.FromRgb(14, 48, 62)); // Deep dark slate teal
 			SolidColorBrush revertBg = new SolidColorBrush(Color.FromRgb(75, 42, 10)); // Deep dark amber
 
-			Button btnBE = CreateButton("BE", beBg, (s, ev) => SetBreakeven(), 33, 12);
+			Button btnBE = CreateButton("BE", beBg, (s, ev) => SetBreakeven(), 48, 12);
 			Grid.SetColumn(btnBE, 0);
 			beRevertGrid.Children.Add(btnBE);
 
-			Button btnRevert = CreateButton("Revert", revertBg, (s, ev) => RevertPosition(), 33, 12);
+			Button btnRevert = CreateButton("Revert", revertBg, (s, ev) => RevertPosition(), 48, 12);
 			Grid.SetColumn(btnRevert, 2);
 			beRevertGrid.Children.Add(btnRevert);
 
@@ -1600,7 +1607,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 
 			// --- SECTION 4: ON/OFF Toggles ---
-			StackPanel sec4Panel = new StackPanel();
+			StackPanel sec4Panel = new StackPanel { UseLayoutRounding = true, SnapsToDevicePixels = true };
 
 			SolidColorBrush toggleOffBg   = new SolidColorBrush(Color.FromRgb(45, 50, 65));
 			SolidColorBrush stopLimitOnBg = new SolidColorBrush(Color.FromRgb(18, 6, 48)); // extra dark purple — distinct from Max DD/Profit purple
@@ -1689,7 +1696,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			mainPanel.Children.Add(CreateSectionCard(sec4Panel, HudGap));
 
 			// --- SECTION 5: Discipline Protects (bottom) ---
-			StackPanel sec5Panel = new StackPanel();
+			StackPanel sec5Panel = new StackPanel { UseLayoutRounding = true, SnapsToDevicePixels = true };
 			disciplineButtons = new Button[6];
 			string[] discLabels = new[] { "Fix size", "No SL-pull", "No loss-DCA", "No TP-early", "StopWhenLoss", "TradingWindows" };
 			bool[] discStates = new[] { cachedSizingProtect, cachedSlPullProtect, cachedLossDcaProtect, cachedTpEarlyProtect, cachedLossTimesProtect, cachedTimingProtect };
@@ -1887,7 +1894,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		// uniform HUD gap — all inter-column gaps and vertical row gaps = HudGap (2px)
 		private Grid CreateTwoColumnGrid(double bottomMargin = 2, double centerGap = 2)
 		{
-			Grid grid = new Grid { Margin = new Thickness(0, 0, 0, bottomMargin), HorizontalAlignment = HorizontalAlignment.Stretch };
+			Grid grid = new Grid { Margin = new Thickness(0, 0, 0, bottomMargin), HorizontalAlignment = HorizontalAlignment.Stretch, UseLayoutRounding = true, SnapsToDevicePixels = true };
 			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(centerGap) });
 			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -1896,7 +1903,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 		private Grid CreateFourColumnGrid(double bottomMargin = 2, double centerGap = 2, double subGap = 2)
 		{
-			Grid grid = new Grid { Margin = new Thickness(0, 0, 0, bottomMargin), HorizontalAlignment = HorizontalAlignment.Stretch };
+			Grid grid = new Grid { Margin = new Thickness(0, 0, 0, bottomMargin), HorizontalAlignment = HorizontalAlignment.Stretch, UseLayoutRounding = true, SnapsToDevicePixels = true };
 			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(subGap) });
 			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -1909,7 +1916,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 		private Grid CreateSixColumnGrid(double bottomMargin = 2, double centerGap = 2, double subGap = 2)
 		{
-			Grid grid = new Grid { Margin = new Thickness(0, 0, 0, bottomMargin), HorizontalAlignment = HorizontalAlignment.Stretch };
+			Grid grid = new Grid { Margin = new Thickness(0, 0, 0, bottomMargin), HorizontalAlignment = HorizontalAlignment.Stretch, UseLayoutRounding = true, SnapsToDevicePixels = true };
 			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(subGap) });
 			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -1926,7 +1933,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 		private Grid CreateEightColumnGrid(double bottomMargin = 2, double centerGap = 2, double subGap = 2)
 		{
-			Grid grid = new Grid { Margin = new Thickness(0, 0, 0, bottomMargin), HorizontalAlignment = HorizontalAlignment.Stretch };
+			Grid grid = new Grid { Margin = new Thickness(0, 0, 0, bottomMargin), HorizontalAlignment = HorizontalAlignment.Stretch, UseLayoutRounding = true, SnapsToDevicePixels = true };
 			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(subGap) });
 			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
