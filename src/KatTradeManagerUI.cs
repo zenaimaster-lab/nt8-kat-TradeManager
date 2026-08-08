@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.90 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.91 (2026-08-08) */
 // ponytail: many catch{} for UI button updates are expected (control not yet created, dispatcher not ready) — silent. Critical watchdog tick already logs.
 
 using System;
@@ -1707,7 +1707,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			// --- Market Orders (top of execution section) ---
 			Grid mktBtnGrid = CreateTwoColumnGrid(HudGap, HudGap);
 
-			SolidColorBrush buyMktBg  = new SolidColorBrush(Color.FromRgb(12, 48, 25)); // Deep dark green
+			SolidColorBrush buyMktBg  = new SolidColorBrush(Color.FromRgb(7, 30, 16)); // Deep dark green - darker to distinguish from Buy current (16,55,30)
 			SolidColorBrush sellMktBg = new SolidColorBrush(Color.FromRgb(55, 15, 18)); // Deep dark red
 
 			Button btnSellMkt = CreateButton("SELL MARKET", sellMktBg, (s, ev) => PlaceMarketOrder(OrderAction.Sell), 43, 12);

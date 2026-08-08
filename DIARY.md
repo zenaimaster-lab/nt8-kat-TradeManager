@@ -23,6 +23,10 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.91] — 2026-08-08
+- **UI — BUY MARKET darker để phân biệt rõ với Buy current**
+  - `src/KatTradeManagerUI.cs:1710` `buyMktBg` `Color.FromRgb(12,48,25)` `#0C3019` → `Color.FromRgb(7,30,16)` `#071E10` — tối hơn ~40% luminance 38→24, diff ~20 vs `Buy current` `16,55,30` `#10371E` luminance 45 → nhìn phân biệt ngay dù cùng xanh, vẫn giữ hue xanh + text trắng readable, không đụng `Sell MARKET` `55,15,18` hay `Close` `10,10,10`.
+
 ### [v1.90] — 2026-08-08
 - **Re-audit P0 — ToKatAction + UI freeze + tie + DailyRisk flatten**
   - `KatTradeManager.AtmMerge:63` `ToKatAction` `Buy ? Buy : Sell` → `(Buy||BuyToCover)?Buy:Sell` — `BuyToCover` trước trả `Sell` sai giá `Low` vs `High` khi `resolvedAction` là `BuyToCover` (shift candle).
