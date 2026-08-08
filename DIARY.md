@@ -23,6 +23,13 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.59] — 2026-08-08
+- **HUD uniform gap — all gaps = 2px (quick-set intra-column gap)**
+  - **Root cause**: 4px center gap + 2px/1.5px subGap + 6px/4px vertical/section gaps gây lệch trục giữa/cột, trên-dưới không đều — screenshot 1.58 lộ cột P bị clip và divider lệch.
+  - **Fix**: Thêm `HudGap = 2` const `KatTradeManagerUI.cs:138`; `panelBorder.Padding/Margin 8/2,4,2,4 → HudGap` `CreateSectionCard.Padding 6 → HudGap` + `bottomMargin 6 → HudGap`; `hudHeader/hudStatus/dropdown/btnStopLimit Margin 6/4 → HudGap`; mọi `Create*Grid(4,4,2/1.5) → (HudGap,HudGap,HudGap)` và `CreateTwo/Four/Six/EightColumnGrid` default `4/2 → 2`; last-row/grid bottom 0 giữ để tránh double với card padding — ngang = dọc = trong nhóm = giữa cột = field = đều 2px, grid Star đều nhau không xô lệch.
+  - Verify: `Run-AllChecks` 197 tests + CompileCheck 0 errors green; chỉ sửa design HUD, không đổi logic.
+  - Graphify entity mapping: `KatTradeManagerUI.HudGap`, `KatTradeManagerUI.CreateTwoColumnGrid/CreateFourColumnGrid/CreateSixColumnGrid/CreateEightColumnGrid(HudGap)`, `KatTradeManagerUI.CreateSectionCard(HudGap)`, `KatTradeManagerUI.CreateWpfControls(HudGap)`.
+
 ### [v1.58] — 2026-08-08
 - **Deploy drift-proof — never again v1.57 header vs VERSION mismatch**
   - **Root cause v1.57**: commit `b8ca673` bumped header `* Version: 1.57` via manual edit but left `VERSION = "1.56"` stale — repo `README`/`UI` showed 1.57, NT8 compiled `VERSION` 1.56 stayed, `Deploy-NT8.ps1` copied drifted files and reported success while runtime printed `v1.56`.
