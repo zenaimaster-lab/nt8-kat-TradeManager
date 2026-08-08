@@ -23,6 +23,13 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.53] — 2026-08-08
+- **HUD align fix — smaller even gaps + centered P1-P8 + straight columns**:
+  - **1. Margin nhỏ hơn đều** `src/KatTradeManagerUI.cs` mọi gap-column `GridLength 4 → 2` (11 grids: entryShift/ema34/ema89/swingSl/mktBtn/candleShift/orderBtn/beRevert/dailyRiskGrid/allToggleGrid/discipline row), quick-set rows `atmSetGrid/profile row/dailyRiskPresetGrid` `Margin 4/3 → 2` đều, `CreateButton Padding 2,0→1,0` + `HorizontalAlignment Stretch` — tổng gap 5*2=10 cho 6 nút, 3*2=6 cho 4 nút, compact hơn 40% so với 4px trước, nhìn đều.
+  - **2. Cột thẳng hàng** Max DD/Profit `Grid 2 star gap 2` = `(W-2)/2` = `3*preset +2*gap` = `(W-10)/6*3+4` → outer edges và inner gridlines align vertical giữa các section (profile 4★, ATM 8★, preset 6★ đều share gap 2, SectionCard Padding 6 outer đều).
+  - **3. Text P1-P8 center không mất** `CreateButton:1794` đổi `Content string → TextBlock {TextAlignment Center, HorizontalAlignment Stretch, TextTrimming CharacterEllipsis, NoWrap}` + `HorizontalContentAlignment Stretch`/`VerticalContentAlignment Stretch`, helper `SetButtonLabel/GetButtonLabel:62` để `Update*Buttons` thay `as string` bằng `SetButtonLabel` (tránh left-align do `TemplateBinding`), `CreateWpfControls:1315/1444/1717` `PBtn/SetBtn/preset` tạo `CreateButton("")` → `SetButtonLabel(Get*Name)` ngay, `UpdateStopLimit/UpdateEmaPlace/UpdateDisciplineButton/UpdateDisciplineAllButton` + click handlers `Max DD/Profit/StopLimit` đổi `Content = string → SetButtonLabel` — fix screenshot `P1 F F P` lệch trái và clip chỉ hiện `P` do `gap-column` + `Left` alignment; giờ `P1-P8` center, ellipsis nếu 8 chars vượt.
+  - Verify: CompileCheck 0 errors, 197 tests, Deploy 11 files recompiled, `graphify` 734 nodes.
+  - Graphify entity mapping: `KatTradeManagerUI.CreateButton(TextBlock center)`, `SetButtonLabel`, `CreateWpfControls(gap 2 even)`, `UpdateDisciplineButton`.
 ### [v1.52] — 2026-08-08
 - **HUD design polish — even distribution + centered P1-P8 + tighter ⚡ gap + 10-loop re-audit**:
   - **1. Even distribution**: `src/KatTradeManagerUI.cs:1304` Profile `2×4` Grid `4 star` `HorizontalAlignment Stretch` + button `Margin 4,0,0,0` (first 0) gap đều 4px giữa 4 nút (thay `7 cols` gap-column 2px rounding), ATM `8 star` gap 3px `Margin 3`, DailyRisk `6 star` gap 3px — `CreateSectionCard Padding 6` outer đều, star `1*` share leftover → buttons equal width, justify full width nhìn đều và đẹp.

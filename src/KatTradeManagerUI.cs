@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.52 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.53 (2026-08-08) */
 
 using System;
 using System.Collections.Generic;
@@ -66,21 +66,12 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			{
 				if (tb.Text != text) tb.Text = text;
 			}
-			else if (btn.Content is string s)
-			{
-				if (s == text)
-				{
-					// replace string with centered TextBlock for proper distribution/trim
-					btn.Content = new TextBlock { Text = text, TextAlignment = TextAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap };
-				}
-				else btn.Content = new TextBlock { Text = text, TextAlignment = TextAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap };
-			}
 			else
 			{
-				btn.Content = new TextBlock { Text = text, TextAlignment = TextAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap };
+				btn.Content = new TextBlock { Text = text, TextAlignment = TextAlignment.Center, HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap };
 			}
-			btn.HorizontalContentAlignment = HorizontalAlignment.Center;
-			btn.VerticalContentAlignment = VerticalAlignment.Center;
+			btn.HorizontalContentAlignment = HorizontalAlignment.Stretch;
+			btn.VerticalContentAlignment = VerticalAlignment.Stretch;
 		}
 		private string GetButtonLabel(Button btn)
 		{
@@ -660,7 +651,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			if (btnStopLimit == null) return;
 			SolidColorBrush offBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
 			SolidColorBrush onBg = new SolidColorBrush(Color.FromRgb(18, 6, 48)); // extra dark purple — distinct from Max DD/Profit purple
-			btnStopLimit.Content = cachedIsStopLimit ? "Stop-Limit: ON" : "Stop-Limit: OFF";
+			SetButtonLabel(btnStopLimit, cachedIsStopLimit ? "Stop-Limit: ON" : "Stop-Limit: OFF");
 			btnStopLimit.Background = cachedIsStopLimit ? onBg : offBg;
 			btnStopLimit.Foreground = cachedIsStopLimit ? Brushes.White : Brushes.LightGray;
 		}
@@ -670,7 +661,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			if (btnEmaPlace == null) return;
 			SolidColorBrush offBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
 			SolidColorBrush onBg = new SolidColorBrush(Color.FromRgb(12, 35, 75));
-			btnEmaPlace.Content = "EmaZoneOnly";
+			SetButtonLabel(btnEmaPlace, "EmaZoneOnly");
 			btnEmaPlace.Background = cachedIsEmaPlace ? onBg : offBg;
 			btnEmaPlace.Foreground = cachedIsEmaPlace ? Brushes.White : Brushes.LightGray;
 			// ON: no bright purple border
@@ -710,7 +701,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			}
 			else
 			{
-				btnDisciplineAll.Content = "UN-DISCIPLINED";
+				SetButtonLabel(btnDisciplineAll, "UN-DISCIPLINED");
 				btnDisciplineAll.Background = disciplineAllOffBg;
 				btnDisciplineAll.Foreground = Brushes.White;
 				btnDisciplineAll.BorderBrush = new SolidColorBrush(Color.FromRgb(75, 30, 110));
@@ -918,7 +909,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				case 4: isOn = cachedLossTimesProtect; break;
 				case 5: isOn = cachedTimingProtect; break;
 			}
-			btn.Content = isOn ? labels[idx] : labels[idx] + ": OFF";
+			SetButtonLabel(btn, isOn ? labels[idx] : labels[idx] + ": OFF");
 			int row = idx / 2;
 			btn.Background = isOn ? disciplineRowBgs[row] : disciplineOffBg;
 			btn.Foreground = isOn ? Brushes.White : Brushes.LightGray;
@@ -1315,10 +1306,10 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					Button pBtn = CreateButton("", profileOffBg, null, 22, GetQuickSetFontSize());
 					SetButtonLabel(pBtn, GetTradingProfileName(idx));
 					pBtn.Foreground = GetQuickSetLabelBrush();
-					pBtn.Margin = cc == 0 ? new Thickness(0) : new Thickness(4, 0, 0, 0);
+					pBtn.Margin = cc == 0 ? new Thickness(0) : new Thickness(2, 0, 0, 0);
 					pBtn.HorizontalAlignment = HorizontalAlignment.Stretch;
-					pBtn.HorizontalContentAlignment = HorizontalAlignment.Center;
-					pBtn.VerticalContentAlignment = VerticalAlignment.Center;
+					pBtn.HorizontalContentAlignment = HorizontalAlignment.Stretch;
+					pBtn.VerticalContentAlignment = VerticalAlignment.Stretch;
 					int captured = idx;
 					pBtn.Click += (s, ev) => ApplyTradingProfile(captured);
 					Grid.SetColumn(pBtn, cc);
@@ -1447,10 +1438,10 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				Button setBtn = CreateButton("", atmSetOffBg, null, 22, GetQuickSetFontSize());
 				SetButtonLabel(setBtn, GetAtmSetName(setIdx));
 				setBtn.Foreground = GetQuickSetLabelBrush();
-				setBtn.Margin = i == 0 ? new Thickness(0) : new Thickness(3, 0, 0, 0);
+				setBtn.Margin = i == 0 ? new Thickness(0) : new Thickness(2, 0, 0, 0);
 				setBtn.HorizontalAlignment = HorizontalAlignment.Stretch;
-				setBtn.HorizontalContentAlignment = HorizontalAlignment.Center;
-				setBtn.VerticalContentAlignment = VerticalAlignment.Center;
+				setBtn.HorizontalContentAlignment = HorizontalAlignment.Stretch;
+				setBtn.VerticalContentAlignment = VerticalAlignment.Stretch;
 				setBtn.Click += (s, ev) => ApplyAtmSetSelection(setIdx);
 				Grid.SetColumn(setBtn, setIdx);
 				atmSetButtons[setIdx] = setBtn;
@@ -1472,7 +1463,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			Grid entryShiftGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
 			entryShiftGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			entryShiftGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
+			entryShiftGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
 			entryShiftGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
 			Button btnEntryBack = CreateButton("◀ Entry 89/34", entryShiftBg, (s, ev) => ShiftEmaEntry(false), 33, 12);
@@ -1487,7 +1478,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			Grid ema34Grid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
 			ema34Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			ema34Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
+			ema34Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
 			ema34Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
 			Button btnSell34 = CreateButton("SELL last 34", sell34Bg, (s, ev) => PlaceEmaOrder(OrderAction.Sell, 34), 48, 12);
@@ -1502,7 +1493,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			Grid ema89Grid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
 			ema89Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			ema89Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
+			ema89Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
 			ema89Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
 			Button btnSell89 = CreateButton("SELL last 89", sell89Bg, (s, ev) => PlaceEmaOrder(OrderAction.Sell, 89), 48, 12);
@@ -1518,7 +1509,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			// --- SECTION 2b: Swing Stop Loss Shift Controls ---
 			Grid swingSlGrid = new Grid { Margin = new Thickness(0, 0, 0, 0) };
 			swingSlGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			swingSlGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
+			swingSlGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
 			swingSlGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
 			SolidColorBrush swingSlBg = new SolidColorBrush(Color.FromRgb(20, 20, 20)); // Same dark color as Close/flatten
@@ -1541,7 +1532,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			// --- Market Orders (top of execution section) ---
 			Grid mktBtnGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
 			mktBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			mktBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
+			mktBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
 			mktBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
 			SolidColorBrush buyMktBg  = new SolidColorBrush(Color.FromRgb(12, 48, 25)); // Deep dark green
@@ -1560,7 +1551,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			// --- Candle Entry Shift Controls ---
 			Grid candleShiftGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
 			candleShiftGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			candleShiftGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
+			candleShiftGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
 			candleShiftGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
 			SolidColorBrush candleShiftBg = new SolidColorBrush(Color.FromRgb(20, 20, 20)); // Same dark color as SL moving buttons
@@ -1578,7 +1569,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			Grid orderBtnGrid = new Grid { Margin = new Thickness(0, 0, 0, 0) };
 			orderBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			orderBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
+			orderBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
 			orderBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
 			SolidColorBrush buyPrevBg  = new SolidColorBrush(Color.FromRgb(34, 112, 62));
@@ -1613,7 +1604,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			// --- BE / Revert row below BUY/SELL previous ---
 			Grid beRevertGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
 			beRevertGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			beRevertGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
+			beRevertGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
 			beRevertGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
 			SolidColorBrush beBg     = new SolidColorBrush(Color.FromRgb(14, 48, 62)); // Deep dark slate teal
@@ -1651,7 +1642,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			{
 				cachedIsStopLimit = !cachedIsStopLimit;
 				StopLimitEnabled = cachedIsStopLimit;
-				btnStopLimit.Content = cachedIsStopLimit ? "Stop-Limit: ON" : "Stop-Limit: OFF";
+				SetButtonLabel(btnStopLimit, cachedIsStopLimit ? "Stop-Limit: ON" : "Stop-Limit: OFF");
 				btnStopLimit.Background = cachedIsStopLimit ? stopLimitOnBg : toggleOffBg;
 				btnStopLimit.Foreground = cachedIsStopLimit ? Brushes.White : Brushes.LightGray;
 				try { UpdateTradingProfileButtons(); } catch {}
@@ -1661,7 +1652,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			// Daily Max DD + Daily Max Profit side-by-side
 			Grid dailyRiskGrid = new Grid { Margin = new Thickness(0, 0, 0, 0) };
 			dailyRiskGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			dailyRiskGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
+			dailyRiskGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
 			dailyRiskGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
 			SolidColorBrush dailyOnBg = new SolidColorBrush(Color.FromRgb(58, 19, 107)); // Darker purple (#3A136B)
@@ -1676,7 +1667,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				// Persist to the NinjaScript property — a script refresh/reload re-reads the property,
 				// so a volatile-only OFF was silently re-enabled and could flatten on the next breach.
 				DailyMaxDDEnabled = cachedIsDailyMaxDD;
-				btnDailyMaxDD.Content = cachedIsDailyMaxDD ? "Max DD: ON" : "Max DD: OFF";
+				SetButtonLabel(btnDailyMaxDD, cachedIsDailyMaxDD ? "Max DD: ON" : "Max DD: OFF");
 				btnDailyMaxDD.Background = cachedIsDailyMaxDD ? dailyOnBg : toggleOffBg;
 				btnDailyMaxDD.Foreground = cachedIsDailyMaxDD ? Brushes.White : Brushes.LightGray;
 
@@ -1695,7 +1686,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			{
 				cachedIsDailyMaxProfit = !cachedIsDailyMaxProfit;
 				DailyMaxProfitEnabled = cachedIsDailyMaxProfit; // persist — survives script refresh/reload
-				btnDailyMaxProfit.Content = cachedIsDailyMaxProfit ? "Max Profit: ON" : "Max Profit: OFF";
+				SetButtonLabel(btnDailyMaxProfit, cachedIsDailyMaxProfit ? "Max Profit: ON" : "Max Profit: OFF");
 				btnDailyMaxProfit.Background = cachedIsDailyMaxProfit ? dailyOnBg : toggleOffBg;
 				btnDailyMaxProfit.Foreground = cachedIsDailyMaxProfit ? Brushes.White : Brushes.LightGray;
 
@@ -1720,10 +1711,10 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				Button presetButton = CreateButton("", dailyRiskPresetOffBg, null, 22, GetQuickSetFontSize());
 				SetButtonLabel(presetButton, GetDailyRiskPresetName(presetIdx));
 				presetButton.Foreground = GetQuickSetLabelBrush();
-				presetButton.Margin = i == 0 ? new Thickness(0) : new Thickness(3, 0, 0, 0);
+				presetButton.Margin = i == 0 ? new Thickness(0) : new Thickness(2, 0, 0, 0);
 				presetButton.HorizontalAlignment = HorizontalAlignment.Stretch;
-				presetButton.HorizontalContentAlignment = HorizontalAlignment.Center;
-				presetButton.VerticalContentAlignment = VerticalAlignment.Center;
+				presetButton.HorizontalContentAlignment = HorizontalAlignment.Stretch;
+				presetButton.VerticalContentAlignment = VerticalAlignment.Stretch;
 				presetButton.Click += (s, ev) => ApplyDailyRiskPreset(presetIdx);
 				Grid.SetColumn(presetButton, presetIdx);
 				dailyRiskPresetButtons[presetIdx] = presetButton;
@@ -1744,7 +1735,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			bool allOnInit = cachedIsEmaPlace && cachedSizingProtect && cachedSlPullProtect && cachedLossDcaProtect && cachedTpEarlyProtect && cachedLossTimesProtect && cachedTimingProtect;
 			Grid allToggleGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
 			allToggleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			allToggleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
+			allToggleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
 			allToggleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 			// Discipline All — ON: blaze orange + gold border, OFF: plain + purple border
 			if (allOnInit)
@@ -1800,7 +1791,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			{
 				Grid rowGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
 				rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-				rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
+				rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
 				rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 				for (int col = 0; col < 2; col++)
 				{
@@ -1824,19 +1815,20 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 		private Button CreateButton(string text, Brush bg, RoutedEventHandler handler, double height = 24, double fontSize = 10)
 		{
+			var tb = new TextBlock { Text = text, TextAlignment = TextAlignment.Center, HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap };
 			Button btn = new Button
 			{
-				Content = text,
+				Content = tb,
 				Background = bg,
 				Foreground = Brushes.White,
 				FontWeight = FontWeights.Normal,
 				FontSize = fontSize,
 				Margin = new Thickness(0),
-				Padding = new Thickness(2, 0, 2, 0),
+				Padding = new Thickness(1, 0, 1, 0),
 				Height = height,
 				BorderThickness = new Thickness(0),
-				HorizontalContentAlignment = HorizontalAlignment.Center,
-				VerticalContentAlignment = VerticalAlignment.Center,
+				HorizontalContentAlignment = HorizontalAlignment.Stretch,
+				VerticalContentAlignment = VerticalAlignment.Stretch,
 				HorizontalAlignment = HorizontalAlignment.Stretch
 			};
 			if (handler != null)
