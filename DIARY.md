@@ -23,6 +23,11 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.81] — 2026-08-08
+- **Fix — ATM/DD quick-set vẫn blank (force white + fs+2 + string fallback)**
+  - Sau v1.80 screenshot 05:35:46 `KAT TradeManager v1.80` 8 ô ATM nâu/xám + 6 ô DD xám trống dù Program `FN-Eva` thấy → `GetSmallQuickSetLabelBrush` opaque + fallback `"A"/"1"` + `TextBlock` sync chưa đủ; nghi `ControlTemplate.ContentPresenter` không inherit `Brushes.White` qua `Button.Foreground` trên star Grid hẹp, `fs 8` quá mờ.
+  - Fix cứng: `UpdateAtmSetButtons:602` + `UpdateDailyRiskPresetButtons:689` dùng `Brushes.White` cứng + `fsUse = min(14, GetQuickSetFontSize()+2)` như Program `fsProg` (10) cho dễ thấy, `FontWeight Normal`, `Opacity 1`, `Visibility Visible`, fallback `Content=expected string` nếu không phải `TextBlock`; `CreateWpfControls:1578/1849` tạo `CreateButton(label,... fsUse)` trực tiếp `label=GetAtmSetName/GetDailyRiskPresetName` + hard white + explicit `TextBlock` props + `else Content=label`.
+
 ### [v1.80] — 2026-08-08
 - **Fix — quick-set ATM(8)/DailyRisk(6) label invisible triệt để (mirror Program)**
   - So với Program (hiển thị rõ `P1..P8` qua `TradingProfileXName` backing + `NormalizeProfileName`): ATM đã có backing `atmSetXName "A".."H"` + `NormalizeAtmSetName` nhưng `UpdateAtmSetButtons/CreateWpfControls` chỉ set `Button.Foreground/FontSize`, `TextBlock` inherit qua `ControlTemplate.ContentPresenter` bị chặn → đen trên nền xám `45,50,65` thấy trống; DailyRisk còn `auto {get;set;}` `null/""` trống dù setting có text, thiếu `Normalize`.
