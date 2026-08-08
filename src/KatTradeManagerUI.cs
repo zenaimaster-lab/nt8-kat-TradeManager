@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.91 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.92 (2026-08-08) */
 // ponytail: many catch{} for UI button updates are expected (control not yet created, dispatcher not ready) — silent. Critical watchdog tick already logs.
 
 using System;
@@ -58,60 +58,27 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			if (sz <= 0) sz = 8;
 			return sz;
 		}
-		private Brush GetQuickSetLabelBrush()
+		private static Brush BuildLabelBrush(Brush src, int pct, int defaultPct, byte fallbackAlpha)
 		{
 			try
 			{
-				Brush baseBrush = QuickSetLabelColor ?? Brushes.White;
+				Brush baseBrush = src ?? Brushes.White;
 				Color baseColor = Colors.White;
 				if (baseBrush is SolidColorBrush scb) baseColor = scb.Color;
-				int pct = QuickSetLabelOpacityPercent;
+				if (pct == 0) pct = defaultPct;
 				if (pct < 10) pct = 10;
 				if (pct > 100) pct = 100;
-				if (pct == 0) pct = 50;
 				byte alpha = (byte)(pct * 255 / 100);
 				Color c = Color.FromArgb(alpha, baseColor.R, baseColor.G, baseColor.B);
 				var nb = new SolidColorBrush(c);
 				if (nb.CanFreeze) nb.Freeze();
 				return nb;
 			}
-			catch { var fb = new SolidColorBrush(Color.FromArgb(128, 255, 255, 255)); if (fb.CanFreeze) fb.Freeze(); return fb; }
+			catch { var fb = new SolidColorBrush(Color.FromArgb(fallbackAlpha, 255, 255, 255)); if (fb.CanFreeze) fb.Freeze(); return fb; }
 		}
-		private Brush GetProgramLabelBrush()
-		{
-			try
-			{
-				Brush baseBrush = ProgramLabelColor ?? Brushes.White;
-				Color baseColor = Colors.White;
-				if (baseBrush is SolidColorBrush scb) baseColor = scb.Color;
-				int pct = ProgramLabelOpacityPercent;
-				if (pct < 10) pct = 10;
-				if (pct > 100) pct = 100;
-				if (pct == 0) pct = 20;
-				byte alpha = (byte)(pct * 255 / 100);
-				Color c = Color.FromArgb(alpha, baseColor.R, baseColor.G, baseColor.B);
-				var nb = new SolidColorBrush(c);
-				if (nb.CanFreeze) nb.Freeze();
-				return nb;
-			}
-			catch { var fb = new SolidColorBrush(Color.FromArgb(51, 255, 255, 255)); if (fb.CanFreeze) fb.Freeze(); return fb; }
-		}
-		// Small quick-set (ATM + DailyRisk 6) — fully opaque per user request (was 80% transparent, looked empty)
-		private Brush GetSmallQuickSetLabelBrush()
-		{
-			try
-			{
-				Brush baseBrush = QuickSetLabelColor ?? Brushes.White;
-				Color baseColor = Colors.White;
-				if (baseBrush is SolidColorBrush scb) baseColor = scb.Color;
-				byte alpha = 255; // opaque per request (no transparency)
-				Color c = Color.FromArgb(alpha, baseColor.R, baseColor.G, baseColor.B);
-				var nb = new SolidColorBrush(c);
-				if (nb.CanFreeze) nb.Freeze();
-				return nb;
-			}
-			catch { var fb = new SolidColorBrush(Color.FromArgb(255, 255, 255, 255)); if (fb.CanFreeze) fb.Freeze(); return fb; }
-		}
+		private Brush GetQuickSetLabelBrush() => BuildLabelBrush(QuickSetLabelColor, QuickSetLabelOpacityPercent, 50, 128);
+		private Brush GetProgramLabelBrush() => BuildLabelBrush(ProgramLabelColor, ProgramLabelOpacityPercent, 20, 51);
+		private Brush GetSmallQuickSetLabelBrush() => BuildLabelBrush(QuickSetLabelColor, 100, 100, 255);
 		private void SetButtonLabel(Button btn, string text)
 		{
 			if (btn == null) return;

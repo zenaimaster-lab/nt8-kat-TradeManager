@@ -13,6 +13,14 @@ dotnet format tests/KatTradeManager.Tests/KatTradeManager.Tests.csproj --verify-
 $fmtOk = ($LASTEXITCODE -eq 0)
 if (-not $fmtOk) { Write-Host 'format check failed — run dotnet format tests/KatTradeManager.Tests' -ForegroundColor Yellow }
 
+Write-Host '=== 1b/4: ps analyze (non-blocking) ==='
+$psOk = $true
+if (Get-Module -ListAvailable PSScriptAnalyzer) {
+    Invoke-ScriptAnalyzer -Path (Join-Path $repoRoot 'scripts') -Recurse -Severity Warning 2>&1 | Out-String | Write-Host
+    $psOk = ($LASTEXITCODE -eq 0)
+    if (-not $psOk) { Write-Host 'ps analyze warnings — non-blocking' -ForegroundColor Yellow }
+} else { Write-Host 'PSScriptAnalyzer not installed — skip' }
+
 Write-Host '=== 2/4: xunit suite ==='
 dotnet test (Join-Path $repoRoot 'tests\KatTradeManager.Tests') --nologo --verbosity quiet --collect:"XPlat Code Coverage"
 $testsOk = ($LASTEXITCODE -eq 0)

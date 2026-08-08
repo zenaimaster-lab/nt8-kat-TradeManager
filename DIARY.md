@@ -23,6 +23,15 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.92] — 2026-08-08
+- **Re-audit P1 — priceLock + DRY brush + cache + AGENTS + tooling + tests**
+  - `KatTradeManager.OrderOps:338,347,807` `cachedCurrentPrice` đọc ngoài `priceLock` race watchdog/data thread → bọc `lock(priceLock)` 3 chỗ `checkPrice/liveCurrent/mktCheckPrice` — không đụng design.
+  - `KatTradeManagerUI:61` 3 hàm `GetQuickSet/Program/SmallLabelBrush` duplicate 38L → gộp `BuildLabelBrush(src,pct,defaultPct,fallbackAlpha)` 1 chỗ, giữ freeze + fallback alpha 128/51/255.
+  - `KatTradeManager.Discipline:105` `GetTradeProfit` reflection scan 6 tên mỗi 500ms → cache `ConcurrentDictionary<Type,PropertyInfo>` + `TradeProfitNames` static, `null` cache để không re-scan khi không có prop.
+  - `AGENTS.md:61` `v1.67` drift vs `1.91` → `v1.92` + `Bump-Version.ps1:12` sync `AGENTS.md` + `Verify-Version.ps1:45` check `AGENTS.md` parity (5-way).
+  - Tooling: `.editorconfig:14` `*.ps1/*.yml` `insert_final_newline+trim+utf8`, `.github/dependabot.yml` monthly nuget, `.github/workflows/ci.yml:22` `ps analyze` non-blocking + compile gate luôn chạy (bỏ `hashFiles` guard), `scripts/Run-AllChecks.ps1:14` `1b/4 ps analyze` optional.
+  - Tests: `tests/KatReauditP1Tests.cs` 11 tests mới `IsAccountAllowed` filter/exclude/case, `PlanAtmBracketMerge` largest OCO / incomplete / null, `CalculateShiftedBarIndex` boundaries, `FindSwingPoints` dedup, `FindNextSwingStopPrice` threshold, `ShouldCaptureSessionBaseline` — total `238→254` pass, `CompileCheck` 0 error, `Verify 14 files` sync.
+
 ### [v1.91] — 2026-08-08
 - **UI — BUY MARKET darker để phân biệt rõ với Buy current**
   - `src/KatTradeManagerUI.cs:1710` `buyMktBg` `Color.FromRgb(12,48,25)` `#0C3019` → `Color.FromRgb(7,30,16)` `#071E10` — tối hơn ~40% luminance 38→24, diff ~20 vs `Buy current` `16,55,30` `#10371E` luminance 45 → nhìn phân biệt ngay dù cùng xanh, vẫn giữ hue xanh + text trắng readable, không đụng `Sell MARKET` `55,15,18` hay `Close` `10,10,10`.

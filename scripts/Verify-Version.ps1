@@ -12,6 +12,7 @@ $csPath     = Join-Path $repoRoot 'KatTradeManager.cs'
 $uiPath     = Join-Path $repoRoot 'src\KatTradeManagerUI.cs'
 $readmePath = Join-Path $repoRoot 'README.md'
 $diaryPath  = Join-Path $repoRoot 'DIARY.md'
+$agentsPath = Join-Path $repoRoot 'AGENTS.md'
 
 function Fail($msg) { Write-Host "VERSION MISMATCH: $msg" -ForegroundColor Red; exit 1 }
 function Info($msg) { Write-Host $msg }
@@ -53,11 +54,19 @@ if (Test-Path $diaryPath) {
     }
 }
 
+# --- Parse AGENTS.md ---
+$agentsVer = $null; $agentsDate = $null
+if (Test-Path $agentsPath) {
+    $ag = Get-Content $agentsPath -Raw
+    if ($ag -match 'Current: v(\d+\.\d+) \((\d{4}-\d{2}-\d{2})\)') { $agentsVer = $matches[1]; $agentsDate = $matches[2] }
+}
+
 Info "  KatTradeManager.cs header : v$headerVer ($headerDate)"
 Info "  KatTradeManager.cs VERSION: v$constVer ($constDate)"
 if ($uiVer) { Info "  KatTradeManagerUI.cs header: v$uiVer $(if($uiDate){"($uiDate)"})" }
 if ($readmeVer) { Info "  README.md               : v$readmeVer $(if($readmeDate){"($readmeDate)"})" }
 if ($diaryVer) { Info "  DIARY.md latest         : v$diaryVer ($diaryDate)" }
+if ($agentsVer) { Info "  AGENTS.md               : v$agentsVer ($agentsDate)" }
 
 # --- Assertions (hard fail) ---
 if ($headerVer -ne $constVer) { Fail "header v$headerVer != VERSION v$constVer — run pwsh scripts/Bump-Version.ps1 or fix manually" }
@@ -66,6 +75,8 @@ if ($uiVer -and $uiVer -ne $constVer) { Fail "UI header v$uiVer != VERSION v$con
 if ($uiDate -and $uiDate -ne $constDate) { Fail "UI date $uiDate != RELEASE_DATE $constDate" }
 if ($readmeVer -and $readmeVer -ne $constVer) { Fail "README v$readmeVer != VERSION v$constVer" }
 if ($readmeDate -and $readmeDate -ne $constDate) { Fail "README date $readmeDate != RELEASE_DATE $constDate" }
+if ($agentsVer -and $agentsVer -ne $constVer) { Fail "AGENTS v$agentsVer != VERSION v$constVer" }
+if ($agentsDate -and $agentsDate -ne $constDate) { Fail "AGENTS date $agentsDate != RELEASE_DATE $constDate" }
 
 # DIARY strict only when requested (CI strict)
 if ($Strict -and $diaryVer -and $diaryVer -ne $constVer) { Fail "DIARY latest v$diaryVer != VERSION v$constVer (Strict)" }

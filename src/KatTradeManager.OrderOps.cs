@@ -335,7 +335,9 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			{
 				KatOrderAction katAction = ToKatAction(action);
-				double checkPrice = (orderType == OrderType.Market) ? (cachedCurrentPrice > 0 ? cachedCurrentPrice : triggerPrice) : triggerPrice;
+				double checkPrice;
+				lock (priceLock) { checkPrice = cachedCurrentPrice; }
+				checkPrice = (orderType == OrderType.Market) ? (checkPrice > 0 ? checkPrice : triggerPrice) : triggerPrice;
 
 				if (applyEmaFilters && TryRejectEmaProtect(action, checkPrice))
 					return false;
@@ -343,7 +345,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				// Re-evaluate Stop vs Limit using the *latest* cachedCurrentPrice right before submit.
 				// If price has run past the intended stop (making StopMarket invalid), flip to Limit order.
 				// This prevents broker rejections like "sell stop price must be below trade price".
-				double liveCurrent = cachedCurrentPrice > 0 ? cachedCurrentPrice : 0;
+				double liveCurrent;
+				lock (priceLock) { liveCurrent = cachedCurrentPrice; }
 				if (liveCurrent <= 0) liveCurrent = triggerPrice;
 
 				KatOrderType liveKatType = KatTradeCalculator.DetermineOrderType(
@@ -803,7 +806,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				return false;
 			}
 
-			double mktCheckPrice = cachedCurrentPrice > 0 ? cachedCurrentPrice : 0;
+			double mktCheckPrice;
+			lock (priceLock) { mktCheckPrice = cachedCurrentPrice; }
 			if (mktCheckPrice <= 0 && Instrument.MarketData != null && Instrument.MarketData.Last != null)
 				mktCheckPrice = Instrument.MarketData.Last.Price;
 

@@ -10,6 +10,7 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $csPath = Join-Path $repoRoot "KatTradeManager.cs"
 $uiPath = Join-Path $repoRoot "src/KatTradeManagerUI.cs"
 $readmePath = Join-Path $repoRoot "README.md"
+$agentsPath = Join-Path $repoRoot "AGENTS.md"
 
 $cs = Get-Content $csPath -Raw
 if ($cs -notmatch 'VERSION = "([^"]+)"') { throw "VERSION not found in $csPath" }
@@ -22,6 +23,9 @@ if (Test-Path $uiPath) {
     (Get-Content $uiPath -Raw) -replace 'v\d+\.\d+\s*\(\d{4}-\d{2}-\d{2}\)', "v$newVer ($Date)" | Set-Content $uiPath -NoNewline
 }
 (Get-Content $readmePath -Raw) -replace 'v\d+\.\d+', "v$newVer" -replace '\d{4}-\d{2}-\d{2}', $Date | Set-Content $readmePath -NoNewline
+if (Test-Path $agentsPath) {
+    (Get-Content $agentsPath -Raw) -replace 'Current: v\d+\.\d+ \(\d{4}-\d{2}-\d{2}\)', "Current: v$newVer ($Date)" | Set-Content $agentsPath -NoNewline
+}
 Write-Host "Bumped to v$newVer."
 
 # Verify immediately — catches regex edge cases before commit

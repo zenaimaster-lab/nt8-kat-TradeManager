@@ -102,26 +102,33 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		}
 		#endregion
 
+		private static readonly string[] TradeProfitNames = new[] { "ProfitCurrency", "Profit", "RealizedProfitLoss", "CurrencyProfit", "PnL", "GrossProfit" };
+		private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, System.Reflection.PropertyInfo> TradeProfitCache = new System.Collections.Concurrent.ConcurrentDictionary<Type, System.Reflection.PropertyInfo>();
+
 		private double GetTradeProfit(object trade)
 		{
 			if (trade == null) return 0;
 			try
 			{
 				var t = trade.GetType();
-				// try common profit property names
-				string[] names = new[] { "ProfitCurrency", "Profit", "RealizedProfitLoss", "CurrencyProfit", "PnL", "GrossProfit" };
-				foreach (string n in names)
+				if (!TradeProfitCache.TryGetValue(t, out var pi))
 				{
-					var pi = t.GetProperty(n);
-					if (pi != null)
+					pi = null;
+					foreach (string n in TradeProfitNames)
 					{
-						object v = pi.GetValue(trade);
-						if (v is double d) return d;
-						if (v is float f) return f;
-						if (v is decimal dec) return (double)dec;
-						if (v is int ii) return ii;
-						try { return Convert.ToDouble(v); } catch {}
+						pi = t.GetProperty(n);
+						if (pi != null) break;
 					}
+					TradeProfitCache[t] = pi; // null = no profit prop, avoid re-scan
+				}
+				if (pi != null)
+				{
+					object v = pi.GetValue(trade);
+					if (v is double d) return d;
+					if (v is float f) return f;
+					if (v is decimal dec) return (double)dec;
+					if (v is int ii) return ii;
+					try { return Convert.ToDouble(v); } catch {}
 				}
 			}
 			catch {}

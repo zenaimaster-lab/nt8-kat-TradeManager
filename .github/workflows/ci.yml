@@ -18,8 +18,14 @@ jobs:
         run: pwsh scripts/Verify-Version.ps1 -Strict
       - name: format check
         run: dotnet format tests/KatTradeManager.Tests/KatTradeManager.Tests.csproj --verify-no-changes --verbosity diagnostic
+      - name: ps analyze (non-blocking)
+        shell: pwsh
+        run: |
+          if (Get-Module -ListAvailable PSScriptAnalyzer) {
+            Invoke-ScriptAnalyzer -Path scripts -Recurse -Severity Warning | Format-Table -AutoSize
+            if ($LASTEXITCODE -ne 0) { Write-Host "::warning::PSScriptAnalyzer findings — check logs" }
+          } else { Write-Host "PSScriptAnalyzer not installed — skip (install: Install-Module PSScriptAnalyzer)" }
       - name: xunit suite
         run: dotnet test tests/KatTradeManager.Tests --nologo --verbosity minimal --collect:"XPlat Code Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
       - name: compile gate (net48)
-        if: hashFiles('**/NinjaTrader.Core.dll') != ''
         run: dotnet build tools/CompileCheck --nologo --verbosity minimal
