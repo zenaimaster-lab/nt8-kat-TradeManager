@@ -35,6 +35,10 @@ $hudBuilderPath = Join-Path $repoRoot "src\KatTradeManager.HudBuilder.cs"
 if (Test-Path $hudBuilderPath) {
     (Get-Content $hudBuilderPath -Raw) -replace 'v\d+\.\d+\s*\(\d{4}-\d{2}-\d{2}\)', "v$newVer ($Date)" | Set-Content $hudBuilderPath -NoNewline
 }
+$closeOpsPath = Join-Path $repoRoot "src\KatTradeManager.CloseOps.cs"
+if (Test-Path $closeOpsPath) {
+    (Get-Content $closeOpsPath -Raw) -replace 'v\d+\.\d+\s*\(\d{4}-\d{2}-\d{2}\)', "v$newVer ($Date)" | Set-Content $closeOpsPath -NoNewline
+}
 (Get-Content $readmePath -Raw) -replace 'v\d+\.\d+', "v$newVer" -replace '\d{4}-\d{2}-\d{2}', $Date | Set-Content $readmePath -NoNewline
 if (Test-Path $agentsPath) {
     (Get-Content $agentsPath -Raw) -replace 'Current: v\d+\.\d+ \(\d{4}-\d{2}-\d{2}\)', "Current: v$newVer ($Date)" | Set-Content $agentsPath -NoNewline

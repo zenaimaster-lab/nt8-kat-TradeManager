@@ -1,4 +1,4 @@
- /* KatTradeManager.HudBuilder.cs - HUD builder + visual tree helpers (partial class) v1.97 (2026-08-08) */
+ /* KatTradeManager.HudBuilder.cs - HUD builder + visual tree helpers (partial class) v1.98 (2026-08-08) */
 // ponytail: extracted from KatTradeManagerUI.cs 981-1737 — IsPanelAttached + CreateWpfControls + visual helpers. UI god 1803->~700L.
 using System;
 using System.Collections.Generic;

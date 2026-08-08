@@ -23,6 +23,13 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.98] — 2026-08-08
+- **Tách OrderOps god 940→629 + CloseOps + _quickSet locality + SwitchAccount queue clear (ponytail: 19 files)**
+  - `src/KatTradeManager.OrderOps.cs:940→629` tách `src/KatTradeManager.CloseOps.cs:368` (CloseOrderName, IsCloseInFlight, IsAccountCloseInFlight, SchedulePendingRevertRetry, CancelAllOrders, SubmitQueuedClose, ClosePosition, FlattenAllPositions, SubmitQueuedFlattenAll, pendingRevert 3 fields, RevertPosition, TrySubmitPendingRevert) — OrderOps còn PlaceOrder, PlaceEmaOrder, PlaceOrderInternal, PlaceMarketOrder, SetBreakeven, IsActive/Terminal, snapshot helpers (629L), god giảm, trung bình Order layer 3 files ~500L.
+  - `src/KatTradeManagerUI.cs:33` `_quickSetButtonTemplate` field move `UI→HudFactory` cho locality (field gần `GetQuickSetButtonTemplate`), Factory `177→185` lines, UI `544→543`.
+  - `src/KatTradeManager.OrderOps:81` `SwitchAccount` thêm `ResetAccountOperationQueue()` (clear `accountOperationQueue, activeAccountOperation, closeOperationQueued, flattenCloseOrders`) tránh queue cũ survive qua account mới (kế thừa ghost fix v1.97).
+  - `tools/CompileCheck.csproj:4,44` + `scripts/Deploy-NT8.ps1:53` + `scripts/Bump-Version.ps1:30` thêm `CloseOps` → `19 files` sync (Verify `19 .cs` passed).
+  - Verify: `5-way v1.98` sync, `288 pass`, `CompileCheck 0 warn/0 error`, `19 files` deploy ready, `graph 921→~950` pending.
 ### [v1.97] — 2026-08-08
 - **Tách UI god 1803→544 + Builder/Updates + SetDefaults DRY (ponytail: 18 files)**
   - `src/KatTradeManagerUI.cs:1803→544` tách `KatTradeManager.HudUpdates.cs:620` (ApplyAtmSelection, GetAtmSet*, ApplyAtmSetSelection, UpdateAtmSetButtons, DailyRisk presets, UpdateTradingProfileButtons, ApplyTradingProfile 151L, ToggleDiscipline, UpdateDiscipline* , SyncChartTraderAccount, FindVisualChildByTypeName, FindAllVisualChildren) + `KatTradeManager.HudBuilder.cs:672` (GetVisualDepth, FindChartTraderPanel, FindVisualChild, DetachFromParent, IsPanelAttached, CreateWpfControls 668L) — UI còn watchdog+SyncCachedValues+ShowHudStatus+Hotkey+Remove (544L), no file >672L, trung bình UI layer 6 files ~400L.

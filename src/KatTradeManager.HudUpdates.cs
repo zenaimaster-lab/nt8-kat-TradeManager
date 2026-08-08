@@ -1,4 +1,4 @@
-/* KatTradeManager.HudUpdates.cs - HUD quicksets/profile/toggle updates (partial class) v1.97 (2026-08-08) */
+/* KatTradeManager.HudUpdates.cs - HUD quicksets/profile/toggle updates (partial class) v1.98 (2026-08-08) */
 // ponytail: extracted from KatTradeManagerUI.cs 349-884 — AtmSets/DailyRisk/Profiles/Discipline update+apply. UI god 1803→~1100L.
 using System;
 using System.Collections.Generic;
