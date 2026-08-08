@@ -1294,31 +1294,23 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			// --- Trading Profile quick presets (8 buttons, 2 rows x 4 cols, above account, align left) ---
 			tradingProfileButtons = new Button[8];
-			StackPanel profileStack = new StackPanel { Margin = new Thickness(0, 0, 0, 4), HorizontalAlignment = HorizontalAlignment.Stretch };
 			for (int prow = 0; prow < 2; prow++)
 			{
-				Grid rowGrid = new Grid { Margin = new Thickness(0, 0, 0, prow == 0 ? 2 : 0), HorizontalAlignment = HorizontalAlignment.Stretch };
-				for (int c = 0; c < 4; c++)
-					rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+				Grid rowGrid = CreateFourColumnGrid(4, 4, 2);
 				for (int cc = 0; cc < 4; cc++)
 				{
 					int idx = prow * 4 + cc;
 					Button pBtn = CreateButton("", profileOffBg, null, 22, GetQuickSetFontSize());
 					SetButtonLabel(pBtn, GetTradingProfileName(idx));
 					pBtn.Foreground = GetQuickSetLabelBrush();
-					pBtn.Margin = cc == 0 ? new Thickness(0) : new Thickness(2, 0, 0, 0);
-					pBtn.HorizontalAlignment = HorizontalAlignment.Stretch;
-					pBtn.HorizontalContentAlignment = HorizontalAlignment.Stretch;
-					pBtn.VerticalContentAlignment = VerticalAlignment.Stretch;
 					int captured = idx;
 					pBtn.Click += (s, ev) => ApplyTradingProfile(captured);
-					Grid.SetColumn(pBtn, cc);
+					Grid.SetColumn(pBtn, cc * 2);
 					tradingProfileButtons[idx] = pBtn;
 					rowGrid.Children.Add(pBtn);
 				}
-				profileStack.Children.Add(rowGrid);
+				sec1Panel.Children.Add(rowGrid);
 			}
-			sec1Panel.Children.Add(profileStack);
 			UpdateTradingProfileButtons();
 			// update tooltips with live profile snapshot (account/ATM/DD/Profit) after buttons created
 			try
@@ -1395,7 +1387,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			{
 				FontSize = 11,
 				Height = 22,
-				Margin = new Thickness(0, 0, 0, 0),
+				Margin = new Thickness(0, 0, 0, 4),
 				HorizontalAlignment = HorizontalAlignment.Stretch
 			};
 			atmSelector.Items.Add(NoAtmTemplateLabel); // first item, also the fallback when no template matches
@@ -1428,9 +1420,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			// --- ATM Quick Set buttons (A–H), 8 in single row, one-click ATM selection ---
 			atmSetButtons = new Button[8];
-			Grid atmSetGrid = new Grid { Margin = new Thickness(0, 4, 0, 0), HorizontalAlignment = HorizontalAlignment.Stretch };
-			for (int i = 0; i < 8; i++)
-				atmSetGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			Grid atmSetGrid = CreateEightColumnGrid(0, 4, 1.5);
 
 			for (int i = 0; i < 8; i++)
 			{
@@ -1438,12 +1428,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				Button setBtn = CreateButton("", atmSetOffBg, null, 22, GetQuickSetFontSize());
 				SetButtonLabel(setBtn, GetAtmSetName(setIdx));
 				setBtn.Foreground = GetQuickSetLabelBrush();
-				setBtn.Margin = i == 0 ? new Thickness(0) : new Thickness(2, 0, 0, 0);
-				setBtn.HorizontalAlignment = HorizontalAlignment.Stretch;
-				setBtn.HorizontalContentAlignment = HorizontalAlignment.Stretch;
-				setBtn.VerticalContentAlignment = VerticalAlignment.Stretch;
 				setBtn.Click += (s, ev) => ApplyAtmSetSelection(setIdx);
-				Grid.SetColumn(setBtn, setIdx);
+				Grid.SetColumn(setBtn, setIdx * 2);
 				atmSetButtons[setIdx] = setBtn;
 				atmSetGrid.Children.Add(setBtn);
 			}
@@ -1461,10 +1447,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			SolidColorBrush sell89Bg = new SolidColorBrush(Color.FromRgb(130, 35, 95));
 			SolidColorBrush entryShiftBg = new SolidColorBrush(Color.FromRgb(20, 20, 20));
 
-			Grid entryShiftGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
-			entryShiftGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			entryShiftGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
-			entryShiftGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			Grid entryShiftGrid = CreateTwoColumnGrid(4, 4);
 
 			Button btnEntryBack = CreateButton("◀ Entry 89/34", entryShiftBg, (s, ev) => ShiftEmaEntry(false), 33, 12);
 			Grid.SetColumn(btnEntryBack, 0);
@@ -1476,10 +1459,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			sec2Panel.Children.Add(entryShiftGrid);
 
-			Grid ema34Grid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
-			ema34Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			ema34Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
-			ema34Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			Grid ema34Grid = CreateTwoColumnGrid(4, 4);
 
 			Button btnSell34 = CreateButton("SELL last 34", sell34Bg, (s, ev) => PlaceEmaOrder(OrderAction.Sell, 34), 48, 12);
 			Grid.SetColumn(btnSell34, 0);
@@ -1491,10 +1471,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			sec2Panel.Children.Add(ema34Grid);
 
-			Grid ema89Grid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
-			ema89Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			ema89Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
-			ema89Grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			Grid ema89Grid = CreateTwoColumnGrid(4, 4);
 
 			Button btnSell89 = CreateButton("SELL last 89", sell89Bg, (s, ev) => PlaceEmaOrder(OrderAction.Sell, 89), 48, 12);
 			Grid.SetColumn(btnSell89, 0);
@@ -1507,10 +1484,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			sec2Panel.Children.Add(ema89Grid);
 
 			// --- SECTION 2b: Swing Stop Loss Shift Controls ---
-			Grid swingSlGrid = new Grid { Margin = new Thickness(0, 0, 0, 0) };
-			swingSlGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			swingSlGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
-			swingSlGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			Grid swingSlGrid = CreateTwoColumnGrid(0, 4);
 
 			SolidColorBrush swingSlBg = new SolidColorBrush(Color.FromRgb(20, 20, 20)); // Same dark color as Close/flatten
 
@@ -1530,10 +1504,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			StackPanel sec3Panel = new StackPanel();
 
 			// --- Market Orders (top of execution section) ---
-			Grid mktBtnGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
-			mktBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			mktBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
-			mktBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			Grid mktBtnGrid = CreateTwoColumnGrid(4, 4);
 
 			SolidColorBrush buyMktBg  = new SolidColorBrush(Color.FromRgb(12, 48, 25)); // Deep dark green
 			SolidColorBrush sellMktBg = new SolidColorBrush(Color.FromRgb(55, 15, 18)); // Deep dark red
@@ -1549,10 +1520,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			sec3Panel.Children.Add(mktBtnGrid);
 
 			// --- Candle Entry Shift Controls ---
-			Grid candleShiftGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
-			candleShiftGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			candleShiftGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
-			candleShiftGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			Grid candleShiftGrid = CreateTwoColumnGrid(4, 4);
 
 			SolidColorBrush candleShiftBg = new SolidColorBrush(Color.FromRgb(20, 20, 20)); // Same dark color as SL moving buttons
 
@@ -1566,46 +1534,33 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			sec3Panel.Children.Add(candleShiftGrid);
 
-
-			Grid orderBtnGrid = new Grid { Margin = new Thickness(0, 0, 0, 0) };
-			orderBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			orderBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
-			orderBtnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
 			SolidColorBrush buyPrevBg  = new SolidColorBrush(Color.FromRgb(34, 112, 62));
 			SolidColorBrush buyCurrBg  = new SolidColorBrush(Color.FromRgb(24, 82, 45));
 			SolidColorBrush sellPrevBg = new SolidColorBrush(Color.FromRgb(148, 48, 54));
 			SolidColorBrush sellCurrBg = new SolidColorBrush(Color.FromRgb(110, 32, 38));
 
-			StackPanel buyCol = new StackPanel();
-			Button btnBuyPrev = CreateButton("BUY previous", buyPrevBg, (s, ev) => PlaceOrder(OrderAction.Buy, false), 48, 12);
-			btnBuyPrev.Margin = new Thickness(0, 0, 0, 4);
-			Button btnBuyCurr = CreateButton("BUY current", buyCurrBg, (s, ev) => PlaceOrder(OrderAction.Buy, true), 48, 12);
-			btnBuyCurr.Margin = new Thickness(0, 0, 0, 4);
-
-			buyCol.Children.Add(btnBuyCurr);
-			buyCol.Children.Add(btnBuyPrev);
-			Grid.SetColumn(buyCol, 2);
-
-			StackPanel sellCol = new StackPanel();
-			Button btnSellPrev = CreateButton("SELL previous", sellPrevBg, (s, ev) => PlaceOrder(OrderAction.Sell, false), 48, 12);
-			btnSellPrev.Margin = new Thickness(0, 0, 0, 4);
+			Grid currOrderGrid = CreateTwoColumnGrid(4, 4);
 			Button btnSellCurr = CreateButton("SELL current", sellCurrBg, (s, ev) => PlaceOrder(OrderAction.Sell, true), 48, 12);
-			btnSellCurr.Margin = new Thickness(0, 0, 0, 4);
+			Grid.SetColumn(btnSellCurr, 0);
+			currOrderGrid.Children.Add(btnSellCurr);
 
-			sellCol.Children.Add(btnSellCurr);
-			sellCol.Children.Add(btnSellPrev);
-			Grid.SetColumn(sellCol, 0);
+			Button btnBuyCurr = CreateButton("BUY current", buyCurrBg, (s, ev) => PlaceOrder(OrderAction.Buy, true), 48, 12);
+			Grid.SetColumn(btnBuyCurr, 2);
+			currOrderGrid.Children.Add(btnBuyCurr);
+			sec3Panel.Children.Add(currOrderGrid);
 
-			orderBtnGrid.Children.Add(sellCol);
-			orderBtnGrid.Children.Add(buyCol);
-			sec3Panel.Children.Add(orderBtnGrid);
+			Grid prevOrderGrid = CreateTwoColumnGrid(4, 4);
+			Button btnSellPrev = CreateButton("SELL previous", sellPrevBg, (s, ev) => PlaceOrder(OrderAction.Sell, false), 48, 12);
+			Grid.SetColumn(btnSellPrev, 0);
+			prevOrderGrid.Children.Add(btnSellPrev);
+
+			Button btnBuyPrev = CreateButton("BUY previous", buyPrevBg, (s, ev) => PlaceOrder(OrderAction.Buy, false), 48, 12);
+			Grid.SetColumn(btnBuyPrev, 2);
+			prevOrderGrid.Children.Add(btnBuyPrev);
+			sec3Panel.Children.Add(prevOrderGrid);
 
 			// --- BE / Revert row below BUY/SELL previous ---
-			Grid beRevertGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
-			beRevertGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			beRevertGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
-			beRevertGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			Grid beRevertGrid = CreateTwoColumnGrid(4, 4);
 
 			SolidColorBrush beBg     = new SolidColorBrush(Color.FromRgb(14, 48, 62)); // Deep dark slate teal
 			SolidColorBrush revertBg = new SolidColorBrush(Color.FromRgb(75, 42, 10)); // Deep dark amber
@@ -1650,10 +1605,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			sec4Panel.Children.Add(btnStopLimit);
 
 			// Daily Max DD + Daily Max Profit side-by-side
-			Grid dailyRiskGrid = new Grid { Margin = new Thickness(0, 0, 0, 0) };
-			dailyRiskGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			dailyRiskGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
-			dailyRiskGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			Grid dailyRiskGrid = CreateTwoColumnGrid(4, 4);
 
 			SolidColorBrush dailyOnBg = new SolidColorBrush(Color.FromRgb(58, 19, 107)); // Darker purple (#3A136B)
 
@@ -1701,9 +1653,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			// Daily Risk Quick Set buttons: values only; enabled states stay unchanged.
 			dailyRiskPresetButtons = new Button[6];
-			Grid dailyRiskPresetGrid = new Grid { Margin = new Thickness(0, 4, 0, 0), HorizontalAlignment = HorizontalAlignment.Stretch };
-			for (int i = 0; i < 6; i++)
-				dailyRiskPresetGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			Grid dailyRiskPresetGrid = CreateSixColumnGrid(0, 4, 2);
 
 			for (int i = 0; i < 6; i++)
 			{
@@ -1711,12 +1661,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				Button presetButton = CreateButton("", dailyRiskPresetOffBg, null, 22, GetQuickSetFontSize());
 				SetButtonLabel(presetButton, GetDailyRiskPresetName(presetIdx));
 				presetButton.Foreground = GetQuickSetLabelBrush();
-				presetButton.Margin = i == 0 ? new Thickness(0) : new Thickness(2, 0, 0, 0);
-				presetButton.HorizontalAlignment = HorizontalAlignment.Stretch;
-				presetButton.HorizontalContentAlignment = HorizontalAlignment.Stretch;
-				presetButton.VerticalContentAlignment = VerticalAlignment.Stretch;
 				presetButton.Click += (s, ev) => ApplyDailyRiskPreset(presetIdx);
-				Grid.SetColumn(presetButton, presetIdx);
+				Grid.SetColumn(presetButton, presetIdx * 2);
 				dailyRiskPresetButtons[presetIdx] = presetButton;
 				dailyRiskPresetGrid.Children.Add(presetButton);
 			}
@@ -1733,10 +1679,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			// Row 0: DISCIPLINED / UN-DISCIPLINED toggle + EmaZoneOnly (replaces Un-Discipline) — DISCIPLINE controls all 7 (6 discipline + EmaZoneOnly)
 			bool allOnInit = cachedIsEmaPlace && cachedSizingProtect && cachedSlPullProtect && cachedLossDcaProtect && cachedTpEarlyProtect && cachedLossTimesProtect && cachedTimingProtect;
-			Grid allToggleGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
-			allToggleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			allToggleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
-			allToggleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			Grid allToggleGrid = CreateTwoColumnGrid(4, 4);
+
 			// Discipline All — ON: blaze orange + gold border, OFF: plain + purple border
 			if (allOnInit)
 			{
@@ -1789,10 +1733,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			// 3 rows x 2 cols for 6 protects — same shade per row (2 buttons/row share color)
 			for (int row = 0; row < 3; row++)
 			{
-				Grid rowGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
-				rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-				rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
-				rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+				Grid rowGrid = CreateTwoColumnGrid(row == 2 ? 0 : 4, 4);
 				for (int col = 0; col < 2; col++)
 				{
 					int idx = row * 2 + col;
@@ -1901,6 +1842,67 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				ChartControl.Dispatcher.BeginInvoke(update);
 		}
 
+
+		// ponytail: unified grid layout system with fixed 4px center gap for 2, 4, 6, 8 column distribution
+		private Grid CreateTwoColumnGrid(double bottomMargin = 4, double centerGap = 4)
+		{
+			Grid grid = new Grid { Margin = new Thickness(0, 0, 0, bottomMargin), HorizontalAlignment = HorizontalAlignment.Stretch };
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(centerGap) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			return grid;
+		}
+
+		private Grid CreateFourColumnGrid(double bottomMargin = 4, double centerGap = 4, double subGap = 2)
+		{
+			Grid grid = new Grid { Margin = new Thickness(0, 0, 0, bottomMargin), HorizontalAlignment = HorizontalAlignment.Stretch };
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(subGap) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(centerGap) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(subGap) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			return grid;
+		}
+
+		private Grid CreateSixColumnGrid(double bottomMargin = 4, double centerGap = 4, double subGap = 2)
+		{
+			Grid grid = new Grid { Margin = new Thickness(0, 0, 0, bottomMargin), HorizontalAlignment = HorizontalAlignment.Stretch };
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(subGap) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(subGap) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(centerGap) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(subGap) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(subGap) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			return grid;
+		}
+
+		private Grid CreateEightColumnGrid(double bottomMargin = 4, double centerGap = 4, double subGap = 1.5)
+		{
+			Grid grid = new Grid { Margin = new Thickness(0, 0, 0, bottomMargin), HorizontalAlignment = HorizontalAlignment.Stretch };
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(subGap) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(subGap) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(subGap) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(centerGap) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(subGap) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(subGap) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(subGap) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			return grid;
+		}
 
 		private Border CreateSectionCard(FrameworkElement child, double bottomMargin = 6)
 		{

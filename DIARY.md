@@ -23,6 +23,15 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.54] — 2026-08-08
+- **HUD UI design refactor — uniform 4px center channel + 2-column main alignment**:
+  - **1. Master 4px Center Channel**: Standardized center column gap across ALL HUD rows (2-column, 4-column, 6-column, 8-column) to a uniform 4px (`CreateTwoColumnGrid`, `CreateFourColumnGrid`, `CreateSixColumnGrid`, `CreateEightColumnGrid`), creating a clean, continuous vertical dividing channel between Main Left Column (SELL / ◀) and Main Right Column (BUY / ▶) down the entire HUD.
+  - **2. Sub-column Distribution**: 4-column profile rows (P1-P4, P5-P8) use 2px sub-gaps, 6-column risk presets use 2px sub-gaps, and 8-column ATM sets (A-H) use 1.5px sub-gaps, aligning sub-column splits perfectly with the 4px center divider.
+  - **3. Section 3 Structural Clean-up**: Replaced nested `StackPanel` columns (`sellCol`/`buyCol`) with explicit 2-column `currOrderGrid` and `prevOrderGrid` rows with 4px bottom margins, eliminating vertical margin misalignment above `BE/Revert`.
+  - **4. Balanced Spacing & Padding**: Standardized vertical row margins (4px) and zeroed trailing margins on final rows inside section cards to ensure symmetrical inner padding (6px top/bottom/left/right).
+  - Verify: CompileCheck 0 errors, Deploy recompiled, Graphify updated.
+  - Graphify entity mapping: `KatTradeManagerUI.CreateTwoColumnGrid`, `KatTradeManagerUI.CreateFourColumnGrid`, `KatTradeManagerUI.CreateSixColumnGrid`, `KatTradeManagerUI.CreateEightColumnGrid`.
+
 ### [v1.53] — 2026-08-08
 - **HUD align fix — smaller even gaps + centered P1-P8 + straight columns**:
   - **1. Margin nhỏ hơn đều** `src/KatTradeManagerUI.cs` mọi gap-column `GridLength 4 → 2` (11 grids: entryShift/ema34/ema89/swingSl/mktBtn/candleShift/orderBtn/beRevert/dailyRiskGrid/allToggleGrid/discipline row), quick-set rows `atmSetGrid/profile row/dailyRiskPresetGrid` `Margin 4/3 → 2` đều, `CreateButton Padding 2,0→1,0` + `HorizontalAlignment Stretch` — tổng gap 5*2=10 cho 6 nút, 3*2=6 cho 4 nút, compact hơn 40% so với 4px trước, nhìn đều.
