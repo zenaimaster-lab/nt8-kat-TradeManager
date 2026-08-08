@@ -23,6 +23,16 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.87] — 2026-08-08
+- **Audit fixes — P0/P1 từ re-audit v1.86**
+  - `SwingOps.ShiftCandleEntry:440` action-match priority: stale `hasCandle` thắng dù pending là EMA → thêm `candleMatch/emaMatch` + majority group `GroupBy(OrderAction)` + `mapTime` helper, chọn newest timestamp khi cả 2 match, fallback `MinValue/0` khi không match — tránh jump sai candle.
+  - `ShiftSlToSwing:86` pending `effectivePos` majority group (tránh pick `pendingEntries[0]` arbitrary khi mixed Buy/Sell).
+  - `ShiftSlToSwing:117` `livePrice` fallback `Instrument.MarketData.Last.Price` khi `GetSwingValidationPrice()==0` → validation `IsStopOnValidSide` không bị skip.
+  - `ShiftSlToSwing:134` seed chain 4 dòng → 1 dòng `pendingPrice<=0?livePrice:pendingPrice` (bỏ `effectiveEntry` dead).
+  - `ShiftSlToSwing:222` discipline pending baseline: khi `!hasPosition && cachedSlPullProtect && slHistory[0]>0` check `IsSlPullBlocked(effectiveLong, baseSl, target)` trước gate `TryRejectDisciplineForSlMove` — giữ Discipline cho pending SL dù `pos.Flat`.
+  - `KatTradeManager.OnBarUpdate:836` off-by-one `barsAgo < max` → `<= max` để đủ 501 bars (0..500) khi `CurrentBars 500`, không miss oldest bar.
+  - `SwingOps.ShiftEmaEntry/Candle:388` + `519` bypass debounce `lastEntrySubmitTime=MinValue` trước `PlaceOrderInternal` — rapid ◀▶ <200ms không bị "Duplicate entry ignored".
+
 ### [v1.86] — 2026-08-08
 - **HUD layout + Entry/SL shift universal pending**
   - Yêu cầu 4 điểm: 1) ◀ Entry candle / Entry candle ▶ xuống dưới dòng Entry 89/34 vào cùng section Buy/sell last 34/89; 2) ◀ SL / SL ▶ vào section Close/flatten nằm trên Revert+Break Even; 3) Entry candle back/forward tác dụng cho mọi pending (Buy/Sell current, previous, Buy/Sell last 34/89); 4) SL back/forward tác dụng cho mọi pending hoặc lệnh đã filled (vẫn bị Discipline SL-pull kiểm soát).
