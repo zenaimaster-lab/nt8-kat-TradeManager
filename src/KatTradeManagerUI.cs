@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.45 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.46 (2026-08-08) */
 
 using System;
 using System.Collections.Generic;
@@ -28,8 +28,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private readonly SolidColorBrush dailyRiskPresetOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
 		private readonly SolidColorBrush dailyRiskPresetOnBg = new SolidColorBrush(Color.FromRgb(36, 7, 72)); // darker than Max DD purple
 		private Button[] disciplineButtons;
-		private Button btnDisciplineOnAll;
-		private Button btnDisciplineOffAll;
+		private Button btnDisciplineAll;
 		private readonly SolidColorBrush disciplineOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
 		// Trading profiles — 6 buttons in 2 rows above account selector, row-based ON colors, height 22 same as ATM row
 		private Button[] tradingProfileButtons;
@@ -53,9 +52,9 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			new SolidColorBrush(Color.FromRgb(32, 88, 138)),  // Row1: No loss-DCA + No TP-early
 			new SolidColorBrush(Color.FromRgb(48, 120, 180)), // Row2: StopWhenLoss + TradingWindows
 		};
-		// Top Discipline/Un-Discipline row — same dark purple (user wants dark, not saturated bright)
-		private readonly SolidColorBrush onAllBg = new SolidColorBrush(Color.FromRgb(55, 20, 85)); // Discipline All - dark purple
-		private readonly SolidColorBrush offAllBg = new SolidColorBrush(Color.FromRgb(55, 20, 85));  // Un-Discipline - same dark purple
+		// Discipline All toggle — ON = dark blue (same as EmaZone ON), OFF = dark purple
+		private readonly SolidColorBrush disciplineAllOnBg = new SolidColorBrush(Color.FromRgb(12, 35, 75)); // DISCIPLINED - dark blue
+		private readonly SolidColorBrush disciplineAllOffBg = new SolidColorBrush(Color.FromRgb(55, 20, 85)); // UN-DISCIPLINED - dark purple
 		private bool isHotkeyAttached = false;
 		private Window hotkeyWindow; // cached at attach — chart can move to a new window before detach
 		private static readonly object atmFileCacheLock = new object();
@@ -204,6 +203,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				try { UpdateStopLimitButton(); } catch {}
 				try { UpdateEmaPlaceButton(); } catch {}
 				for (int _di = 0; _di < 6; _di++) try { UpdateDisciplineButton(_di); } catch {}
+				try { UpdateDisciplineAllButton(); } catch {}
 
 				if (!IsPanelAttached())
 				{
@@ -596,9 +596,23 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			if (btnEmaPlace == null) return;
 			SolidColorBrush offBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
 			SolidColorBrush onBg = new SolidColorBrush(Color.FromRgb(12, 35, 75));
-			btnEmaPlace.Content = cachedIsEmaPlace ? "Ema protect: ON" : "Ema protect: OFF";
+			btnEmaPlace.Content = "EmaZoneOnly";
 			btnEmaPlace.Background = cachedIsEmaPlace ? onBg : offBg;
 			btnEmaPlace.Foreground = cachedIsEmaPlace ? Brushes.White : Brushes.LightGray;
+		}
+
+		private bool IsDisciplineAllOn()
+		{
+			return cachedSizingProtect && cachedSlPullProtect && cachedLossDcaProtect && cachedTpEarlyProtect && cachedLossTimesProtect && cachedTimingProtect;
+		}
+
+		private void UpdateDisciplineAllButton()
+		{
+			if (btnDisciplineAll == null) return;
+			bool allOn = IsDisciplineAllOn();
+			btnDisciplineAll.Content = allOn ? "DISCIPLINED" : "UN-DISCIPLINED";
+			btnDisciplineAll.Background = allOn ? disciplineAllOnBg : disciplineAllOffBg;
+			btnDisciplineAll.Foreground = Brushes.White;
 		}
 
 		private void ApplyTradingProfile(int idx)
@@ -657,6 +671,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			// Discipline visuals + daily preset visuals + toggles (pre-switch for old account)
 			for (int i = 0; i < 6; i++) UpdateDisciplineButton(i);
+			try { UpdateDisciplineAllButton(); } catch {}
 			UpdateDailyRiskPresetButtons();
 			UpdateStopLimitButton();
 			UpdateEmaPlaceButton();
@@ -766,6 +781,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				default: return;
 			}
 			UpdateDisciplineButton(idx);
+			try { UpdateDisciplineAllButton(); } catch {}
 			try { UpdateTradingProfileButtons(); } catch {}
 			// if disabling LossTimes while locked, clear persistent status immediately
 			if (idx == 4 && !cachedLossTimesProtect && hudStatusText != null)
@@ -814,6 +830,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			cachedLossTimesProtect = isOn; LossTimesProtectEnabled = isOn;
 			cachedTimingProtect = isOn; TimingWindowsProtectEnabled = isOn;
 			for (int i = 0; i < 6; i++) UpdateDisciplineButton(i);
+			try { UpdateDisciplineAllButton(); } catch {}
 			try { UpdateTradingProfileButtons(); } catch {}
 			if (!isOn)
 			{
@@ -1516,19 +1533,14 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			// --- SECTION 4: ON/OFF Toggles ---
 			StackPanel sec4Panel = new StackPanel();
 
-			// Stop-Limit + EMA Protect side-by-side
-			Grid modeToggleGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
-			modeToggleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			modeToggleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
-			modeToggleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
 			SolidColorBrush toggleOffBg   = new SolidColorBrush(Color.FromRgb(45, 50, 65));
 			SolidColorBrush stopLimitOnBg = new SolidColorBrush(Color.FromRgb(180, 90, 20)); // Dark amber accent when active
-			SolidColorBrush emaPlaceOnBg  = new SolidColorBrush(Color.FromRgb(12, 35, 75));  // Very dark blue
 
 			btnStopLimit = CreateButton(cachedIsStopLimit ? "Stop-Limit: ON" : "Stop-Limit: OFF",
 				cachedIsStopLimit ? stopLimitOnBg : toggleOffBg, null, 24, 10);
 			btnStopLimit.Foreground = cachedIsStopLimit ? Brushes.White : Brushes.LightGray;
+			btnStopLimit.HorizontalAlignment = HorizontalAlignment.Stretch;
+			btnStopLimit.Margin = new Thickness(0, 0, 0, 4);
 			btnStopLimit.Click += (s, ev) =>
 			{
 				cachedIsStopLimit = !cachedIsStopLimit;
@@ -1538,25 +1550,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				btnStopLimit.Foreground = cachedIsStopLimit ? Brushes.White : Brushes.LightGray;
 				try { UpdateTradingProfileButtons(); } catch {}
 			};
-			Grid.SetColumn(btnStopLimit, 0);
-			modeToggleGrid.Children.Add(btnStopLimit);
-
-			btnEmaPlace = CreateButton(cachedIsEmaPlace ? "Ema protect: ON" : "Ema protect: OFF",
-				cachedIsEmaPlace ? emaPlaceOnBg : toggleOffBg, null, 24, 10);
-			btnEmaPlace.Foreground = cachedIsEmaPlace ? Brushes.White : Brushes.LightGray;
-			btnEmaPlace.Click += (s, ev) =>
-			{
-				cachedIsEmaPlace = !cachedIsEmaPlace;
-				EmaProtectEnabled = cachedIsEmaPlace;
-				btnEmaPlace.Content = cachedIsEmaPlace ? "Ema protect: ON" : "Ema protect: OFF";
-				btnEmaPlace.Background = cachedIsEmaPlace ? emaPlaceOnBg : toggleOffBg;
-				btnEmaPlace.Foreground = cachedIsEmaPlace ? Brushes.White : Brushes.LightGray;
-				try { UpdateTradingProfileButtons(); } catch {}
-			};
-			Grid.SetColumn(btnEmaPlace, 2);
-			modeToggleGrid.Children.Add(btnEmaPlace);
-
-			sec4Panel.Children.Add(modeToggleGrid);
+			sec4Panel.Children.Add(btnStopLimit);
 
 			// Daily Max DD + Daily Max Profit side-by-side
 			Grid dailyRiskGrid = new Grid { Margin = new Thickness(0, 0, 0, 0) };
@@ -1639,27 +1633,34 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			string[] discLabels = new[] { "Fix size", "No SL-pull", "No loss-DCA", "No TP-early", "StopWhenLoss", "TradingWindows" };
 			bool[] discStates = new[] { cachedSizingProtect, cachedSlPullProtect, cachedLossDcaProtect, cachedTpEarlyProtect, cachedLossTimesProtect, cachedTimingProtect };
 
-			// Row 0: ON ALL / OFF ALL (full width controls for all bottom protects)
+			// Row 0: DISCIPLINED / UN-DISCIPLINED toggle + EmaZoneOnly (replaces Un-Discipline)
+			bool allOnInit = cachedSizingProtect && cachedSlPullProtect && cachedLossDcaProtect && cachedTpEarlyProtect && cachedLossTimesProtect && cachedTimingProtect;
 			Grid allToggleGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
 			allToggleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 			allToggleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
 			allToggleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			btnDisciplineOnAll = CreateButton("Discipline All", onAllBg, null, 26, 11);
-			btnDisciplineOnAll.Foreground = Brushes.White;
-			btnDisciplineOnAll.FontWeight = FontWeights.Bold;
-			btnDisciplineOnAll.BorderBrush = new SolidColorBrush(Color.FromRgb(75, 30, 110));
-			btnDisciplineOnAll.BorderThickness = new Thickness(1);
-			btnDisciplineOnAll.Click += (s, ev) => SetAllDiscipline(true);
-			Grid.SetColumn(btnDisciplineOnAll, 0);
-			allToggleGrid.Children.Add(btnDisciplineOnAll);
-			btnDisciplineOffAll = CreateButton("Un-Discipline", offAllBg, null, 26, 11);
-			btnDisciplineOffAll.Foreground = Brushes.White;
-			btnDisciplineOffAll.FontWeight = FontWeights.Bold;
-			btnDisciplineOffAll.BorderBrush = new SolidColorBrush(Color.FromRgb(75, 30, 110));
-			btnDisciplineOffAll.BorderThickness = new Thickness(1);
-			btnDisciplineOffAll.Click += (s, ev) => SetAllDiscipline(false);
-			Grid.SetColumn(btnDisciplineOffAll, 2);
-			allToggleGrid.Children.Add(btnDisciplineOffAll);
+			btnDisciplineAll = CreateButton(allOnInit ? "DISCIPLINED" : "UN-DISCIPLINED", allOnInit ? disciplineAllOnBg : disciplineAllOffBg, null, 26, 11);
+			btnDisciplineAll.Foreground = Brushes.White;
+			btnDisciplineAll.FontWeight = FontWeights.Normal;
+			btnDisciplineAll.BorderBrush = new SolidColorBrush(Color.FromRgb(75, 30, 110));
+			btnDisciplineAll.BorderThickness = new Thickness(1);
+			btnDisciplineAll.Click += (s, ev) => SetAllDiscipline(!IsDisciplineAllOn());
+			Grid.SetColumn(btnDisciplineAll, 0);
+			allToggleGrid.Children.Add(btnDisciplineAll);
+			btnEmaPlace = CreateButton("EmaZoneOnly", cachedIsEmaPlace ? disciplineAllOnBg : disciplineOffBg, null, 26, 11);
+			btnEmaPlace.Foreground = cachedIsEmaPlace ? Brushes.White : Brushes.LightGray;
+			btnEmaPlace.FontWeight = FontWeights.Normal;
+			btnEmaPlace.BorderBrush = new SolidColorBrush(Color.FromRgb(75, 30, 110));
+			btnEmaPlace.BorderThickness = new Thickness(1);
+			btnEmaPlace.Click += (s, ev) =>
+			{
+				cachedIsEmaPlace = !cachedIsEmaPlace;
+				EmaProtectEnabled = cachedIsEmaPlace;
+				UpdateEmaPlaceButton();
+				try { UpdateTradingProfileButtons(); } catch {}
+			};
+			Grid.SetColumn(btnEmaPlace, 2);
+			allToggleGrid.Children.Add(btnEmaPlace);
 			sec5Panel.Children.Add(allToggleGrid);
 
 			// 3 rows x 2 cols for 6 protects — same shade per row (2 buttons/row share color)
@@ -1813,6 +1814,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			accSelector = null;
 			btnStopLimit = null;
 			btnEmaPlace = null;
+			btnDisciplineAll = null;
 		}
 
 		private void AttachHotkeyHandler()

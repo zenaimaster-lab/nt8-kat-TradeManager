@@ -23,6 +23,14 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.46] — 2026-08-08
+- **Protect section rework — EmaZoneOnly + DisciplineAll toggle + Stop-Limit full width**:
+  - **1. Rename label** `Ema protect` → `EmaZoneOnly` HUD only: khi ON không hiện `ON`, chỉ đổi màu (ON `12,35,75` dark blue, OFF `45,50,65` gray). Button chuyển vị trí thay thế `Un-Discipline` hiện tại (top row phải của Sec5).
+  - **2. Gộp Un-Discipline** vào `Discipline All`: xóa `btnDisciplineOffAll`/`offAllBg`/`onAllBg`, chỉ còn 1 nút `btnDisciplineAll` toggle tất cả 6 protects: `!IsDisciplineAllOn()` → `SetAllDiscipline(!allOn)` (nếu bất kỳ protect OFF thì ON all, nếu all ON thì OFF all).
+  - **3. Discipline All hiển thị mới**: ON = `DISCIPLINED` nền `disciplineAllOnBg` dark blue `12,35,75` (giống màu Ema protect ON cũ), OFF = `UN-DISCIPLINED` nền `disciplineAllOffBg` dark purple `55,20,85` (màu ON cũ), không bold, mặc định vẫn ON (6 protects true). Thêm helper `IsDisciplineAllOn()` + `UpdateDisciplineAllButton()`; `ToggleDiscipline`/`SetAllDiscipline`/`ApplyTradingProfile`/`OnPanelWatchdogTick` đều refresh nút này.
+  - **4. Stop-Limit full width** trên dòng `Max DD/Profit`: Sec4 `modeToggleGrid` 2-cols xóa, `btnStopLimit` thành full-width `HorizontalAlignment.Stretch` + `Margin 0,0,0,4` trên `dailyRiskGrid`; Sec5 `allToggleGrid` giờ chứa `DISCIPLINED/UN-DISCIPLINED` (trái) + `EmaZoneOnly` (phải) cùng height 26 / border `75,30,110`.
+  - Verify: CompileCheck 0 errors, Deploy 11 files.
+  - Graphify entity mapping: `KatTradeManagerUI.btnDisciplineAll/disciplineAllOnBg/disciplineAllOffBg/btnEmaPlace`, `KatTradeManagerUI.IsDisciplineAllOn/UpdateDisciplineAllButton/UpdateEmaPlaceButton(EmaZoneOnly)/ToggleDiscipline/SetAllDiscipline`, `KatTradeManagerUI.CreateWpfControls` (Sec4 full-width StopLimit, Sec5 top row).
 ### [v1.45] — 2026-08-08
 - **Hotfix — Market SL/TP bị cancel ngay sau khớp (regression v1.44)**:
   - **Root cause** `EnforceSlPullManualDrag` v1.44 check cả `StopPrice` (working) lẫn `StopPriceChanged` (pending) nên order SL mới tạo (StopPrice = entry ± SL, StopPriceChanged=0) bị nhầm thành manual drag khi `InitialSl` stale từ episode trước (flat chưa kịp clear hoặc cross-instrument shared `DisciplineState` per-account). Với Long `new 95 < init 100` → blocked → queue `Change` revert về `init` cũ, gây nhiễu bracket và trong vài race `MergeAtmBrackets` thấy pending change → skip merge, flat-cleanup defer sai, broker cancel cặp SL/TP.
