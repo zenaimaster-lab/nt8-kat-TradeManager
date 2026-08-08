@@ -30,10 +30,10 @@ jobs:
           } else { Write-Host "PSScriptAnalyzer not installed — skip (Install-Module PSScriptAnalyzer)" }
       - name: xunit suite
         run: dotnet test tests/KatTradeManager.Tests --nologo --verbosity minimal --collect:"XPlat Code Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
-      - name: coverage gate (warn <60%)
+      - name: coverage gate (<60% fail)
         shell: pwsh
         run: |
           $f = Get-ChildItem -Path tests/KatTradeManager.Tests/TestResults -Recurse -Filter coverage.cobertura.xml -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-          if ($f) { [xml]$c = Get-Content $f.FullName; $r=[double]$c.coverage.'line-rate'*100; Write-Host ("coverage {0:N1}%" -f $r); if ($r -lt 60 -and $r -gt 0) { Write-Host "::warning::coverage <60%" } } else { Write-Host "no coverage file — skip" }
+          if ($f) { [xml]$c = Get-Content $f.FullName; $r=[double]$c.coverage.'line-rate'*100; Write-Host ("coverage {0:N1}%" -f $r); if ($r -lt 60 -and $r -gt 0) { Write-Host "::error::coverage <60%"; exit 1 } } else { Write-Host "no coverage file — skip" }
       - name: compile gate (net48)
         run: dotnet build tools/CompileCheck --nologo --verbosity minimal

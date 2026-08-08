@@ -36,6 +36,7 @@
     <Compile Include="..\..\src\KatTradeManager.ProfileOps.cs" />
     <Compile Include="..\..\src\KatAtmTemplateService.cs" />
     <Compile Include="..\..\src\KatTradeManager.SwingOps.cs" />
+    <Compile Include="..\..\src\KatTradeManager.AccountInfo.cs" />
   </ItemGroup>
 
   <ItemGroup>

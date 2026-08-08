@@ -13,17 +13,18 @@ dotnet format tests/KatTradeManager.Tests/KatTradeManager.Tests.csproj --verify-
 $fmtOk = ($LASTEXITCODE -eq 0)
 if (-not $fmtOk) { Write-Host 'format check failed — run dotnet format tests/KatTradeManager.Tests' -ForegroundColor Yellow }
 
-Write-Host '=== 1b/4: ps analyze (non-blocking) ==='
+Write-Host '=== 1b/4: ps analyze ==='
 $psOk = $true
 if (Get-Module -ListAvailable PSScriptAnalyzer) {
+    $err = Invoke-ScriptAnalyzer -Path (Join-Path $repoRoot 'scripts') -Recurse -Severity Error
+    if ($err) { $err | Format-Table -AutoSize | Out-String | Write-Host; Write-Host 'FAILED: PSScriptAnalyzer Error' -ForegroundColor Red; $psOk = $false } else { Write-Host 'ps Error: 0' }
     Invoke-ScriptAnalyzer -Path (Join-Path $repoRoot 'scripts') -Recurse -Severity Warning 2>&1 | Out-String | Write-Host
-    $psOk = ($LASTEXITCODE -eq 0)
-    if (-not $psOk) { Write-Host 'ps analyze warnings — non-blocking' -ForegroundColor Yellow }
 } else { Write-Host 'PSScriptAnalyzer not installed — skip' }
 
 Write-Host '=== 2/4: xunit suite ==='
 dotnet test (Join-Path $repoRoot 'tests\KatTradeManager.Tests') --nologo --verbosity quiet --collect:"XPlat Code Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
 $testsOk = ($LASTEXITCODE -eq 0)
+$covOk = $true
 if ($testsOk) {
     $covFile = Get-ChildItem -Path (Join-Path $repoRoot 'tests\KatTradeManager.Tests\TestResults') -Recurse -Filter coverage.cobertura.xml -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
     if ($covFile) {
@@ -31,7 +32,7 @@ if ($testsOk) {
             [xml]$cov = Get-Content $covFile.FullName
             $rate = 0; if ($cov.coverage -and $cov.coverage.'line-rate') { $rate = [double]$cov.coverage.'line-rate' * 100 }
             Write-Host ("Coverage line-rate: {0:N1}%" -f $rate)
-            if ($rate -lt 60 -and $rate -gt 0) { Write-Host "WARNING: coverage <60% — add tests" -ForegroundColor Yellow }
+            if ($rate -lt 60 -and $rate -gt 0) { Write-Host "FAILED: coverage <60% — add tests" -ForegroundColor Red; $covOk = $false }
         } catch {}
     }
 }
@@ -40,7 +41,7 @@ Write-Host '=== 3/4: CompileCheck (net48 gate) ==='
 dotnet build (Join-Path $repoRoot 'tools\CompileCheck') --nologo --verbosity quiet
 $gateOk = ($LASTEXITCODE -eq 0)
 
-if ($verOk -and $testsOk -and $gateOk) {
+if ($verOk -and $testsOk -and $gateOk -and $psOk -and $covOk) {
     Write-Host 'ALL CHECKS GREEN.'
     if (-not $fmtOk) { Write-Host 'NOTE: format drift - run dotnet format (non-blocking)' -ForegroundColor Yellow }
     # optional graph refresh (zero token AST) when graphify is installed
@@ -54,4 +55,6 @@ if ($verOk -and $testsOk -and $gateOk) {
 if (-not $verOk)  { Write-Host 'FAILED: version consistency (run pwsh scripts/Verify-Version.ps1)' }
 if (-not $testsOk) { Write-Host 'FAILED: xunit suite' }
 if (-not $gateOk)  { Write-Host 'FAILED: compile gate' }
+if (-not $psOk) { Write-Host 'FAILED: ps analyzer Error' }
+if (-not $covOk) { Write-Host 'FAILED: coverage <60%' }
 exit 1

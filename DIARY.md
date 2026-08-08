@@ -23,6 +23,14 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.94] — 2026-08-08
+- **P1 — AccountInfo split + coverage gate fail (design lock)**
+  - `src/KatTradeManagerUI.cs:2354→~2160` tách `KatTradeManager.AccountInfo.cs` (fields `accountInfoCard … pnlNegativeBrush` 22 fields + `CreateAccountInfoSection`/`UpdateAccountInfoSection` 180L) — UI giảm god, `// ponytail: AccountInfo extracted` marker, HUD design không đổi.
+  - `tools/CompileCheck.csproj:38` + `scripts/Deploy-NT8.ps1:38` thêm `KatTradeManager.AccountInfo.cs` → `15 files` sync (Verify `15 .cs` passed).
+  - `scripts/Run-AllChecks.ps1:16` `ps analyze` tighten `Error` fail + `Warning` warn, `25` coverage `line-rate` warn→fail `<60%` (`$covOk` gate), `ci.yml:21` coverage gate `::error` + `exit 1` khi `<60`.
+  - Keep `KatTradeCalculator:116` empty OCO merge `""` + `UI:542` `IsNoAtmSelection("None")` sentinel ceilings — không đổi logic, đã có `ponytail` note + test `EmptyOco_MergedAsOneGroup` guard.
+  - Verify: `5-way v1.94` sync, `254 pass`, `CompileCheck 0 error`, `15 files` deploy ready.
+
 ### [v1.93] — 2026-08-08
 - **Re-audit P2 — tick lock + delegate + sorted cache + CI gate (design lock)**
   - `KatTradeManager.cs:253` `GetEffectiveTickSize` đọc `cachedTickSize` ngoài lock race → bọc `lock(priceLock)` tick copy trước `ResolveTickSize`, giữ `fallback 0.25` testable.
