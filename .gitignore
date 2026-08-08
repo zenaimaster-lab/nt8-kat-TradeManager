@@ -22,3 +22,7 @@ graphify-out/
 # OpenCode / opencode session
 .opencode/
 
+# Test coverage
+TestResults/
+coverage.cobertura.xml
+
