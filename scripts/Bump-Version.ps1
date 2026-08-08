@@ -22,11 +22,46 @@ Write-Host "Bumping $oldFull -> $newVer ($Date): $Description"
 if (Test-Path $uiPath) {
     (Get-Content $uiPath -Raw) -replace 'v\d+\.\d+\s*\(\d{4}-\d{2}-\d{2}\)', "v$newVer ($Date)" | Set-Content $uiPath -NoNewline
 }
+# also bump HudFactory and other src headers (drift-proof)
+$hudFactoryPath = Join-Path $repoRoot "src\KatTradeManager.HudFactory.cs"
+if (Test-Path $hudFactoryPath) {
+    (Get-Content $hudFactoryPath -Raw) -replace 'v\d+\.\d+\s*\(\d{4}-\d{2}-\d{2}\)', "v$newVer ($Date)" | Set-Content $hudFactoryPath -NoNewline
+}
 (Get-Content $readmePath -Raw) -replace 'v\d+\.\d+', "v$newVer" -replace '\d{4}-\d{2}-\d{2}', $Date | Set-Content $readmePath -NoNewline
 if (Test-Path $agentsPath) {
     (Get-Content $agentsPath -Raw) -replace 'Current: v\d+\.\d+ \(\d{4}-\d{2}-\d{2}\)', "Current: v$newVer ($Date)" | Set-Content $agentsPath -NoNewline
 }
 Write-Host "Bumped to v$newVer."
+
+# Auto DIARY entry (was manual → drift v1.57). Prepends version header if missing.
+$diaryPath = Join-Path $repoRoot "DIARY.md"
+if (Test-Path $diaryPath) {
+    $diaryRaw = Get-Content $diaryPath -Raw
+    if ($diaryRaw -notmatch "### \[v$newVer\]") {
+        $mermaidHeader = "## 📊 Graphify System Architecture"
+        $insertPos = $diaryRaw.IndexOf($mermaidHeader)
+        if ($insertPos -ge 0) {
+            # insert before Version History
+            $vhMarker = "## 📜 Version History"
+            $vhIdx = $diaryRaw.IndexOf($vhMarker)
+            if ($vhIdx -ge 0) {
+                $before = $diaryRaw.Substring(0, $vhIdx)
+                $after = $diaryRaw.Substring($vhIdx)
+                $newEntry = "### [v$newVer] — $Date`n- **Audit fixes — $Description**`n  - Auto-bumped via Bump-Version.ps1 ($oldFull -> $newVer)`n`n"
+                $newDiary = $before + $newEntry + $after
+                Set-Content $diaryPath $newDiary -NoNewline
+                Write-Host "DIARY auto-inserted v$newVer entry."
+            }
+        } else {
+            # fallback: prepend at top after first line
+            $newEntry = "`n### [v$newVer] — $Date`n- **$Description**`n"
+            Set-Content $diaryPath ($diaryRaw + $newEntry) -NoNewline
+            Write-Host "DIARY appended v$newVer entry (fallback)."
+        }
+    } else {
+        Write-Host "DIARY already contains v$newVer — skip auto-insert."
+    }
+}
 
 # Verify immediately — catches regex edge cases before commit
 $verifyScript = Join-Path $PSScriptRoot 'Verify-Version.ps1'
@@ -35,5 +70,5 @@ if (Test-Path $verifyScript) {
     & $verifyScript
     if ($LASTEXITCODE -ne 0) { throw "Bump verification FAILED — check regex replacements above." }
 }
-Write-Host "Bumped to v$newVer. Remember to add DIARY entry and run graphify update ."
-Write-Host "Done. Next: update DIARY.md, then pwsh scripts/Deploy-NT8.ps1"
+Write-Host "Bumped to v$newVer. Remember to run graphify update ."
+Write-Host "Done. Next: pwsh scripts/Deploy-NT8.ps1"

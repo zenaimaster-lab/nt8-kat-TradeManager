@@ -87,6 +87,11 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			// A revert queued on the OLD account must never fire a market order on the new one.
 			System.Threading.Interlocked.Exchange(ref pendingRevertAction, 0);
 			System.Threading.Interlocked.Exchange(ref pendingRevertQuantity, 0);
+			// stale visual/order state must not survive account switch — ghost lines / cancel target would hit wrong account
+			entryOrder = null;
+			pendingDrawOrder = null;
+			pendingDrawRequest = false;
+			pendingRemoveLines = false;
 			ResetAtmScaleInTracking();
 			EnsureAccountEventSubscription();
 		}

@@ -111,7 +111,7 @@ try {
             $msg = "Deploy manifest drift: CompileCheck vs Deploy-NT8.ps1 file list mismatch."
             if ($projOnly) { $msg += " Only in CompileCheck: $($projOnly -join ', ')." }
             if ($deployOnly) { $msg += " Only in Deploy-NT8: $($deployOnly -join ', ')." }
-            Fail "$msg — sync both lists (single source: 11 .cs files)."
+            Fail "$msg — sync both lists (single source: $($projFiles.Count) .cs files)."
         } else {
             Info "  Deploy manifest         : $($projFiles.Count) .cs files in sync (CompileCheck == Deploy-NT8)"
         }

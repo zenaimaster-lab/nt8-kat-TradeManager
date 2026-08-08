@@ -11,6 +11,7 @@
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisLevel>latest</AnalysisLevel>
     <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+    <NoWarn>MSB3277</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

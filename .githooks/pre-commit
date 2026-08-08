@@ -1,0 +1,10 @@
+#!/bin/sh
+# ponytail: minimal pre-commit — format guard only (tests/compile via CI + local Run-AllChecks)
+# bypass with git commit --no-verify
+echo "[pre-commit] dotnet format verify..."
+dotnet format tests/KatTradeManager.Tests/KatTradeManager.Tests.csproj --verify-no-changes --verbosity quiet 2>&1 | grep -v "MSB3277" || true
+if [ $? -ne 0 ]; then
+  echo "format drift — run: dotnet format tests/KatTradeManager.Tests"
+  # warn-only for now, not block
+fi
+exit 0

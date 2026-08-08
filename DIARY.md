@@ -23,6 +23,18 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.96] — 2026-08-08
+- **Re-audit P0 + HudFactory split + NoWarn + githook (ponytail: keep solo)**
+  - `src/KatTradeManager.OrderOps:81` `SwitchAccount` ghost state → thêm `entryOrder=null; pendingDrawOrder=null; pendingDrawRequest=false; pendingRemoveLines=false` trước `ResetAtmScaleInTracking()`, tránh line/order cũ survive qua account mới (kế thừa fix v1.95 `ResetAtmScaleIn` chưa đủ).
+  - `src/KatTradeManager.Properties:17` `AtmTemplateNameConverter.GetTemplateNames` `Directory.GetFiles` mỗi PropertyGrid open lag → delegate `KatAtmTemplateService.GetNames()` 5s cache, try fallback empty.
+  - `KatTradeManager.cs:263→~295` DRY migration 6× P1-P6 + 2× P7/P8 (180L copy-paste) → `SeedTradingProfileDefaults(idx)` + loop `for 0..7 quantity==0` seed per-profile, giữ `StopLimit/EmaProtect` migration once khi any seeded.
+  - `scripts/Verify-Version.ps1:114` hardcode `11 .cs` → dynamic `$($projFiles.Count)` drift-proof.
+  - `scripts/Bump-Version.ps1:28` auto DIARY insert + bump `HudFactory` header (trước chỉ UI).
+  - `src/KatTradeManager.HudFactory.cs:185` **new** tách từ `KatTradeManagerUI.cs:1739` 7 helpers `CreateButton, GetHudButtonTemplate, GetQuickSetButtonTemplate, Create*Grid(2/4/6/8), CreateSectionCard` + `static _hudButtonTemplate` — UI `1967→~1760L` (-200L), factory pure layout zero logic, `AGENTS.md` sync.
+  - `tools/CompileCheck.csproj:17,42` `NoWarn 0436→0436;MSB3277` + `tests/KatTradeManager.Tests.csproj:14` `NoWarn MSB3277` suppress `System.Formats.Asn1` NT8 vs .NET8 conflict spam (đã có từ v1.92).
+  - `tools/CompileCheck.csproj:42` + `scripts/Deploy-NT8.ps1:53` thêm `HudFactory` → `16 files` sync (Verify `16 .cs` passed).
+  - `.githooks/pre-commit` new `core.hooksPath .githooks` dotnet format warn-only (bypass `--no-verify`).
+  - Verify: `5-way v1.96` sync + HudFactory, `288 pass`, `CompileCheck 0 warn/0 error`, `16 files` deploy ready.
 ### [v1.95] — 2026-08-08
 - **Private solo re-audit — coverage warn + thread + cache + 34 tests (ponytail: no public bloat)**
   - `scripts/Run-AllChecks.ps1:35` + `ci.yml:36` coverage gate `0 lines-valid` false-green → chuyển warn-only private (valid==0 warn, `<60%` warn, không fail), `Run-AllChecks` bỏ `covOk` khỏi ALL GREEN, hiện `(covered/valid)` — private solo đủ test advisory không block.

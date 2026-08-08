@@ -16,24 +16,10 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 {
 	public sealed class AtmTemplateNameConverter : TypeConverter
 	{
-		private static string GetAtmTemplateDirectory()
-		{
-			return Path.Combine(NinjaTrader.Core.Globals.UserDataDir, "templates", "AtmStrategy");
-		}
-
 		private static List<string> GetTemplateNames()
 		{
-			List<string> names = new List<string>();
-			try
-			{
-				string directory = GetAtmTemplateDirectory();
-				if (!Directory.Exists(directory)) return names;
-				foreach (string file in Directory.GetFiles(directory, "*.xml"))
-					names.Add(Path.GetFileNameWithoutExtension(file));
-				names.Sort(StringComparer.OrdinalIgnoreCase);
-			}
-			catch { }
-			return names;
+			// ponytail: delegate to unified 5s cache — avoids Directory.GetFiles on every property-grid open (was laggy + file-lock prone)
+			try { return KatAtmTemplateService.GetNames(); } catch { return new List<string>(); }
 		}
 
 		public override bool GetStandardValuesSupported(ITypeDescriptorContext context)
