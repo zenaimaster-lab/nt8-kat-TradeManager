@@ -1,13 +1,15 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.67 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.68 (2026-08-08) */
 // ponytail: many catch{} for UI button updates are expected (control not yet created, dispatcher not ready) — silent. Critical watchdog tick already logs.
 
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using NinjaTrader.Cbi;
@@ -137,8 +139,190 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private const double HudGap = 2; // uniform gap — horizontal, vertical, inner/outer — matches quick-set intra-column gap
 		private const double HudPanelWidth = 250; // 250 outer => 238 inner (250-6-6) = 22+24k perfect for gap2 across 2/4/6/8 cols
 
+		// Account info header (top black section) — realtime NY time + Balance / Unrealized / Realized
+		private Border accountInfoCard;
+		private TextBlock accountInfoDateTimeText;
+		private Run accountDateRun;
+		private Run accountTimeHmRun;
+		private Run accountTimeSRun;
+		private Run accountAmPmRun;
+		private Run accountNytRun;
+		private TextBlock accountBalanceText;
+		private Run accountBalanceLabelRun;
+		private Run accountBalanceValueRun;
+		private TextBlock accountUnrealText;
+		private TextBlock accountRealText;
+		private Run accountUnrealLabelRun;
+		private Run accountUnrealValueRun;
+		private Run accountRealLabelRun;
+		private Run accountRealValueRun;
+		private TextBlock hudHeaderText;
+		private readonly SolidColorBrush accountDateBrush = new SolidColorBrush(Color.FromRgb(180, 100, 255)); // purple
+		private readonly SolidColorBrush accountTimeBrush = new SolidColorBrush(Color.FromRgb(255, 165, 0)); // orange
+		private readonly SolidColorBrush accountGrayBrush = new SolidColorBrush(Color.FromRgb(160, 160, 160)); // gray for labels / pm / (NYT)
+		private readonly SolidColorBrush pnlPositiveBrush = new SolidColorBrush(Color.FromRgb(40, 200, 80)); // green
+		private readonly SolidColorBrush pnlNegativeBrush = new SolidColorBrush(Color.FromRgb(220, 50, 50)); // red
+
 		// ponytail: unified via KatAtmTemplateService (single 5s listing)
 		private List<string> GetCachedAtmTemplateNames() => KatAtmTemplateService.GetNames();
+
+		private Border CreateAccountInfoSection()
+		{
+			StackPanel inner = new StackPanel { UseLayoutRounding = true, SnapsToDevicePixels = true };
+
+			accountDateRun = new Run("") { Foreground = accountDateBrush };
+			accountTimeHmRun = new Run("") { Foreground = accountTimeBrush, FontWeight = FontWeights.Bold };
+			accountTimeSRun = new Run("") { Foreground = accountTimeBrush, FontWeight = FontWeights.Normal };
+			accountAmPmRun = new Run("") { Foreground = accountGrayBrush };
+			accountNytRun = new Run(" (NYT)") { Foreground = accountGrayBrush };
+			accountInfoDateTimeText = new TextBlock
+			{
+				FontSize = 11,
+				Margin = new Thickness(0, 0, 0, HudGap),
+				HorizontalAlignment = HorizontalAlignment.Left,
+				TextWrapping = TextWrapping.NoWrap,
+				UseLayoutRounding = true,
+				SnapsToDevicePixels = true
+			};
+			accountInfoDateTimeText.Inlines.Add(accountDateRun);
+			accountInfoDateTimeText.Inlines.Add(new Run("   ") { Foreground = accountGrayBrush });
+			accountInfoDateTimeText.Inlines.Add(accountTimeHmRun);
+			accountInfoDateTimeText.Inlines.Add(accountTimeSRun);
+			accountInfoDateTimeText.Inlines.Add(accountAmPmRun);
+			accountInfoDateTimeText.Inlines.Add(accountNytRun);
+			inner.Children.Add(accountInfoDateTimeText);
+
+			accountBalanceLabelRun = new Run("Balance: ") { Foreground = accountGrayBrush };
+			accountBalanceValueRun = new Run("--") { Foreground = accountGrayBrush };
+			accountBalanceText = new TextBlock
+			{
+				FontSize = 11,
+				Margin = new Thickness(0, 0, 0, HudGap),
+				HorizontalAlignment = HorizontalAlignment.Left,
+				TextWrapping = TextWrapping.NoWrap,
+				UseLayoutRounding = true,
+				SnapsToDevicePixels = true
+			};
+			accountBalanceText.Inlines.Add(accountBalanceLabelRun);
+			accountBalanceText.Inlines.Add(accountBalanceValueRun);
+			inner.Children.Add(accountBalanceText);
+
+			accountUnrealLabelRun = new Run("U: ") { Foreground = accountGrayBrush };
+			accountUnrealValueRun = new Run("--") { Foreground = accountGrayBrush };
+			accountUnrealText = new TextBlock
+			{
+				FontSize = 11,
+				HorizontalAlignment = HorizontalAlignment.Left,
+				TextWrapping = TextWrapping.NoWrap,
+				UseLayoutRounding = true,
+				SnapsToDevicePixels = true
+			};
+			accountUnrealText.Inlines.Add(accountUnrealLabelRun);
+			accountUnrealText.Inlines.Add(accountUnrealValueRun);
+
+			accountRealLabelRun = new Run("R: ") { Foreground = accountGrayBrush };
+			accountRealValueRun = new Run("--") { Foreground = accountGrayBrush };
+			accountRealText = new TextBlock
+			{
+				FontSize = 11,
+				HorizontalAlignment = HorizontalAlignment.Left,
+				TextWrapping = TextWrapping.NoWrap,
+				UseLayoutRounding = true,
+				SnapsToDevicePixels = true
+			};
+			accountRealText.Inlines.Add(accountRealLabelRun);
+			accountRealText.Inlines.Add(accountRealValueRun);
+
+			Grid pnlGrid = CreateTwoColumnGrid(0, HudGap);
+			Grid.SetColumn(accountUnrealText, 0);
+			Grid.SetColumn(accountRealText, 2);
+			pnlGrid.Children.Add(accountUnrealText);
+			pnlGrid.Children.Add(accountRealText);
+			inner.Children.Add(pnlGrid);
+
+			accountInfoCard = new Border
+			{
+				Background = new SolidColorBrush(Color.FromRgb(0, 0, 0)),
+				BorderBrush = new SolidColorBrush(Color.FromRgb(35, 42, 56)),
+				BorderThickness = new Thickness(1),
+				CornerRadius = new CornerRadius(5),
+				Padding = new Thickness(HudGap),
+				Margin = new Thickness(0, 0, 0, HudGap),
+				Child = inner,
+				UseLayoutRounding = true,
+				SnapsToDevicePixels = true
+			};
+			UpdateAccountInfoSection();
+			return accountInfoCard;
+		}
+
+		private void UpdateAccountInfoSection()
+		{
+			if (accountInfoDateTimeText == null || accountDateRun == null) return;
+			try
+			{
+				DateTime nyTime = KatTradeCalculator.GetNyTime(DateTime.UtcNow);
+				string dateStr = nyTime.ToString("dddd dd, MMM", CultureInfo.InvariantCulture);
+				string timeStr = nyTime.ToString("hh:mm:ss", CultureInfo.InvariantCulture);
+				string amPmStr = nyTime.ToString("tt", CultureInfo.InvariantCulture).ToLowerInvariant();
+				string hmStr = timeStr.Length >= 5 ? timeStr.Substring(0, 5) : timeStr;
+				string sStr = timeStr.Length > 5 ? timeStr.Substring(5) : "";
+				if (accountDateRun.Text != dateStr) accountDateRun.Text = dateStr;
+				if (accountTimeHmRun.Text != hmStr) accountTimeHmRun.Text = hmStr;
+				if (accountTimeSRun.Text != sStr) accountTimeSRun.Text = sStr;
+				string amPmWithSpace = " " + amPmStr;
+				if (accountAmPmRun.Text != amPmWithSpace) accountAmPmRun.Text = amPmWithSpace;
+			}
+			catch {}
+			if (account == null)
+			{
+				try
+				{
+					if (accountBalanceValueRun.Text != "--") accountBalanceValueRun.Text = "--";
+					accountBalanceValueRun.Foreground = accountGrayBrush;
+					if (accountUnrealValueRun.Text != "--") accountUnrealValueRun.Text = "--";
+					accountUnrealValueRun.Foreground = accountGrayBrush;
+					if (accountRealValueRun.Text != "--") accountRealValueRun.Text = "--";
+					accountRealValueRun.Foreground = accountGrayBrush;
+				} catch {}
+				return;
+			}
+			double balance = double.NaN;
+			try { balance = account.Get(AccountItem.CashValue, Currency.UsDollar); } catch {}
+			if (double.IsNaN(balance) || double.IsInfinity(balance)) try { balance = account.Get(AccountItem.TotalCashBalance, Currency.UsDollar); } catch {}
+			if (double.IsNaN(balance) || double.IsInfinity(balance)) try { balance = account.Get(AccountItem.NetLiquidation, Currency.UsDollar); } catch {}
+			if (double.IsNaN(balance) || double.IsInfinity(balance)) balance = 0;
+			double unreal = 0;
+			try { unreal = account.Get(AccountItem.UnrealizedProfitLoss, Currency.UsDollar); } catch {}
+			double realized = double.NaN;
+			try { realized = account.Get(AccountItem.GrossRealizedProfitLoss, Currency.UsDollar); } catch {}
+			if (double.IsNaN(realized) || double.IsInfinity(realized)) try { realized = account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar); } catch {}
+			if (double.IsNaN(realized) || double.IsInfinity(realized)) realized = 0;
+			try
+			{
+				string balStr = balance.ToString("N0", CultureInfo.InvariantCulture);
+				if (accountBalanceValueRun.Text != balStr) accountBalanceValueRun.Text = balStr;
+				accountBalanceValueRun.Foreground = accountGrayBrush;
+			} catch {}
+			try
+			{
+				string uStr; Brush uBrush;
+				if (unreal > 0.005) { uStr = "+" + unreal.ToString("N0", CultureInfo.InvariantCulture); uBrush = pnlPositiveBrush; }
+				else if (unreal < -0.005) { uStr = unreal.ToString("N0", CultureInfo.InvariantCulture); uBrush = pnlNegativeBrush; }
+				else { uStr = "0"; uBrush = accountGrayBrush; }
+				if (accountUnrealValueRun.Text != uStr) accountUnrealValueRun.Text = uStr;
+				accountUnrealValueRun.Foreground = uBrush;
+			} catch {}
+			try
+			{
+				string rStr; Brush rBrush;
+				if (realized > 0.005) { rStr = "+" + realized.ToString("N0", CultureInfo.InvariantCulture); rBrush = pnlPositiveBrush; }
+				else if (realized < -0.005) { rStr = realized.ToString("N0", CultureInfo.InvariantCulture); rBrush = pnlNegativeBrush; }
+				else { rStr = "0"; rBrush = accountGrayBrush; }
+				if (accountRealValueRun.Text != rStr) accountRealValueRun.Text = rStr;
+				accountRealValueRun.Foreground = rBrush;
+			} catch {}
+		}
 
 		private void StartPanelWatchdog()
 		{
@@ -247,6 +431,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				try { UpdateEmaPlaceButton(); } catch (Exception ex) { Print(string.Format("[KatTradeManager] Watchdog UpdateEmaPlaceButton: {0}", ex.Message)); }
 				for (int _di = 0; _di < 6; _di++) try { UpdateDisciplineButton(_di); } catch (Exception ex) { Print(string.Format("[KatTradeManager] Watchdog UpdateDisciplineButton {0}: {1}", _di, ex.Message)); }
 				try { UpdateDisciplineAllButton(); } catch (Exception ex) { Print(string.Format("[KatTradeManager] Watchdog UpdateDisciplineAllButton: {0}", ex.Message)); }
+				try { UpdateAccountInfoSection(); } catch (Exception ex) { Print(string.Format("[KatTradeManager] Watchdog UpdateAccountInfoSection: {0}", ex.Message)); }
 
 				if (!IsPanelAttached())
 				{
@@ -508,10 +693,12 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					tradingProfileButtons[i].Foreground = labelBrush;
 				}
 				tradingProfileButtons[i].FontSize = fs;
-				// keep label centered with trimming — avoids overlap/missing as in screenshot P1-P8
+				// Program buttons: label left-aligned (per request), others remain centered
 				string expected = GetTradingProfileName(i);
 				if (GetButtonLabel(tradingProfileButtons[i]) != expected)
 					SetButtonLabel(tradingProfileButtons[i], expected);
+				tradingProfileButtons[i].HorizontalContentAlignment = HorizontalAlignment.Left;
+				if (tradingProfileButtons[i].Content is TextBlock _tbU) { _tbU.TextAlignment = TextAlignment.Left; _tbU.HorizontalAlignment = HorizontalAlignment.Left; }
 				try
 				{
 					string tAcc2 = GetTradingProfileAccount(i);
@@ -529,7 +716,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			SolidColorBrush onBg = new SolidColorBrush(Color.FromRgb(18, 6, 48)); // extra dark purple — distinct from Max DD/Profit purple
 			SetButtonLabel(btnStopLimit, cachedIsStopLimit ? "Stop-Limit: ON" : "Stop-Limit: OFF");
 			btnStopLimit.Background = cachedIsStopLimit ? onBg : offBg;
-			btnStopLimit.Foreground = cachedIsStopLimit ? Brushes.White : Brushes.LightGray;
+			btnStopLimit.Foreground = cachedIsStopLimit ? new SolidColorBrush(Color.FromArgb(128, 255, 255, 255)) : Brushes.LightGray;
 		}
 
 		private void UpdateEmaPlaceButton()
@@ -1110,19 +1297,22 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				?? chartGrid as UIElement);
 			mainPanel = new StackPanel { UseLayoutRounding = true, SnapsToDevicePixels = true };
 
-			// --- SECTION 1: Parameters & ATM Selection ---
-			StackPanel sec1Panel = new StackPanel { UseLayoutRounding = true, SnapsToDevicePixels = true };
-
-			TextBlock hudHeader = new TextBlock
+			// HUD title at very top, then account info black board immediately below title — double breathing space, 70% transparent sunk
+			hudHeaderText = new TextBlock
 			{
 				Text = string.Format("⚡ KAT TradeManager v{0}", VERSION),
 				Foreground = new SolidColorBrush(Color.FromRgb(70, 130, 160)),
-				FontWeight = FontWeights.Bold,
+				FontWeight = FontWeights.Normal,
 				FontSize = 12,
-				Margin = new Thickness(0, 0, 0, HudGap),
-				HorizontalAlignment = HorizontalAlignment.Left
+				Margin = new Thickness(0, HudGap * 2, 0, HudGap * 2),
+				HorizontalAlignment = HorizontalAlignment.Left,
+				Opacity = 0.3
 			};
-			sec1Panel.Children.Add(hudHeader);
+			mainPanel.Children.Add(hudHeaderText);
+			mainPanel.Children.Add(CreateAccountInfoSection());
+
+			// --- SECTION 1: Parameters & ATM Selection ---
+			StackPanel sec1Panel = new StackPanel { UseLayoutRounding = true, SnapsToDevicePixels = true };
 
 			hudStatusText = new TextBlock
 			{
@@ -1186,6 +1376,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					Button pBtn = CreateButton("", profileOffBg, null, 22, GetQuickSetFontSize());
 					SetButtonLabel(pBtn, GetTradingProfileName(idx));
 					pBtn.Foreground = GetQuickSetLabelBrush();
+					pBtn.HorizontalContentAlignment = HorizontalAlignment.Left;
+					if (pBtn.Content is TextBlock _pTb) { _pTb.TextAlignment = TextAlignment.Left; _pTb.HorizontalAlignment = HorizontalAlignment.Left; }
 					int captured = idx;
 					pBtn.Click += (s, ev) => ApplyTradingProfile(captured);
 					Grid.SetColumn(pBtn, cc * 2);
@@ -1207,7 +1399,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				}
 			} catch {}
 
-			accSelector = new ComboBox { FontSize = 11, Height = 22, Margin = new Thickness(0, 0, 0, HudGap), HorizontalAlignment = HorizontalAlignment.Stretch, UseLayoutRounding = true, SnapsToDevicePixels = true };
+			accSelector = new ComboBox { FontSize = 11, Height = 22, Margin = new Thickness(0, 0, 0, HudGap), HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Center, VerticalContentAlignment = VerticalAlignment.Center, HorizontalContentAlignment = HorizontalAlignment.Left, Padding = new Thickness(4, 0, 0, 0), UseLayoutRounding = true, SnapsToDevicePixels = true, Background = new SolidColorBrush(Color.FromRgb(0, 0, 0)), Foreground = Brushes.White, BorderBrush = new SolidColorBrush(Color.FromRgb(35, 42, 56)), BorderThickness = new Thickness(1) };
 			if (Account.All != null)
 			{
 				var allowedAccs = Account.All.Where(a => IsAccountAllowed(a.Name)).ToList();
@@ -1262,6 +1454,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					Print(string.Format("[KatTradeManager] Account changed via UI to: {0}", selectedName));
 					try { UpdateTradingProfileButtons(); } catch {}
 					try { UpdateAtmSetButtons(); } catch {}
+					try { UpdateAccountInfoSection(); } catch {}
 				}
 			};
 			sec1Panel.Children.Add(accSelector);
@@ -1326,19 +1519,21 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			// --- SECTION 2: EMA 34 & EMA 89 Touch/Cross Orders ---
 			StackPanel sec2Panel = new StackPanel { UseLayoutRounding = true, SnapsToDevicePixels = true };
 
-			SolidColorBrush buy34Bg  = new SolidColorBrush(Color.FromRgb(100, 115, 30));
-			SolidColorBrush sell34Bg = new SolidColorBrush(Color.FromRgb(175, 75, 25));
+			SolidColorBrush buy34Bg  = new SolidColorBrush(Color.FromRgb(20, 60, 75)); // much darker cyan vs Buy 89
+			SolidColorBrush sell34Bg = new SolidColorBrush(Color.FromRgb(85, 25, 65)); // much darker pink vs Sell 89
 			SolidColorBrush buy89Bg  = new SolidColorBrush(Color.FromRgb(35, 95, 110));
 			SolidColorBrush sell89Bg = new SolidColorBrush(Color.FromRgb(130, 35, 95));
 			SolidColorBrush entryShiftBg = new SolidColorBrush(Color.FromRgb(20, 20, 20));
 
 			Grid entryShiftGrid = CreateTwoColumnGrid(HudGap, HudGap);
 
-			Button btnEntryBack = CreateButton("◀ Entry 89/34", entryShiftBg, (s, ev) => ShiftEmaEntry(false), 33, 12);
+			Button btnEntryBack = CreateButton("◀ Entry 89/34", entryShiftBg, (s, ev) => ShiftEmaEntry(false), 30, 12);
+			btnEntryBack.Foreground = new SolidColorBrush(Color.FromArgb(77, 255, 255, 255));
 			Grid.SetColumn(btnEntryBack, 0);
 			entryShiftGrid.Children.Add(btnEntryBack);
 
-			Button btnEntryRedo = CreateButton("Entry 89/34 ▶", entryShiftBg, (s, ev) => ShiftEmaEntry(true), 33, 12);
+			Button btnEntryRedo = CreateButton("Entry 89/34 ▶", entryShiftBg, (s, ev) => ShiftEmaEntry(true), 30, 12);
+			btnEntryRedo.Foreground = new SolidColorBrush(Color.FromArgb(77, 255, 255, 255));
 			Grid.SetColumn(btnEntryRedo, 2);
 			entryShiftGrid.Children.Add(btnEntryRedo);
 
@@ -1346,11 +1541,11 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			Grid ema34Grid = CreateTwoColumnGrid(HudGap, HudGap);
 
-			Button btnSell34 = CreateButton("SELL last 34", sell34Bg, (s, ev) => PlaceEmaOrder(OrderAction.Sell, 34), 48, 12);
+			Button btnSell34 = CreateButton("Sell last 34", sell34Bg, (s, ev) => PlaceEmaOrder(OrderAction.Sell, 34), 43, 12);
 			Grid.SetColumn(btnSell34, 0);
 			ema34Grid.Children.Add(btnSell34);
 
-			Button btnBuy34 = CreateButton("BUY last 34", buy34Bg, (s, ev) => PlaceEmaOrder(OrderAction.Buy, 34), 48, 12);
+			Button btnBuy34 = CreateButton("Buy last 34", buy34Bg, (s, ev) => PlaceEmaOrder(OrderAction.Buy, 34), 43, 12);
 			Grid.SetColumn(btnBuy34, 2);
 			ema34Grid.Children.Add(btnBuy34);
 
@@ -1358,11 +1553,11 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			Grid ema89Grid = CreateTwoColumnGrid(HudGap, HudGap);
 
-			Button btnSell89 = CreateButton("SELL last 89", sell89Bg, (s, ev) => PlaceEmaOrder(OrderAction.Sell, 89), 48, 12);
+			Button btnSell89 = CreateButton("Sell last 89", sell89Bg, (s, ev) => PlaceEmaOrder(OrderAction.Sell, 89), 43, 12);
 			Grid.SetColumn(btnSell89, 0);
 			ema89Grid.Children.Add(btnSell89);
 
-			Button btnBuy89 = CreateButton("BUY last 89", buy89Bg, (s, ev) => PlaceEmaOrder(OrderAction.Buy, 89), 48, 12);
+			Button btnBuy89 = CreateButton("Buy last 89", buy89Bg, (s, ev) => PlaceEmaOrder(OrderAction.Buy, 89), 43, 12);
 			Grid.SetColumn(btnBuy89, 2);
 			ema89Grid.Children.Add(btnBuy89);
 
@@ -1373,11 +1568,13 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			SolidColorBrush swingSlBg = new SolidColorBrush(Color.FromRgb(20, 20, 20)); // Same dark color as Close/flatten
 
-			Button btnSlBack = CreateButton("◀ SL", swingSlBg, (s, ev) => ShiftSlToSwing(false), 33, 12);
+			Button btnSlBack = CreateButton("◀ SL", swingSlBg, (s, ev) => ShiftSlToSwing(false), 30, 12);
+			btnSlBack.Foreground = new SolidColorBrush(Color.FromArgb(77, 255, 255, 255));
 			Grid.SetColumn(btnSlBack, 0);
 			swingSlGrid.Children.Add(btnSlBack);
 
-			Button btnSlRedo = CreateButton("SL ▶", swingSlBg, (s, ev) => ShiftSlToSwing(true), 33, 12);
+			Button btnSlRedo = CreateButton("SL ▶", swingSlBg, (s, ev) => ShiftSlToSwing(true), 30, 12);
+			btnSlRedo.Foreground = new SolidColorBrush(Color.FromArgb(77, 255, 255, 255));
 			Grid.SetColumn(btnSlRedo, 2);
 			swingSlGrid.Children.Add(btnSlRedo);
 
@@ -1394,11 +1591,11 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			SolidColorBrush buyMktBg  = new SolidColorBrush(Color.FromRgb(12, 48, 25)); // Deep dark green
 			SolidColorBrush sellMktBg = new SolidColorBrush(Color.FromRgb(55, 15, 18)); // Deep dark red
 
-			Button btnSellMkt = CreateButton("SELL market", sellMktBg, (s, ev) => PlaceMarketOrder(OrderAction.Sell), 48, 12);
+			Button btnSellMkt = CreateButton("SELL MARKET", sellMktBg, (s, ev) => PlaceMarketOrder(OrderAction.Sell), 43, 12);
 			Grid.SetColumn(btnSellMkt, 0);
 			mktBtnGrid.Children.Add(btnSellMkt);
 
-			Button btnBuyMkt = CreateButton("BUY market", buyMktBg, (s, ev) => PlaceMarketOrder(OrderAction.Buy), 48, 12);
+			Button btnBuyMkt = CreateButton("BUY MARKET", buyMktBg, (s, ev) => PlaceMarketOrder(OrderAction.Buy), 43, 12);
 			Grid.SetColumn(btnBuyMkt, 2);
 			mktBtnGrid.Children.Add(btnBuyMkt);
 
@@ -1409,62 +1606,67 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			SolidColorBrush candleShiftBg = new SolidColorBrush(Color.FromRgb(20, 20, 20)); // Same dark color as SL moving buttons
 
-			Button btnCandleBack = CreateButton("◀ Entry candle", candleShiftBg, (s, ev) => ShiftCandleEntry(false), 33, 12);
+			Button btnCandleBack = CreateButton("◀ Entry candle", candleShiftBg, (s, ev) => ShiftCandleEntry(false), 30, 12);
+			btnCandleBack.Foreground = new SolidColorBrush(Color.FromArgb(77, 255, 255, 255));
 			Grid.SetColumn(btnCandleBack, 0);
 			candleShiftGrid.Children.Add(btnCandleBack);
 
-			Button btnCandleRedo = CreateButton("Entry candle ▶", candleShiftBg, (s, ev) => ShiftCandleEntry(true), 33, 12);
+			Button btnCandleRedo = CreateButton("Entry candle ▶", candleShiftBg, (s, ev) => ShiftCandleEntry(true), 30, 12);
+			btnCandleRedo.Foreground = new SolidColorBrush(Color.FromArgb(77, 255, 255, 255));
 			Grid.SetColumn(btnCandleRedo, 2);
 			candleShiftGrid.Children.Add(btnCandleRedo);
 
 			sec3Panel.Children.Add(candleShiftGrid);
 
 			SolidColorBrush buyPrevBg  = new SolidColorBrush(Color.FromRgb(34, 112, 62));
-			SolidColorBrush buyCurrBg  = new SolidColorBrush(Color.FromRgb(24, 82, 45));
+			SolidColorBrush buyCurrBg  = new SolidColorBrush(Color.FromRgb(16, 55, 30));
 			SolidColorBrush sellPrevBg = new SolidColorBrush(Color.FromRgb(148, 48, 54));
-			SolidColorBrush sellCurrBg = new SolidColorBrush(Color.FromRgb(110, 32, 38));
+			SolidColorBrush sellCurrBg = new SolidColorBrush(Color.FromRgb(75, 22, 28));
 
 			Grid currOrderGrid = CreateTwoColumnGrid(HudGap, HudGap);
-			Button btnSellCurr = CreateButton("SELL current", sellCurrBg, (s, ev) => PlaceOrder(OrderAction.Sell, true), 48, 12);
+			Button btnSellCurr = CreateButton("Sell current", sellCurrBg, (s, ev) => PlaceOrder(OrderAction.Sell, true), 43, 12);
 			Grid.SetColumn(btnSellCurr, 0);
 			currOrderGrid.Children.Add(btnSellCurr);
 
-			Button btnBuyCurr = CreateButton("BUY current", buyCurrBg, (s, ev) => PlaceOrder(OrderAction.Buy, true), 48, 12);
+			Button btnBuyCurr = CreateButton("Buy current", buyCurrBg, (s, ev) => PlaceOrder(OrderAction.Buy, true), 43, 12);
 			Grid.SetColumn(btnBuyCurr, 2);
 			currOrderGrid.Children.Add(btnBuyCurr);
 			sec3Panel.Children.Add(currOrderGrid);
 
 			Grid prevOrderGrid = CreateTwoColumnGrid(HudGap, HudGap);
-			Button btnSellPrev = CreateButton("SELL previous", sellPrevBg, (s, ev) => PlaceOrder(OrderAction.Sell, false), 48, 12);
+			Button btnSellPrev = CreateButton("Sell previous", sellPrevBg, (s, ev) => PlaceOrder(OrderAction.Sell, false), 43, 12);
 			Grid.SetColumn(btnSellPrev, 0);
 			prevOrderGrid.Children.Add(btnSellPrev);
 
-			Button btnBuyPrev = CreateButton("BUY previous", buyPrevBg, (s, ev) => PlaceOrder(OrderAction.Buy, false), 48, 12);
+			Button btnBuyPrev = CreateButton("Buy previous", buyPrevBg, (s, ev) => PlaceOrder(OrderAction.Buy, false), 43, 12);
 			Grid.SetColumn(btnBuyPrev, 2);
 			prevOrderGrid.Children.Add(btnBuyPrev);
 			sec3Panel.Children.Add(prevOrderGrid);
 
-			// --- BE / Revert row below BUY/SELL previous ---
+			mainPanel.Children.Add(CreateSectionCard(sec3Panel, HudGap));
+
+			// --- SECTION 3b: BE / Revert / Close (separate for clarity) ---
+			StackPanel sec3bPanel = new StackPanel { UseLayoutRounding = true, SnapsToDevicePixels = true };
 			Grid beRevertGrid = CreateTwoColumnGrid(HudGap, HudGap);
 
-			SolidColorBrush beBg     = new SolidColorBrush(Color.FromRgb(14, 48, 62)); // Deep dark slate teal
-			SolidColorBrush revertBg = new SolidColorBrush(Color.FromRgb(75, 42, 10)); // Deep dark amber
+			SolidColorBrush beBg     = new SolidColorBrush(Color.FromRgb(22, 22, 22)); // very dark gray near black
+			SolidColorBrush revertBg = new SolidColorBrush(Color.FromRgb(22, 22, 22)); // very dark gray near black
 
-			Button btnBE = CreateButton("BE", beBg, (s, ev) => SetBreakeven(), 48, 12);
-			Grid.SetColumn(btnBE, 0);
+			Button btnBE = CreateButton("Break Even", beBg, (s, ev) => SetBreakeven(), 43, 12);
+			Grid.SetColumn(btnBE, 2);
 			beRevertGrid.Children.Add(btnBE);
 
-			Button btnRevert = CreateButton("Revert", revertBg, (s, ev) => RevertPosition(), 48, 12);
-			Grid.SetColumn(btnRevert, 2);
+			Button btnRevert = CreateButton("Revert", revertBg, (s, ev) => RevertPosition(), 43, 12);
+			Grid.SetColumn(btnRevert, 0);
 			beRevertGrid.Children.Add(btnRevert);
 
-			sec3Panel.Children.Add(beRevertGrid);
+			sec3bPanel.Children.Add(beRevertGrid);
 
-			SolidColorBrush closeBg = new SolidColorBrush(Color.FromRgb(20, 20, 20)); // Very dark gray (almost black)
-			Button btnClose = CreateButton("Close/flatten", closeBg, (s, ev) => FlattenAllPositions(), 66, 15);
-			sec3Panel.Children.Add(btnClose);
+			SolidColorBrush closeBg = new SolidColorBrush(Color.FromRgb(10, 10, 10)); // darker than Revert/BE 22,22,22
+			Button btnClose = CreateButton("Close/flatten", closeBg, (s, ev) => FlattenAllPositions(), 59, 15);
+			sec3bPanel.Children.Add(btnClose);
 
-			mainPanel.Children.Add(CreateSectionCard(sec3Panel, HudGap));
+			mainPanel.Children.Add(CreateSectionCard(sec3bPanel, HudGap));
 
 
 			// --- SECTION 4: ON/OFF Toggles ---
@@ -1475,7 +1677,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			btnStopLimit = CreateButton(cachedIsStopLimit ? "Stop-Limit: ON" : "Stop-Limit: OFF",
 				cachedIsStopLimit ? stopLimitOnBg : toggleOffBg, null, 24, 10);
-			btnStopLimit.Foreground = cachedIsStopLimit ? Brushes.White : Brushes.LightGray;
+			btnStopLimit.Foreground = cachedIsStopLimit ? new SolidColorBrush(Color.FromArgb(128, 255, 255, 255)) : Brushes.LightGray;
 			btnStopLimit.HorizontalAlignment = HorizontalAlignment.Stretch;
 			btnStopLimit.Margin = new Thickness(0, 0, 0, HudGap);
 			btnStopLimit.Click += (s, ev) =>
@@ -1484,7 +1686,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				StopLimitEnabled = cachedIsStopLimit;
 				SetButtonLabel(btnStopLimit, cachedIsStopLimit ? "Stop-Limit: ON" : "Stop-Limit: OFF");
 				btnStopLimit.Background = cachedIsStopLimit ? stopLimitOnBg : toggleOffBg;
-				btnStopLimit.Foreground = cachedIsStopLimit ? Brushes.White : Brushes.LightGray;
+				btnStopLimit.Foreground = cachedIsStopLimit ? new SolidColorBrush(Color.FromArgb(128, 255, 255, 255)) : Brushes.LightGray;
 				try { UpdateTradingProfileButtons(); } catch {}
 			};
 			sec4Panel.Children.Add(btnStopLimit);
@@ -1636,7 +1838,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				sec5Panel.Children.Add(rowGrid);
 			}
 
-			mainPanel.Children.Add(CreateSectionCard(sec5Panel, 0));
+			mainPanel.Children.Add(CreateSectionCard(sec5Panel, HudGap * 2));
 
 			panelBorder.Child = mainPanel;
 		}
@@ -1680,8 +1882,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			border.SetValue(Border.SnapsToDevicePixelsProperty, true);
 			border.SetValue(Border.UseLayoutRoundingProperty, true);
 			var cp = new FrameworkElementFactory(typeof(ContentPresenter));
-			cp.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
-			cp.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
+			cp.SetBinding(ContentPresenter.HorizontalAlignmentProperty, new System.Windows.Data.Binding("HorizontalContentAlignment") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent) });
+			cp.SetBinding(ContentPresenter.VerticalAlignmentProperty, new System.Windows.Data.Binding("VerticalContentAlignment") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent) });
 			cp.SetValue(ContentPresenter.MarginProperty, new Thickness(2, 0, 2, 0));
 			border.AppendChild(cp);
 			_hudButtonTemplate = new ControlTemplate(typeof(Button)) { VisualTree = border };
@@ -1857,6 +2059,23 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			btnStopLimit = null;
 			btnEmaPlace = null;
 			btnDisciplineAll = null;
+			accountInfoCard = null;
+			accountInfoDateTimeText = null;
+			accountDateRun = null;
+			accountTimeHmRun = null;
+			accountTimeSRun = null;
+			accountAmPmRun = null;
+			accountNytRun = null;
+			accountBalanceText = null;
+			accountBalanceLabelRun = null;
+			accountBalanceValueRun = null;
+			accountUnrealText = null;
+			accountRealText = null;
+			accountUnrealLabelRun = null;
+			accountUnrealValueRun = null;
+			accountRealLabelRun = null;
+			accountRealValueRun = null;
+			hudHeaderText = null;
 		}
 
 		private void AttachHotkeyHandler()

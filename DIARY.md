@@ -23,6 +23,11 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.68] — 2026-08-08
+- **Fix — Program buttons label align left**
+  - `KatTradeManagerUI.GetHudButtonTemplate:1880` đổi `ContentPresenter Horizontal/Vertical Center` hard → bind `HorizontalContentAlignment`/`VerticalContentAlignment` (TemplatedParent) để left/center theo per-button, giữ center cho ATM/DailyRisk.
+  - `KatTradeManagerUI.CreateWpfControls:1374` + `UpdateTradingProfileButtons:696` ép `P1-P8` `Left` (`TextAlignment Left` + `HorizontalAlignment Left` + `HorizontalContentAlignment Left`) mỗi tick; `SetButtonLabel`/`CreateButton` giữ `Center` cho các nhóm khác.
+
 ### [v1.67] — 2026-08-08
 - **Re-audit 3 — catch ponytail, tick unify, format gate, extended tests**
   - **Catch**: `Discipline.cs:1` + `UI:1` + `DailyRisk:43` thêm `ponytail: expected when account null/reflection silent` header, còn `52` `catch{}` đã phân loại: watchdog/order-update 13 đã log, còn lại expected khi broker chưa connect — giữ silent có document.
