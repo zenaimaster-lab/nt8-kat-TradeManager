@@ -17,7 +17,7 @@ jobs:
         shell: pwsh
         run: pwsh scripts/Verify-Version.ps1 -Strict
       - name: xunit suite
-        run: dotnet test tests/KatTradeManager.Tests --nologo --verbosity minimal
+        run: dotnet test tests/KatTradeManager.Tests --nologo --verbosity minimal --collect:"XPlat Code Coverage"
       - name: compile gate (net48)
-        continue-on-error: true
+        if: hashFiles('C:/Program Files/NinjaTrader 8/bin/NinjaTrader.Core.dll') != ''
         run: dotnet build tools/CompileCheck --nologo --verbosity minimal

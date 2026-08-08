@@ -71,6 +71,45 @@ if ($readmeDate -and $readmeDate -ne $constDate) { Fail "README date $readmeDate
 if ($Strict -and $diaryVer -and $diaryVer -ne $constVer) { Fail "DIARY latest v$diaryVer != VERSION v$constVer (Strict)" }
 if ($Strict -and $diaryDate -and $diaryDate -ne $constDate) { Fail "DIARY date $diaryDate != RELEASE_DATE $constDate (Strict)" }
 
+# --- Deploy manifest: CompileCheck vs Deploy-NT8 list must match (drift-proof) ---
+try {
+    $compileProj = Join-Path $repoRoot 'tools\CompileCheck\CompileCheck.csproj'
+    $deployScript = Join-Path $repoRoot 'scripts\Deploy-NT8.ps1'
+    if ((Test-Path $compileProj) -and (Test-Path $deployScript)) {
+        [xml]$xmlProj = Get-Content $compileProj
+        $projFiles = @()
+        foreach ($ig in $xmlProj.Project.ItemGroup) {
+            foreach ($c in $ig.Compile) {
+                if ($c.Include) { $projFiles += (Split-Path $c.Include -Leaf) }
+            }
+        }
+        $projFiles = $projFiles | Sort-Object -Unique
+        $inFiles = $false; $deployFiles = @()
+        foreach ($line in (Get-Content $deployScript)) {
+            if ($line -match '\$files\s*=\s*@\(') { $inFiles = $true; continue }
+            if ($inFiles) {
+                if ($line -match "^\s*\)") { break }
+                if ($line -match "'([^']+\.cs)'") { $deployFiles += (Split-Path $matches[1] -Leaf) }
+                elseif ($line -match '"([^"]+\.cs)"') { $deployFiles += (Split-Path $matches[1] -Leaf) }
+            }
+        }
+        $deployFiles = $deployFiles | Sort-Object -Unique
+        $projOnly = $projFiles | Where-Object { $deployFiles -notcontains $_ }
+        $deployOnly = $deployFiles | Where-Object { $projFiles -notcontains $_ }
+        if ($projOnly -or $deployOnly) {
+            $msg = "Deploy manifest drift: CompileCheck vs Deploy-NT8.ps1 file list mismatch."
+            if ($projOnly) { $msg += " Only in CompileCheck: $($projOnly -join ', ')." }
+            if ($deployOnly) { $msg += " Only in Deploy-NT8: $($deployOnly -join ', ')." }
+            Fail "$msg — sync both lists (single source: 11 .cs files)."
+        } else {
+            Info "  Deploy manifest         : $($projFiles.Count) .cs files in sync (CompileCheck == Deploy-NT8)"
+        }
+    }
+} catch {
+    if ($_.Exception.Message -like "VERSION MISMATCH*") { throw }
+    Write-Host "WARNING: deploy manifest check skipped: $($_.Exception.Message)" -ForegroundColor Yellow
+}
+
 # Warning (non-blocking) for DIARY drift in normal mode
 if (-not $Strict -and $diaryVer -and $diaryVer -ne $constVer) {
     Write-Host "WARNING: DIARY latest v$diaryVer != VERSION v$constVer — update DIARY.md" -ForegroundColor Yellow

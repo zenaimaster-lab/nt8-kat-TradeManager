@@ -19,3 +19,6 @@ NinjaTrader.log
 # Graphify knowledge graph output (auto-generated)
 graphify-out/
 
+# OpenCode / opencode session
+.opencode/
+

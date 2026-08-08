@@ -17,9 +17,9 @@ $oldFull = $matches[1]
 $newVer = ([double]::Parse($oldFull) + 0.01).ToString("0.00")
 Write-Host "Bumping $oldFull -> $newVer ($Date): $Description"
 
-(Get-Content $csPath -Raw) -replace 'Version: .*', "Version: $newVer ($Date)" -replace 'VERSION = ".*"', "VERSION = `"$newVer`"" -replace 'RELEASE_DATE = ".*"', "RELEASE_DATE = `"$Date`"" | Set-Content $csPath -NoNewline
+(Get-Content $csPath -Raw) -replace 'Version:\s*\d+\.\d+\s*\(\d{4}-\d{2}-\d{2}\)', "Version: $newVer ($Date)" -replace 'VERSION = ".*"', "VERSION = `"$newVer`"" -replace 'RELEASE_DATE = ".*"', "RELEASE_DATE = `"$Date`"" | Set-Content $csPath -NoNewline
 if (Test-Path $uiPath) {
-    (Get-Content $uiPath -Raw) -replace 'v\d+\.\d+.*', "v$newVer ($Date) */" -replace 'v\d+\.\d+', "v$newVer" | Set-Content $uiPath -NoNewline
+    (Get-Content $uiPath -Raw) -replace 'v\d+\.\d+\s*\(\d{4}-\d{2}-\d{2}\)', "v$newVer ($Date)" | Set-Content $uiPath -NoNewline
 }
 (Get-Content $readmePath -Raw) -replace 'v\d+\.\d+', "v$newVer" -replace '\d{4}-\d{2}-\d{2}', $Date | Set-Content $readmePath -NoNewline
 Write-Host "Bumped to v$newVer."

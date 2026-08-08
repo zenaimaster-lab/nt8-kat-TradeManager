@@ -33,6 +33,7 @@
     <Compile Include="..\..\src\KatTradeCalculator.cs" />
     <Compile Include="..\..\src\KatAtmXmlParser.cs" />
     <Compile Include="..\..\src\KatTradeManager.Discipline.cs" />
+    <Compile Include="..\..\src\KatTradeManager.ProfileOps.cs" />
   </ItemGroup>
 
   <ItemGroup>

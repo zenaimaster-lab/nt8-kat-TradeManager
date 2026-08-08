@@ -414,7 +414,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			lock (priceLock) { curPrice = cachedCurrentPrice; }
 			if (curPrice <= 0 && Instrument != null && Instrument.MarketData != null && Instrument.MarketData.Last != null)
 				curPrice = Instrument.MarketData.Last.Price;
-			double tick = cachedTickSize > 0 ? cachedTickSize : (Instrument != null ? Instrument.MasterInstrument.TickSize : 0.25);
+			double tick = GetEffectiveTickSize();
 			if (KatTradeCalculator.IsLossDcaBlocked(isLong, entryPx, curPrice, tick))
 			{
 				reason = string.Format("Loss-DCA blocked: price {0} vs entry {1} (against)", curPrice, entryPx);
@@ -479,7 +479,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			lock (disciplineLock) { initSl = st.InitialSl; }
 			if (initSl <= 0) return false; // no baseline yet
 			bool isLong = pos.MarketPosition == MarketPosition.Long;
-			double tick = cachedTickSize > 0 ? cachedTickSize : (Instrument != null ? Instrument.MasterInstrument.TickSize : 0.25);
+			double tick = GetEffectiveTickSize();
 			if (KatTradeCalculator.IsSlPullBlocked(isLong, initSl, newSl, tick))
 			{
 				reason = string.Format("SL-pull protect: {0} beyond initial {1}", newSl, initSl);
@@ -506,7 +506,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			double initSl;
 			lock (disciplineLock) { initSl = st.InitialSl; }
 			if (initSl <= 0) return;
-			double tick = cachedTickSize > 0 ? cachedTickSize : (Instrument != null ? Instrument.MasterInstrument.TickSize : 0.25);
+			double tick = GetEffectiveTickSize();
 			// ponytail: only pending Change is a manual drag. Working StopPrice alone is initial creation or already accepted — not a drag.
 			double newSlCandidate = 0;
 			bool hasPending = false;

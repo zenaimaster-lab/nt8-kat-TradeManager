@@ -45,7 +45,8 @@ $files = @(
     'src\KatTradeManager.Properties.cs',
     'src\KatTradeCalculator.cs',
     'src\KatAtmXmlParser.cs',
-    'src\KatTradeManager.Discipline.cs'
+    'src\KatTradeManager.Discipline.cs',
+    'src\KatTradeManager.ProfileOps.cs'
 )
 
 # Removed sources that must not linger in NT8 (it compiles the folder recursively).

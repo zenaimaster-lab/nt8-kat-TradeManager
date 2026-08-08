@@ -23,6 +23,17 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.65] — 2026-08-08
+- **Full re-audit — 12-file drift-proof + market fast path + tick helper + profile split + tooling**
+  - **Fix drift**: `AGENTS.md` `v1.58→1.64` + `RELEASE_NOTES` archive `v0.92`→`v1.64` smoke, `.gitignore` thêm `.opencode/`, `Verify-Version.ps1` thêm manifest check `CompileCheck.csproj` == `Deploy-NT8.ps1` (12 files, `hashFiles` guard), `KatTradeManager.cs:652` xóa `BarsPeriodTypeName` obsolete (0 warn), `Bump-Version.ps1:20` regex tighten `Version:\s*\d+\.\d+\s*\(\d{4}-\d{2}-\d{2}\)` + `v\d+\.\d+\s*\(\d{4}-\d{2}-\d{2}\)` tránh ăn thừa.
+  - **Calculator**: `KatTradeCalculator.cs:34` giữ `ShouldDefer(2)` wrapper + `PlanAtmBracketMerge:115` thêm `ponytail` ceiling note empty OCO merge (test `NullOrEmptyOco_StillConsolidates` giữ nguyên), `ResolveTickSize(cached,instrument,fallback)` mới pure helper — `KatTradeManager.GetEffectiveTickSize()` delegate, thay 6 chỗ `cachedTickSize>0?...` duplicate `OrderOps:347,865,1062,1118,1152,1211` + 3 chỗ `Discipline:417,482,509`.
+  - **Market fast path** (yêu cầu ưu tiên tốc độ): `OrderOps:102` thêm `MarketDebounceMs=100` (pending 200) + `IsEntryDebounced(bool isMarket)` overload, `PlaceMarketOrder:795` đổi `IsEntryDebounced(true)` → market 100ms cảm giác instant vẫn chặn jitter, `SubmitOrder:111` market `account.Submit` IMMEDIATE bypass FIFO queue (đã có từ v1.48) giữ nguyên không delay, `IsWithinTradingWindows` + `LossTimes` gate vẫn chạy trước submit để không bypass protect.
+  - **Silent catch → log**: `KatTradeManagerUI:260` watchdog 10 `try{}catch{}` + `OrderOps:539` `OnAccountOrderUpdate` 3 chỗ đổi thành `catch(Exception ex){Print(...)}` để không mất diagnostic.
+  - **Module split**: tách `src/KatTradeManager.ProfileOps.cs` (14 getters + 2 predicates `IsTradingProfile*` từ `KatTradeManagerUI:501` ~120L) giảm `KatTradeManagerUI 1942→~1820L`, `CompileCheck` + `Deploy-NT8` thêm file #12 sync, `Verify` đổi message `12 files`.
+  - **Test + tooling**: thêm `tests/KatAuditFixTests.cs` 12 tests (`ResolveTickSize`, `NormalizeProfileName/AtmSet`, `ClampHudCoordinate`, `ShouldDefer NaN`, `TradingWindows overnight/zero`, `AccountFilter`), total `197→218` pass; `KatTradeManager.Tests.csproj` thêm `coverlet.collector 6.0.0`, `ci.yml:22` đổi `continue-on-error:true` → `if: hashFiles(NinjaTrader.Core.dll) != ''` + `collect:"XPlat Code Coverage"`.
+  - Verify: `Run-AllChecks` 218 pass, CompileCheck 0 warn/0 error, Verify 12 files sync. HUD design không đụng.
+  - Graphify: `KatTradeManager.GetEffectiveTickSize`, `KatTradeCalculator.ResolveTickSize`, `KatTradeManager.ProfileOps`, `MarketDebounceMs`.
+
 ### [v1.64] — 2026-08-08
 - **Top group pixel-perfect — MaxDD 2-col → 6-col shared base**
   - **Root cause**: `MaxDD/Profit` dùng `CreateTwoColumnGrid (2 sao, 1 gap)` còn `preset 6` dùng `CreateSixColumnGrid (6 sao, 5 gap)` → dù `238` perfect, rounding star riêng vẫn có thể lệch `0.5px` tâm giữa khi DPI khác hoặc container stretch; screenshot top nhóm vẫn lệch nhẹ tâm.

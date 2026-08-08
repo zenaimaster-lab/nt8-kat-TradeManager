@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 1.64 (2026-08-08)
+ * Version: 1.65 (2026-08-08)
  * NinjaTrader 8 TradeManager Indicator
  */
  
@@ -69,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "1.64";
+		public const string VERSION = "1.65";
 		public const string RELEASE_DATE = "2026-08-08";
 
 		private volatile Account account;
@@ -247,6 +247,14 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private bool IsAccountAllowed(string accName)
 		{
 			return KatTradeCalculator.IsAccountAllowed(accName, AccountFilter);
+		}
+
+		// ponytail: single place for tickSize fallback — delegates to pure KatTradeCalculator.ResolveTickSize for testability
+		private double GetEffectiveTickSize(double fallback = 0.25)
+		{
+			double instrumentTick = 0;
+			try { if (Instrument != null && Instrument.MasterInstrument != null) instrumentTick = Instrument.MasterInstrument.TickSize; } catch {}
+			return KatTradeCalculator.ResolveTickSize(cachedTickSize, instrumentTick, fallback);
 		}
 
 		// Shared account-selection chain — used in DataLoaded and in the watchdog auto-recovery.
@@ -650,8 +658,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					if (string.IsNullOrWhiteSpace(TradingProfile8Account)) TradingProfile8Account = "Sim101";
 				}
 				isRenkoChart = BarsPeriod.BarsPeriodType == BarsPeriodType.Renko
-
-				               || (BarsPeriod.BarsPeriodTypeName != null && BarsPeriod.BarsPeriodTypeName.IndexOf("Renko", StringComparison.OrdinalIgnoreCase) >= 0)
 				               || BarsPeriod.BarsPeriodType.ToString().IndexOf("Renko", StringComparison.OrdinalIgnoreCase) >= 0;
 
 				ema34Series = new EMA[NUM_SERIES];

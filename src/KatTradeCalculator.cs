@@ -113,6 +113,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (valid.Count == 0) return plan;
 
 			// Group by OCO; only groups with BOTH a stop and a target are complete pairs.
+			// ponytail: empty OCO ("") merges all nulls into one group (test expects this). Ceiling: multiple unrelated empty brackets would be incorrectly merged — upgrade to per-instance tracking when multiple ATM strategies with empty Oco coexist.
 			var groups = valid.GroupBy(i => orders[i].Oco ?? string.Empty).ToList();
 			var complete = groups
 				.Where(g => g.Any(i => orders[i].IsStop) && g.Any(i => !orders[i].IsStop))
@@ -598,6 +599,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 		/// <summary>
 		/// Calculates UTC timestamp corresponding to 6:00 PM NY time (Eastern Time) of active trading session.
 		/// </summary>
+		public static double ResolveTickSize(double cachedTickSize, double instrumentTickSize, double fallback = 0.25)
+		{
+			if (cachedTickSize > 0) return cachedTickSize;
+			if (instrumentTickSize > 0) return instrumentTickSize;
+			return fallback;
+		}
+
 		public static DateTime GetNySessionStartUtc(DateTime nowUtc)
 		{
 			// ponytail: converts UTC to NY Time (EST/EDT) to determine 18:00 session start

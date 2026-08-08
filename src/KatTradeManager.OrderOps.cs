@@ -100,13 +100,16 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			// ponytail: ATM merge extracted to KatTradeManager.AtmMerge.cs (partial class)
 
 	private DateTime lastEntrySubmitTime = DateTime.MinValue;
-		private const double EntryDebounceMs = 200; // ponytail: 500→200 market lag feel, still blocks jitter <50ms
+		private const double EntryDebounceMs = 200; // ponytail: 500→200 pending lag feel, still blocks jitter <50ms
+		private const double MarketDebounceMs = 100; // ponytail: market must be as fast as possible — 100ms (half of pending) still blocks jitter but feels instant
 
 		// Blocks accidental duplicate entry submissions (mouse-jitter double-click, hotkey bounce).
 		// Callers are UI-thread only, so check-then-set needs no lock.
-		private bool IsEntryDebounced()
+		// isMarket=true uses shorter window so Buy/Sell Market feels instant (audit: market fast path)
+		private bool IsEntryDebounced(bool isMarket = false)
 		{
-			if ((DateTime.Now - lastEntrySubmitTime).TotalMilliseconds < EntryDebounceMs) return true;
+			double threshold = isMarket ? MarketDebounceMs : EntryDebounceMs;
+			if ((DateTime.Now - lastEntrySubmitTime).TotalMilliseconds < threshold) return true;
 			lastEntrySubmitTime = DateTime.Now;
 			return false;
 		}
@@ -344,7 +347,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 				if (cachedIsStopLimit && liveOrderType == OrderType.StopMarket)
 				{
-					double stopLimitOffset = cachedTickSize > 0 ? cachedTickSize : Instrument.MasterInstrument.TickSize;
+					double stopLimitOffset = GetEffectiveTickSize(0.01);
 					if (stopLimitOffset <= 0) stopLimitOffset = 0.01;
 					KatTradeCalculator.CalculateStopLimitPrices(katAction, triggerPrice, stopLimitOffset, out liveLimitPrice, out liveStopPrice);
 					liveOrderType = OrderType.StopLimit;
@@ -536,9 +539,9 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				ProcessAtmScaleInUpdate(observed);
 				ScheduleAtmBracketMerge();
 			}
-			try { UpdateDisciplineFromPosition(); } catch {}
-			try { EnforceSlPullManualDrag(observed); } catch {}
-			try { EvaluateDisciplineLockVisual(); } catch {}
+			try { UpdateDisciplineFromPosition(); } catch (Exception ex) { Print(string.Format("[KatTradeManager] OnOrderUpdate UpdateDiscipline: {0}", ex.Message)); }
+			try { EnforceSlPullManualDrag(observed); } catch (Exception ex) { Print(string.Format("[KatTradeManager] OnOrderUpdate EnforceSlPull: {0}", ex.Message)); }
+			try { EvaluateDisciplineLockVisual(); } catch (Exception ex) { Print(string.Format("[KatTradeManager] OnOrderUpdate EvaluateLock: {0}", ex.Message)); }
 		}
 
 		private void SchedulePendingRevertRetry()
@@ -789,9 +792,9 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				return false;
 			}
 
-			if (IsEntryDebounced())
+			if (IsEntryDebounced(true))
 			{
-				Print("[KatTradeManager] Duplicate market order ignored (anti-spam debounce).");
+				Print("[KatTradeManager] Duplicate market order ignored (anti-spam debounce 100ms).");
 				return false;
 			}
 
@@ -862,7 +865,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					return;
 				}
 
-				double tickSize = cachedTickSize > 0 ? cachedTickSize : Instrument.MasterInstrument.TickSize;
+				double tickSize = GetEffectiveTickSize();
 				int bufferTicks = cachedBufferTicks >= 0 ? cachedBufferTicks : DefaultBufferTicks;
 				KatOrderAction katAction = pos.MarketPosition == MarketPosition.Long ? KatOrderAction.Buy : KatOrderAction.Sell;
 
@@ -1059,7 +1062,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					series[i] = findLows ? cachedSwingLows[i] : cachedSwingHighs[i];
 			}
 
-			double tickSize = cachedTickSize > 0 ? cachedTickSize : (Instrument != null ? Instrument.MasterInstrument.TickSize : 0.25);
+			double tickSize = GetEffectiveTickSize();
 			return KatTradeCalculator.FindSwingPoints(series, findLows, maxSwings, strength, tickSize);
 		}
 
@@ -1115,7 +1118,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					}
 					else
 					{
-						double tickSize = cachedTickSize > 0 ? cachedTickSize : Instrument.MasterInstrument.TickSize;
+						double tickSize = GetEffectiveTickSize();
 						currentStop = pos.MarketPosition == MarketPosition.Long ? pos.AveragePrice - 20 * tickSize : pos.AveragePrice + 20 * tickSize;
 					}
 					slMoveHistory.Add(currentStop);
@@ -1149,7 +1152,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					{
 						List<double> swings = GetSwingPoints(pos.MarketPosition, 20, 3);
 						double refPrice = slMoveHistory[currentSlHistoryIndex];
-						double tickSize = cachedTickSize > 0 ? cachedTickSize : Instrument.MasterInstrument.TickSize;
+						double tickSize = GetEffectiveTickSize();
 						double nextSwing = KatTradeCalculator.FindNextSwingStopPrice(
 							swings,
 							pos.MarketPosition == MarketPosition.Long ? KatOrderAction.Buy : KatOrderAction.Sell,
@@ -1208,7 +1211,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 						if (stopOrder.OrderType == OrderType.StopLimit)
 						{
 							if (limitOffset <= 0)
-								limitOffset = cachedTickSize > 0 ? cachedTickSize : Instrument.MasterInstrument.TickSize;
+								limitOffset = GetEffectiveTickSize(0.01);
 							if (limitOffset <= 0) limitOffset = 0.01;
 							stopOrder.LimitPriceChanged = pos.MarketPosition == MarketPosition.Long
 								? targetPrice - limitOffset

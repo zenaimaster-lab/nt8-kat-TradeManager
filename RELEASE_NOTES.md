@@ -1,4 +1,19 @@
-# Release Notes — v0.92 (2026-07-31)
+# Release Notes — v1.64 (2026-08-08)
+
+> Archive: v0.92 notes retained below. Current release v1.64 — see DIARY.md for full v1.00→v1.64 changelog. This file now tracks only latest verified smoke results; history lives in DIARY.md.
+
+## Current (v1.64 2026-08-08) — smoke
+
+| Layer | Result |
+|---|---|
+| xunit suite | 197/197 passed |
+| CompileCheck (net48 gate) | 0 errors (2 obsolete warnings) |
+| Verify-Version | v1.64 header == VERSION == UI == README == DIARY |
+| Deploy | 11 files KAT\ SHA256 verified |
+
+---
+
+# Archive — v0.92 (2026-07-31)
 
 Audit & hardening series v0.90 → v0.92. Three user-reported bugs fixed, then three more re-audit rounds of latent defects found and fixed. 210/210 unit tests, 0 compile-gate errors, live NT8 compile verified.
 
