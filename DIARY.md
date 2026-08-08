@@ -23,6 +23,11 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.88] — 2026-08-08
+- **Feat — Program label color + opacity setting (default 80% trong suốt)**
+  - User yêu cầu 1 setting chung chỉnh màu và độ trong suốt riêng cho 8 nút Program, default mờ 80% như hiện tại Program (khác ATM/DD trắng rõ 100%).
+  - Thêm `KatTradeManager.Properties:165` `ProgramLabelColor` (Brush, `XmlIgnore` + `ProgramLabelColorSerializable` string, `HUD` Order 5) và `ProgramLabelOpacityPercent` (Range 10-100, Order 6, default 20 → 80% transparent) — clone pattern `QuickSetLabelColor`; `KatTradeManager.cs:293` `SetDefaults` `ProgramLabelColor White` + `ProgramLabelOpacityPercent 20`, `DataLoaded:630` migration null/ out-of-range → White/20; `KatTradeManagerUI:48` `GetProgramLabelBrush()` dùng `ProgramLabelColor` + `ProgramLabelOpacityPercent` (alpha `pct*255/100`), fallback `#337FFFFFFF` 20% opacity; `CreateWpfControls:1442` và `UpdateTradingProfileButtons:739` đổi `GetQuickSetLabelBrush()` → `GetProgramLabelBrush()` để Program tách khỏi QuickSet.
+
 ### [v1.87] — 2026-08-08
 - **Audit fixes — P0/P1 từ re-audit v1.86**
   - `SwingOps.ShiftCandleEntry:440` action-match priority: stale `hasCandle` thắng dù pending là EMA → thêm `candleMatch/emaMatch` + majority group `GroupBy(OrderAction)` + `mapTime` helper, chọn newest timestamp khi cả 2 match, fallback `MinValue/0` khi không match — tránh jump sai candle.

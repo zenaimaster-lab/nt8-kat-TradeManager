@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.87 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.88 (2026-08-08) */
 // ponytail: many catch{} for UI button updates are expected (control not yet created, dispatcher not ready) — silent. Critical watchdog tick already logs.
 
 using System;
@@ -64,6 +64,25 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				return nb;
 			}
 			catch { var fb = new SolidColorBrush(Color.FromArgb(128, 255, 255, 255)); if (fb.CanFreeze) fb.Freeze(); return fb; }
+		}
+		private Brush GetProgramLabelBrush()
+		{
+			try
+			{
+				Brush baseBrush = ProgramLabelColor ?? Brushes.White;
+				Color baseColor = Colors.White;
+				if (baseBrush is SolidColorBrush scb) baseColor = scb.Color;
+				int pct = ProgramLabelOpacityPercent;
+				if (pct < 10) pct = 10;
+				if (pct > 100) pct = 100;
+				if (pct == 0) pct = 20;
+				byte alpha = (byte)(pct * 255 / 100);
+				Color c = Color.FromArgb(alpha, baseColor.R, baseColor.G, baseColor.B);
+				var nb = new SolidColorBrush(c);
+				if (nb.CanFreeze) nb.Freeze();
+				return nb;
+			}
+			catch { var fb = new SolidColorBrush(Color.FromArgb(51, 255, 255, 255)); if (fb.CanFreeze) fb.Freeze(); return fb; }
 		}
 		// Small quick-set (ATM + DailyRisk 6) — fully opaque per user request (was 80% transparent, looked empty)
 		private Brush GetSmallQuickSetLabelBrush()
@@ -746,7 +765,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				for (int j = 0; j < 8; j++) if (IsTradingProfileActive(j)) { matches++; uniqueMatch = j; }
 				if (matches != 1) uniqueMatch = -1;
 			}
-			Brush labelBrush = GetQuickSetLabelBrush();
+			Brush labelBrush = GetProgramLabelBrush(); // 80% transparent default via Program setting
 			double fs = GetQuickSetFontSize();
 			double fsProg = Math.Min(14, fs + 2); // Program larger than quick-set base per request
 			for (int i = 0; i < tradingProfileButtons.Length; i++)
@@ -1447,7 +1466,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				{
 					int idx = cc * 2 + prow; // pairs 1,2 | 3,4 | 5,6 | 7,8 → row0:1,3,5,7 row1:2,4,6,8 per request
 					double _fsProg = Math.Min(14, GetQuickSetFontSize() + 2);
-					Brush progBrush = GetQuickSetLabelBrush(); // 50% transparent per request
+					Brush progBrush = GetProgramLabelBrush(); // 80% transparent default per new setting
 					Button pBtn = CreateButton("", profileOffBg, null, 22, _fsProg);
 					pBtn.Foreground = progBrush;
 					pBtn.FontSize = _fsProg;

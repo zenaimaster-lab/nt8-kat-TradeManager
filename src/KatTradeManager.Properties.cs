@@ -162,6 +162,72 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		[Display(Name="Quick Set Label Opacity %", Order=4, GroupName="HUD", Description="Opacity for quick-set/program label text (100=opaque, 50=50% transparent).")]
 		public int QuickSetLabelOpacityPercent { get; set; }
 
+		private Brush programLabelColor = Brushes.White;
+		[NinjaScriptProperty]
+		[XmlIgnore]
+		[Display(Name="Program Label Color", Order=5, GroupName="HUD", Description="Base label color for Program (P1..P8) buttons (combined with opacity below). Default white 80% transparent.")]
+		public Brush ProgramLabelColor
+		{
+			get { return programLabelColor; }
+			set
+			{
+				try
+				{
+					if (value == null) { programLabelColor = Brushes.White; return; }
+					if (value is SolidColorBrush scb)
+					{
+						var c = scb.Color;
+						var nb = new SolidColorBrush(c);
+						if (nb.CanFreeze) nb.Freeze();
+						programLabelColor = nb;
+					}
+					else if (value is Freezable f && f.CanFreeze)
+					{
+						var clone = f.Clone() as Freezable;
+						if (clone != null && clone.CanFreeze) clone.Freeze();
+						programLabelColor = clone as Brush ?? value;
+					}
+					else programLabelColor = value;
+				}
+				catch { programLabelColor = Brushes.White; }
+			}
+		}
+
+		[Browsable(false)]
+		public string ProgramLabelColorSerializable
+		{
+			get
+			{
+				try
+				{
+					if (programLabelColor is SolidColorBrush scb)
+						return scb.Color.ToString();
+					return Colors.White.ToString();
+				}
+				catch { return Colors.White.ToString(); }
+			}
+			set
+			{
+				try
+				{
+					if (!string.IsNullOrWhiteSpace(value))
+					{
+						var c = (Color)ColorConverter.ConvertFromString(value);
+						var nb = new SolidColorBrush(c);
+						if (nb.CanFreeze) nb.Freeze();
+						programLabelColor = nb;
+					}
+					else programLabelColor = Brushes.White;
+				}
+				catch { programLabelColor = Brushes.White; }
+			}
+		}
+
+		[NinjaScriptProperty]
+		[Range(10, 100)]
+		[Display(Name="Program Label Opacity %", Order=6, GroupName="HUD", Description="Opacity for Program label text (100=opaque, 20=80% transparent). Default 20.")]
+		public int ProgramLabelOpacityPercent { get; set; }
+
 		[NinjaScriptProperty]
 		[Range(1, 100)]
 		[Display(Name="Default Quantity", Order=1, GroupName="Parameters")]

@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 1.87 (2026-08-08)
+ * Version: 1.88 (2026-08-08)
  * NinjaTrader 8 TradeManager Indicator
  */
  
@@ -69,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "1.87";
+		public const string VERSION = "1.88";
 		public const string RELEASE_DATE = "2026-08-08";
 
 		private volatile Account account;
@@ -292,6 +292,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				QuickSetFontSize                       = 8;
 				QuickSetLabelColor                     = new SolidColorBrush(Color.FromRgb(255, 255, 255));
 				QuickSetLabelOpacityPercent            = 50;
+				ProgramLabelColor                      = new SolidColorBrush(Color.FromRgb(255, 255, 255));
+				ProgramLabelOpacityPercent             = 20;
 				DefaultQuantity						= 1;
 				AccountName							= "Sim101";
 				AccountFilter						= "";
@@ -627,6 +629,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				if (QuickSetFontSize < 6 || QuickSetFontSize > 14) QuickSetFontSize = 8;
 				if (QuickSetLabelColor == null) QuickSetLabelColor = new SolidColorBrush(Color.FromRgb(255, 255, 255));
 				if (QuickSetLabelOpacityPercent < 10 || QuickSetLabelOpacityPercent > 100) QuickSetLabelOpacityPercent = 50;
+				if (ProgramLabelColor == null) ProgramLabelColor = new SolidColorBrush(Color.FromRgb(255, 255, 255));
+				if (ProgramLabelOpacityPercent < 10 || ProgramLabelOpacityPercent > 100) ProgramLabelOpacityPercent = 20;
 				// Migration: pre-v1.33 charts have profile quantities 0 -> seed defaults (ponytail: one-shot repair, no persist storm)
 				if (TradingProfile1Quantity == 0 && TradingProfile2Quantity == 0 && TradingProfile3Quantity == 0 && TradingProfile4Quantity == 0 && TradingProfile5Quantity == 0 && TradingProfile6Quantity == 0)
 				{
