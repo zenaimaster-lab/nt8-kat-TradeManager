@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.71 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.72 (2026-08-08) */
 // ponytail: many catch{} for UI button updates are expected (control not yet created, dispatcher not ready) — silent. Critical watchdog tick already logs.
 
 using System;
@@ -25,7 +25,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 	{
 		#region WPF UI Construction & Handlers
 		private Button[] atmSetButtons;
-		private readonly SolidColorBrush atmSetOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65)); // same gray as other OFF buttons
+		private readonly SolidColorBrush atmSetOffBg = new SolidColorBrush(Color.FromArgb(128, 45, 50, 65)); // gray OFF 50% transparent per request (dim)
 		private readonly SolidColorBrush atmSetOnBg = new SolidColorBrush(Color.FromArgb(51, 180, 90, 20)); // amber ON — 80% transparent (alpha 51) per request very faint
 		private Button[] dailyRiskPresetButtons;
 		private readonly SolidColorBrush dailyRiskPresetOffBg = new SolidColorBrush(Color.FromArgb(128, 45, 50, 65)); // gray OFF 50% transparent per request (dim)
@@ -102,7 +102,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private DateTime lastProfileApplyUtc = DateTime.MinValue;
 		private string pendingProfileAccount;
 		private DateTime pendingProfileAccountSinceUtc;
-		private readonly SolidColorBrush profileOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
+		private readonly SolidColorBrush profileOffBg = new SolidColorBrush(Color.FromArgb(128, 45, 50, 65)); // gray OFF 50% transparent per request (dim)
 		private readonly SolidColorBrush[] profileRowOnBgs = new SolidColorBrush[]
 		{
 			new SolidColorBrush(Color.FromRgb(20, 110, 110)), // Row0 (P1-P4) teal — distinct from discipline blues
