@@ -32,32 +32,30 @@
 - All changes commit + push to origin main.
 - Use `gh` for PRs/issues if needed.
 
-## Version Bump Workflow (MANDATORY)
-On every code change, BEFORE closing session:
+## Version Bump Workflow (MANDATORY) — drift-proof via skill `nt8-deploy-verify`
+On every code change, BEFORE closing session. NEVER edit version strings by hand — use `scripts/Bump-Version.ps1` (single source of truth):
 
-1. **Bump version** +0.01 from current (baseline v0.01).
-2. **Stamp date** in format YYYY-MM-DD.
-3. **Update all locations**:
+1. **Bump version** `pwsh scripts/Bump-Version.ps1 -Description "..."` — auto +0.01 from current (`VERSION` constant), stamps YYYY-MM-DD, syncs ALL 4 locations + runs `Verify-Version.ps1`:
    - `KatTradeManager.cs`: header comment + `VERSION` + `RELEASE_DATE` constants
    - `src/KatTradeManagerUI.cs`: WPF Title Header if version displayed
    - `README.md`: "Current Version" badge
-   - `DIARY.md`: new version history entry
+   - `DIARY.md`: new version history entry (manual — add `### [vX.XX] — YYYY-MM-DD` at top)
+2. **Verify** `pwsh scripts/Verify-Version.ps1` (warn) / `-Strict` (CI fail) — checks header == VERSION == UI == README == DIARY, aborts deploy on drift.
+3. **Checks** `pwsh scripts/Run-AllChecks.ps1` — version guard + xunit + net48 compile gate (0 errors).
 4. **Update Graphify**: run `graphify update .`
-5. **Update Diary**: add entry with timestamp, changes summary, Graphify entity mapping.
-6. **Deploy NT8 (MANDATORY FULL SYNC)**: copy ALL source `.cs` files (`KatTradeManager.cs` AND `src/*.cs`) to `C:\Users\kieuanhtuan\Documents\NinjaTrader 8\bin\Custom\Indicators\` with force overwrite (`scripts\Deploy-NT8.ps1` does this + verifies recompile):
+5. **Deploy NT8 (MANDATORY FULL SYNC)**: `pwsh scripts/Deploy-NT8.ps1` — pre-flight Verify, copy ALL 11 `.cs` files with force overwrite + orphan sweep, atomic nudge, post-deploy VERSION + SHA256 hash verify, waits for `NinjaTrader.Custom.dll` recompile:
    - `KatTradeManager.cs`
-   - `src\KatTradeManagerUI.cs`
-   - `src\KatTradeManager.OrderOps.cs`
-   - `src\KatTradeManager.DailyRisk.cs`
-   - `src\KatTradeManager.Properties.cs`
-   - `src\KatTradeCalculator.cs`
-   - `src\KatAtmXmlParser.cs`
-7. **Git sync**:
+   - `src\KatTradeManagerUI.cs` + `src\KatTradeManager.HudDrag.cs`
+   - `src\KatTradeManager.OrderOps.cs` + `src\KatTradeManager.Queue.cs` + `src\KatTradeManager.AtmMerge.cs`
+   - `src\KatTradeManager.DailyRisk.cs` + `src\KatTradeManager.Discipline.cs`
+   - `src\KatTradeManager.Properties.cs` + `src\KatTradeCalculator.cs` + `src\KatAtmXmlParser.cs`
+   - Skill: `nt8-deploy-verify` (see `C:\Users\kieuanhtuan\.agents\skills\nt8-deploy-verify\SKILL.md`) — explains generic apply to any NT8 repo.
+6. **Git sync**:
    - `git add .`
    - `git commit -m "vX.XX (YYYY-MM-DD): Description"`
    - `git push origin main`
 
 ## Version Tracking
-- Code versions: KatTradeManager.cs VERSION constant
+- Code versions: KatTradeManager.cs VERSION constant (header must match constant — `Verify-Version.ps1` enforces)
 - Doc versions: README.md, DIARY.md
-- **Current: v1.24 (2026-08-06)**
+- **Current: v1.58 (2026-08-08)** — next bump via `scripts/Bump-Version.ps1` only (never hand-edit)

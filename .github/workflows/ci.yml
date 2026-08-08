@@ -13,6 +13,9 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+      - name: version consistency
+        shell: pwsh
+        run: pwsh scripts/Verify-Version.ps1 -Strict
       - name: xunit suite
         run: dotnet test tests/KatTradeManager.Tests --nologo --verbosity minimal
       - name: compile gate (net48)

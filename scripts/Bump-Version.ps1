@@ -1,4 +1,5 @@
-# Bump-Version.ps1 — +0.01 version bump, date stamp, sync 4 locations.
+# Bump-Version.ps1 — +0.01 version bump, date stamp, sync 4 locations + verify.
+# SINGLE SOURCE OF TRUTH for version bumps — never edit Version/VERSION manually.
 # Usage: pwsh scripts/Bump-Version.ps1 -Description "fix"
 param(
     [string]$Description = "audit fixes",
@@ -21,5 +22,14 @@ if (Test-Path $uiPath) {
     (Get-Content $uiPath -Raw) -replace 'v\d+\.\d+.*', "v$newVer ($Date) */" -replace 'v\d+\.\d+', "v$newVer" | Set-Content $uiPath -NoNewline
 }
 (Get-Content $readmePath -Raw) -replace 'v\d+\.\d+', "v$newVer" -replace '\d{4}-\d{2}-\d{2}', $Date | Set-Content $readmePath -NoNewline
+Write-Host "Bumped to v$newVer."
+
+# Verify immediately — catches regex edge cases before commit
+$verifyScript = Join-Path $PSScriptRoot 'Verify-Version.ps1'
+if (Test-Path $verifyScript) {
+    Write-Host "Verifying bump..."
+    & $verifyScript
+    if ($LASTEXITCODE -ne 0) { throw "Bump verification FAILED — check regex replacements above." }
+}
 Write-Host "Bumped to v$newVer. Remember to add DIARY entry and run graphify update ."
-Write-Host "Done."
+Write-Host "Done. Next: update DIARY.md, then pwsh scripts/Deploy-NT8.ps1"

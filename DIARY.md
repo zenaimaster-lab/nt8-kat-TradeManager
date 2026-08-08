@@ -23,6 +23,17 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.58] — 2026-08-08
+- **Deploy drift-proof — never again v1.57 header vs VERSION mismatch**
+  - **Root cause v1.57**: commit `b8ca673` bumped header `* Version: 1.57` via manual edit but left `VERSION = "1.56"` stale — repo `README`/`UI` showed 1.57, NT8 compiled `VERSION` 1.56 stayed, `Deploy-NT8.ps1` copied drifted files and reported success while runtime printed `v1.56`.
+  - **Guard `scripts/Verify-Version.ps1`**: new single-source drift detector parses `KatTradeManager.cs` header `Version:` + `VERSION` + `RELEASE_DATE`, `src/KatTradeManagerUI.cs` header, `README.md` badge, `DIARY.md` latest entry; hard-fails on any mismatch with actionable `run Bump-Version.ps1`. Supports `-Strict` for CI.
+  - **Hardened `scripts/Bump-Version.ps1`**: now single source of truth for all bumps (+0.01 `VERSION` parse, header/`RELEASE_DATE`/UI/README sync) + auto-runs `Verify-Version.ps1` post-bump to catch regex edge cases before commit.
+  - **Hardened `scripts/Deploy-NT8.ps1`**: **pre-flight** Verify aborts deploy on drift (unless `-SkipVerify`), records `repoVer/repDate`; **post-deploy** checks deployed `KAT\KatTradeManager.cs` `VERSION`/`RELEASE_DATE` == repo + SHA256 hash match for all 11 `.cs` files; retains atomic timestamp nudge + `NinjaTrader.Custom.dll` recompile wait.
+  - **CI + checks**: `.github/workflows/ci.yml` adds `version consistency` step (`Verify -Strict`), `scripts/Run-AllChecks.ps1` now `0/3 version` + `1/3 xunit` + `2/3 compile gate`; `RULES.md`/`AGENTS.md` workflow updated to mandate `Bump → Verify → Run-AllChecks → Deploy` and reference skill `nt8-deploy-verify`.
+  - **Skill `nt8-deploy-verify`**: generic workflow for any NT8 repo — `C:\Users\kieuanhtuan\.agents\skills\nt8-deploy-verify\SKILL.md` explains invariant, failure messages, and how to copy scripts to new repo (adjust `$files` + namespace folder).
+  - Verify: `Verify-Version.ps1` OK v1.58 (2026-08-08) strict; `Verify` catches simulated `1.57`/`1.56` drift exit 1; `Deploy-NT8.ps1` pre/post checks OK; `CompileCheck` 0 errors.
+  - Graphify entity mapping: `Verify-Version.ps1`, `Deploy-NT8.ps1(pre/post-verify)`, `Bump-Version.ps1(verify)`, `nt8-deploy-verify` skill, `ci.yml(version consistency)`.
+
 ### [v1.57] — 2026-08-08
 - **Definitive fix — quick-set label still right-shifted on live NT8 (theme-independent template)**
   - **Evidence**: Headless repro loading the real `NinjaTrader.Gui` theme (`themes/generic.xaml` via pack BAML) rendered P1–P8 perfectly centered with the v1.56 alignment code, yet the live chart still showed right-clipped labels. Conclusion: the active NT8 theme's `Button` ControlTemplate positions the `ContentPresenter` via its own bindings, so alignment set on the button/content is not honored on some installs.
