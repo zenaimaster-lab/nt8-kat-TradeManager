@@ -23,6 +23,12 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.61] — 2026-08-08
+- **HUD pixel-perfect align — 0.5px sub-pixel root cause fix**
+  - **Root cause 0.5px**: `panelBorder 240→232 inner` với gap2 cho 4/8 cột `(W-6)/4=56.5` `(W-14)/8=27.25` → WPF star chia dư 0.5px phân phối lệch 1px giữa `Max DD/Profit (2-col)` vs `preset 6-col` vs `ATM 8-col` vs `BE`; cộng `DisciplineAll Border 1.5` half-pixel + template không bind `BorderBrush/Thickness` + thiếu `UseLayoutRounding/SnapsToDevicePixels`.
+  - **Fix**: `HudPanelWidth 250` `KatTradeManagerUI.cs:139` → inner `238=22+24k` chia hết `2/4/6/8` sao với gap2 → `(238-2)/2=118` `(238-6)/4=58` `(238-10)/6=38` `(238-14)/8=28` pixel-perfect cho mọi hàng; `ChartTrader` + `InChart` cùng fixed 250 left-aligned (trước stretch động → lệch); `panelBorder` + `CreateSectionCard` `UseLayoutRounding/SnapsToDevicePixels true`; `GetHudButtonTemplate` bind `BorderBrush/BorderThickness` + rounding; `DisciplineAll 1.5→1` `cs:715/1712` integer.
+  - Verify: `Run-AllChecks` 197 tests + CompileCheck 0 errors; BE = Revert `33`/`33` cùng grid 2-col gap2, preset `22` vs toggle `24` giữ hierarchy nhưng ngang đều 2px.
+
 ### [v1.60] — 2026-08-08
 - **HUD align fix — width 246 perfect grid + discipline height sync**
   - **Width 240→246**: 246 outer → 238 inner `22+24k` perfect divisible by 2/4/6/8 stars with gap2 (was 240→232 non-integer 0.5px for 4/8 cols) → center divider + outer edges pixel-perfect; `UseLayoutRounding/SnapsToDevicePixels` on `panelBorder` + `CreateSectionCard` for device-pixel snap.

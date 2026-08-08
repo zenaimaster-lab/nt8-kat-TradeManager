@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.60 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.61 (2026-08-08) */
 
 using System;
 using System.Collections.Generic;
@@ -137,6 +137,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private bool isHudDragging;
 		private const double DefaultHudLeft = 10;
 		private const double HudGap = 2; // uniform gap — horizontal, vertical, inner/outer — matches quick-set intra-column gap
+		private const double HudPanelWidth = 250; // 250 outer => 238 inner (250-6-6) = 22+24k perfect for gap2 across 2/4/6/8 cols
 
 		private List<string> GetCachedAtmTemplateNames()
 		{
@@ -711,7 +712,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				btnDisciplineAll.Background = disciplineAllOnBg;
 				btnDisciplineAll.Foreground = Brushes.White;
 				btnDisciplineAll.BorderBrush = new SolidColorBrush(Color.FromRgb(255, 215, 0)); // bright gold
-				btnDisciplineAll.BorderThickness = new Thickness(1.5);
+				btnDisciplineAll.BorderThickness = new Thickness(1);
 			}
 			else
 			{
@@ -1174,8 +1175,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 				if (ctPanel != null)
 				{
-					panelBorder.Width = double.NaN;
-					panelBorder.HorizontalAlignment = hasHudDragPosition ? HorizontalAlignment.Left : HorizontalAlignment.Stretch;
+					panelBorder.Width = HudPanelWidth;
+					panelBorder.HorizontalAlignment = HorizontalAlignment.Left;
 					panelBorder.VerticalAlignment = hasHudDragPosition ? VerticalAlignment.Top : VerticalAlignment.Bottom;
 					panelBorder.Margin = hasHudDragPosition
 						? new Thickness(hudDragLeft, hudDragTop, 0, 0)
@@ -1213,7 +1214,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				System.Windows.Controls.Panel.SetZIndex(hudCanvas, 9999);
 				Grid.SetColumnSpan(hudCanvas, 3);
 				chartGrid.Children.Add(hudCanvas);
-				panelBorder.Width = 246; // 246 outer => 238 inner (22+24k) perfect for gap2 across 2/4/6/8 cols
+				panelBorder.Width = HudPanelWidth;
 				panelBorder.HorizontalAlignment = HorizontalAlignment.Left;
 				panelBorder.VerticalAlignment = VerticalAlignment.Top;
 				panelBorder.Margin = new Thickness(0);
@@ -1708,7 +1709,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				spInit.Children.Add(labelInit);
 				btnDisciplineAll.Content = spInit;
 				btnDisciplineAll.BorderBrush = new SolidColorBrush(Color.FromRgb(255, 215, 0));
-				btnDisciplineAll.BorderThickness = new Thickness(1.5);
+				btnDisciplineAll.BorderThickness = new Thickness(1);
 			}
 			else
 			{
@@ -1804,6 +1805,10 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			if (_hudButtonTemplate != null) return _hudButtonTemplate;
 			var border = new FrameworkElementFactory(typeof(Border), "root");
 			border.SetBinding(Border.BackgroundProperty, new System.Windows.Data.Binding("Background") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent) });
+			border.SetBinding(Border.BorderBrushProperty, new System.Windows.Data.Binding("BorderBrush") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent) });
+			border.SetBinding(Border.BorderThicknessProperty, new System.Windows.Data.Binding("BorderThickness") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent) });
+			border.SetValue(Border.SnapsToDevicePixelsProperty, true);
+			border.SetValue(Border.UseLayoutRoundingProperty, true);
 			var cp = new FrameworkElementFactory(typeof(ContentPresenter));
 			cp.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
 			cp.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
