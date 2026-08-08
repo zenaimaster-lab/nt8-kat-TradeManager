@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.73 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.74 (2026-08-08) */
 // ponytail: many catch{} for UI button updates are expected (control not yet created, dispatcher not ready) — silent. Critical watchdog tick already logs.
 
 using System;
@@ -63,6 +63,22 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				return nb;
 			}
 			catch { var fb = new SolidColorBrush(Color.FromArgb(128, 255, 255, 255)); if (fb.CanFreeze) fb.Freeze(); return fb; }
+		}
+		// Small quick-set (ATM + DailyRisk 6) — fixed 80% transparent per request (alpha 51) + small font via GetQuickSetFontSize
+		private Brush GetSmallQuickSetLabelBrush()
+		{
+			try
+			{
+				Brush baseBrush = QuickSetLabelColor ?? Brushes.White;
+				Color baseColor = Colors.White;
+				if (baseBrush is SolidColorBrush scb) baseColor = scb.Color;
+				byte alpha = 51; // 80% transparent (20% opacity) per request
+				Color c = Color.FromArgb(alpha, baseColor.R, baseColor.G, baseColor.B);
+				var nb = new SolidColorBrush(c);
+				if (nb.CanFreeze) nb.Freeze();
+				return nb;
+			}
+			catch { var fb = new SolidColorBrush(Color.FromArgb(51, 255, 255, 255)); if (fb.CanFreeze) fb.Freeze(); return fb; }
 		}
 		private void SetButtonLabel(Button btn, string text)
 		{
@@ -577,7 +593,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private void UpdateAtmSetButtons()
 		{
 			if (atmSetButtons == null) return;
-			Brush labelBrush = GetQuickSetLabelBrush();
+			Brush labelBrush = GetSmallQuickSetLabelBrush(); // 80% transparent small per request
 			double fs = GetQuickSetFontSize();
 			for (int i = 0; i < atmSetButtons.Length; i++)
 			{
@@ -599,12 +615,12 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		{
 			switch (idx)
 			{
-				case 0: return DailyRiskSet1Name;
-				case 1: return DailyRiskSet2Name;
-				case 2: return DailyRiskSet3Name;
-				case 3: return DailyRiskSet4Name;
-				case 4: return DailyRiskSet5Name;
-				default: return DailyRiskSet6Name;
+				case 0: return DailyRiskSet1Name == null ? "1" : DailyRiskSet1Name;
+				case 1: return DailyRiskSet2Name == null ? "2" : DailyRiskSet2Name;
+				case 2: return DailyRiskSet3Name == null ? "3" : DailyRiskSet3Name;
+				case 3: return DailyRiskSet4Name == null ? "4" : DailyRiskSet4Name;
+				case 4: return DailyRiskSet5Name == null ? "5" : DailyRiskSet5Name;
+				default: return DailyRiskSet6Name == null ? "6" : DailyRiskSet6Name;
 			}
 		}
 
@@ -648,7 +664,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private void UpdateDailyRiskPresetButtons()
 		{
 			if (dailyRiskPresetButtons == null) return;
-			Brush labelBrush = GetQuickSetLabelBrush();
+			Brush labelBrush = GetSmallQuickSetLabelBrush(); // 80% transparent small per request
 			double fs = GetQuickSetFontSize();
 			for (int i = 0; i < dailyRiskPresetButtons.Length; i++)
 			{
@@ -1510,7 +1526,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				int setIdx = i;
 				Button setBtn = CreateButton("", atmSetOffBg, null, 22, GetQuickSetFontSize());
 				SetButtonLabel(setBtn, GetAtmSetName(setIdx));
-				setBtn.Foreground = GetQuickSetLabelBrush();
+				setBtn.Foreground = GetSmallQuickSetLabelBrush(); // 80% transparent small
 				setBtn.Click += (s, ev) => ApplyAtmSetSelection(setIdx);
 				Grid.SetColumn(setBtn, setIdx * 2);
 				atmSetButtons[setIdx] = setBtn;
@@ -1754,7 +1770,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				int presetIdx = i;
 				Button presetButton = CreateButton("", dailyRiskPresetOffBg, null, 24, GetQuickSetFontSize());
 				SetButtonLabel(presetButton, GetDailyRiskPresetName(presetIdx));
-				presetButton.Foreground = GetQuickSetLabelBrush();
+				presetButton.Foreground = GetSmallQuickSetLabelBrush(); // 80% transparent small
 				presetButton.Click += (s, ev) => ApplyDailyRiskPreset(presetIdx);
 				Grid.SetColumn(presetButton, presetIdx * 2);
 				dailyRiskPresetButtons[presetIdx] = presetButton;

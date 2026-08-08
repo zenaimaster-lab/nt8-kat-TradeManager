@@ -23,6 +23,12 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.74] — 2026-08-08
+- **Fix — ATM/DailyRisk quick-set empty label, small 80% transparent text**
+  - Root: `DailyRiskSet*Name` null (chart cũ chưa có default) → `GetDailyRiskPresetName` return null → button empty dù setting có text; `NormalizeAtmSetName` `""` → fallback `"A"` chặn empty theo spec.
+  - Fix: `KatTradeCalculator.NormalizeAtmSetName:406` `null→fallback` giữ, `""` (explicit empty) → `""` cho phép empty chỉ khi setting để trống; `KatTradeManagerUI.GetDailyRiskPresetName:598` `null→"1".."6"` fallback, `""` giữ empty.
+  - `KatTradeManagerUI.GetSmallQuickSetLabelBrush:66` mới `alpha 51` 80% trong suốt, `UpdateAtmSetButtons:580` + `UpdateDailyRiskPresetButtons:650` + `CreateWpfControls:1528/1772` dùng small brush + `GetQuickSetFontSize` (small 8) per request; Program giữ `GetQuickSetLabelBrush` + `fsProg` lớn hơn.
+
 ### [v1.73] — 2026-08-08
 - **Spacing — Account info card top/bottom half-line padding**
   - `KatTradeManagerUI.CreateAccountInfoSection:249` `Padding HudGap(2)` → `Thickness(2,6,2,6)` (+4 top/bottom ≈1/2 line @11pt) — cao hơn, inter-line `HudGap 2` giữ nguyên per request.
