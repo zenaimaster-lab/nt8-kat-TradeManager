@@ -19,5 +19,5 @@ jobs:
       - name: xunit suite
         run: dotnet test tests/KatTradeManager.Tests --nologo --verbosity minimal --collect:"XPlat Code Coverage"
       - name: compile gate (net48)
-        if: hashFiles('C:/Program Files/NinjaTrader 8/bin/NinjaTrader.Core.dll') != ''
+        if: hashFiles('**/NinjaTrader.Core.dll') != ''
         run: dotnet build tools/CompileCheck --nologo --verbosity minimal

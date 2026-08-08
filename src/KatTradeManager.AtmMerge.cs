@@ -62,22 +62,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		}
 		private static KatOrderAction ToKatAction(OrderAction action) => action == OrderAction.Buy ? KatOrderAction.Buy : KatOrderAction.Sell;
 		private static OrderType ToNtOrderType(KatOrderType type) => type == KatOrderType.StopMarket ? OrderType.StopMarket : OrderType.Limit;
-		private readonly object atmTemplateCacheLock = new object();
-		private readonly Dictionary<string, Tuple<bool, DateTime>> atmTemplateCache = new Dictionary<string, Tuple<bool, DateTime>>(StringComparer.OrdinalIgnoreCase);
-		private bool HasAtmTemplate(string templateName)
-		{
-			if (string.IsNullOrEmpty(templateName)) return false;
-			lock (atmTemplateCacheLock)
-			{
-				Tuple<bool, DateTime> cached;
-				if (atmTemplateCache.TryGetValue(templateName, out cached) && (DateTime.UtcNow - cached.Item2).TotalSeconds < 5)
-					return cached.Item1;
-			}
-			string path = System.IO.Path.Combine(NinjaTrader.Core.Globals.UserDataDir, "templates", "AtmStrategy", templateName + ".xml");
-			bool exists = System.IO.File.Exists(path);
-			lock (atmTemplateCacheLock) atmTemplateCache[templateName] = Tuple.Create(exists, DateTime.UtcNow);
-			return exists;
-		}
+		// ponytail: unified cache via KatAtmTemplateService (single Directory.GetFiles 5s)
+		private bool HasAtmTemplate(string templateName) => KatAtmTemplateService.Exists(templateName);
 
 		// HUD ATM selector set to "None" clears the template, which means the HUD owns no ATM brackets and
 		// must not merge, resize or cancel Chart Trader orders. Deliberately no disk check: this runs on

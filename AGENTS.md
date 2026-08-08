@@ -43,11 +43,11 @@ On every code change, BEFORE closing session. NEVER edit version strings by hand
 2. **Verify** `pwsh scripts/Verify-Version.ps1` (warn) / `-Strict` (CI fail) — checks header == VERSION == UI == README == DIARY, aborts deploy on drift.
 3. **Checks** `pwsh scripts/Run-AllChecks.ps1` — version guard + xunit + net48 compile gate (0 errors).
 4. **Update Graphify**: run `graphify update .`
-5. **Deploy NT8 (MANDATORY FULL SYNC)**: `pwsh scripts/Deploy-NT8.ps1` — pre-flight Verify, copy ALL 11 `.cs` files with force overwrite + orphan sweep, atomic nudge, post-deploy VERSION + SHA256 hash verify, waits for `NinjaTrader.Custom.dll` recompile:
+5. **Deploy NT8 (MANDATORY FULL SYNC)**: `pwsh scripts/Deploy-NT8.ps1` — pre-flight Verify, copy ALL 14 `.cs` files with force overwrite + orphan sweep, atomic nudge, post-deploy VERSION + SHA256 hash verify, waits for `NinjaTrader.Custom.dll` recompile:
    - `KatTradeManager.cs`
    - `src\KatTradeManagerUI.cs` + `src\KatTradeManager.HudDrag.cs`
-   - `src\KatTradeManager.OrderOps.cs` + `src\KatTradeManager.Queue.cs` + `src\KatTradeManager.AtmMerge.cs`
-   - `src\KatTradeManager.DailyRisk.cs` + `src\KatTradeManager.Discipline.cs`
+   - `src\KatTradeManager.OrderOps.cs` + `src\KatTradeManager.Queue.cs` + `src\KatTradeManager.AtmMerge.cs` + `src\KatTradeManager.SwingOps.cs`
+   - `src\KatTradeManager.DailyRisk.cs` + `src\KatTradeManager.Discipline.cs` + `src\KatTradeManager.ProfileOps.cs` + `src\KatAtmTemplateService.cs`
    - `src\KatTradeManager.Properties.cs` + `src\KatTradeCalculator.cs` + `src\KatAtmXmlParser.cs`
    - Skill: `nt8-deploy-verify` (see `C:\Users\kieuanhtuan\.agents\skills\nt8-deploy-verify\SKILL.md`) — explains generic apply to any NT8 repo.
 6. **Git sync**:
@@ -58,4 +58,4 @@ On every code change, BEFORE closing session. NEVER edit version strings by hand
 ## Version Tracking
 - Code versions: KatTradeManager.cs VERSION constant (header must match constant — `Verify-Version.ps1` enforces)
 - Doc versions: README.md, DIARY.md
-- **Current: v1.64 (2026-08-08)** — next bump via `scripts/Bump-Version.ps1` only (never hand-edit)
+- **Current: v1.66 (2026-08-08)** — next bump via `scripts/Bump-Version.ps1` only (never hand-edit)

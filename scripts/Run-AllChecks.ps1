@@ -18,6 +18,11 @@ $gateOk = ($LASTEXITCODE -eq 0)
 
 if ($verOk -and $testsOk -and $gateOk) {
     Write-Host 'ALL CHECKS GREEN.'
+    # optional graph refresh (zero token AST) when graphify is installed
+    if (Get-Command graphify -ErrorAction SilentlyContinue) {
+        Write-Host '=== 3/3: graphify update ==='
+        graphify update . 2>&1 | Out-String | Write-Host
+    }
     exit 0
 }
 

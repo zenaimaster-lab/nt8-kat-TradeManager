@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.65 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.66 (2026-08-08) */
 
 using System;
 using System.Collections.Generic;
@@ -117,9 +117,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private readonly SolidColorBrush disciplineAllOffBg = new SolidColorBrush(Color.FromRgb(55, 20, 85)); // UN-DISCIPLINED - dark purple
 		private bool isHotkeyAttached = false;
 		private Window hotkeyWindow; // cached at attach — chart can move to a new window before detach
-		private static readonly object atmFileCacheLock = new object();
-		private static List<string> cachedAtmFileNames;
-		private static DateTime cachedAtmFileNamesUtc = DateTime.MinValue;
 		private bool hasHudDragPosition;
 		private double hudDragLeft;
 		private double hudDragTop;
@@ -139,25 +136,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private const double HudGap = 2; // uniform gap — horizontal, vertical, inner/outer — matches quick-set intra-column gap
 		private const double HudPanelWidth = 250; // 250 outer => 238 inner (250-6-6) = 22+24k perfect for gap2 across 2/4/6/8 cols
 
-		private List<string> GetCachedAtmTemplateNames()
-		{
-			lock (atmFileCacheLock)
-			{
-				if (cachedAtmFileNames != null && (DateTime.UtcNow - cachedAtmFileNamesUtc).TotalSeconds < 5)
-					return new List<string>(cachedAtmFileNames);
-			}
-			string atmDir = System.IO.Path.Combine(NinjaTrader.Core.Globals.UserDataDir, "templates", "AtmStrategy");
-			List<string> result = new List<string>();
-			try
-			{
-				if (System.IO.Directory.Exists(atmDir))
-					foreach (var f in System.IO.Directory.GetFiles(atmDir, "*.xml"))
-						result.Add(System.IO.Path.GetFileNameWithoutExtension(f));
-				result.Sort(StringComparer.OrdinalIgnoreCase);
-			} catch {}
-			lock (atmFileCacheLock) { cachedAtmFileNames = new List<string>(result); cachedAtmFileNamesUtc = DateTime.UtcNow; }
-			return result;
-		}
+		// ponytail: unified via KatAtmTemplateService (single 5s listing)
+		private List<string> GetCachedAtmTemplateNames() => KatAtmTemplateService.GetNames();
 
 		private void StartPanelWatchdog()
 		{

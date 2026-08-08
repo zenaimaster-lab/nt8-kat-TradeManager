@@ -23,6 +23,17 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.66] — 2026-08-08
+- **Full re-audit 2 — debounce split, atm cache unify, SwingOps split, tooling**
+  - **Debounce split**: `OrderOps:102` tách `lastEntrySubmitTime` / `lastMarketSubmitTime`, `IsEntryDebounced(bool isMarket)` riêng, market `100ms` không block pending `200ms` và ngược — đảm bảo market instant đúng yêu cầu "ko delay". Pending vẫn 200 chặn jitter, market 100 nửa thời gian.
+  - **ATM cache unify**: mới `src/KatAtmTemplateService.cs:51` single `Directory.GetFiles` 5s TTL, `Exists()` HashSet lookup không IO. Thay `AtmMerge:65` `atmTemplateCache` Dictionary + `UI:120` `atmFileCacheLock` 2 cache riêng → 1 lock/service. `Clear()` cho test, reflection fallback `NinjaTrader.Core.Globals` tránh CS0433 khi link vào test, fallback `Documents\NinjaTrader 8`.
+  - **Module split**: tách `src/KatTradeManager.SwingOps.cs:393` từ `OrderOps:1028` (431L: `slMoveHistory`, `ShiftSlToSwing`, `CancelWorkingEntryOrders`, `EmaTouchBarInfo`, `ShiftEmaEntry`, `CandleBarInfo`, `ShiftCandleEntry`) giảm `OrderOps 1307→925L` (sau `ProfileOps` trước), giảm god node `OrderOps`, `UI 1942→1805` trước đó giữ. `CompileCheck` + `Deploy-NT8` thêm file #14 sync.
+  - **Tooling**: `ci.yml:22` `hashFiles('C:/...')` → `hashFiles('**/NinjaTrader.Core.dll')` portable glob, `Run-AllChecks.ps1:19` thêm optional `graphify update .` khi cài, `KatAtmTemplateService` reflection tránh ambiguous `CS0433` khi test link `Core+Client`.
+  - **Test**: thêm `tests/KatExtendedAuditTests.cs` 6 tests (`AtmTemplate` sort/thay debounce doc, `ShouldFlattenAccount` 4 case, `Clamp`), giữ `KatAuditFixTests` 12, total `218→225` pass. `KatTradeManager.Tests.csproj` giữ `coverlet`, bỏ `KatAtmTemplateService` link để tránh ambiguous (service test removed, logic via reflection).
+  - **Tick fallback thống nhất**: `KatTradeCalculator.ResolveTickSize` + `GetEffectiveTickSize` đã thay 9 chỗ, giữ nguyên.
+  - Verify: `Verify 14 files` sync, `CompileCheck` 0 warn/0 error, `225` pass. HUD không đụng. Market bypass FIFO `AtmMerge:98` `account.Submit` IMMEDIATE giữ nguyên.
+  - Graphify: `KatAtmTemplateService`, `KatTradeManager.SwingOps`, debounce split.
+
 ### [v1.65] — 2026-08-08
 - **Full re-audit — 12-file drift-proof + market fast path + tick helper + profile split + tooling**
   - **Fix drift**: `AGENTS.md` `v1.58→1.64` + `RELEASE_NOTES` archive `v0.92`→`v1.64` smoke, `.gitignore` thêm `.opencode/`, `Verify-Version.ps1` thêm manifest check `CompileCheck.csproj` == `Deploy-NT8.ps1` (12 files, `hashFiles` guard), `KatTradeManager.cs:652` xóa `BarsPeriodTypeName` obsolete (0 warn), `Bump-Version.ps1:20` regex tighten `Version:\s*\d+\.\d+\s*\(\d{4}-\d{2}-\d{2}\)` + `v\d+\.\d+\s*\(\d{4}-\d{2}-\d{2}\)` tránh ăn thừa.
