@@ -69,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "1.56";
+		public const string VERSION = "1.57";
 		public const string RELEASE_DATE = "2026-08-08";
 
 		private volatile Account account;
