@@ -103,7 +103,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		#endregion
 
 		private static readonly string[] TradeProfitNames = new[] { "ProfitCurrency", "Profit", "RealizedProfitLoss", "CurrencyProfit", "PnL", "GrossProfit" };
-		private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, System.Reflection.PropertyInfo> TradeProfitCache = new System.Collections.Concurrent.ConcurrentDictionary<Type, System.Reflection.PropertyInfo>();
+		private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Func<object, double>> TradeProfitGetterCache = new System.Collections.Concurrent.ConcurrentDictionary<Type, Func<object, double>>();
 
 		private double GetTradeProfit(object trade)
 		{
@@ -111,25 +111,27 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			try
 			{
 				var t = trade.GetType();
-				if (!TradeProfitCache.TryGetValue(t, out var pi))
+				if (!TradeProfitGetterCache.TryGetValue(t, out var getter))
 				{
-					pi = null;
-					foreach (string n in TradeProfitNames)
+					System.Reflection.PropertyInfo pi = null;
+					foreach (string n in TradeProfitNames) { pi = t.GetProperty(n); if (pi != null) break; }
+					if (pi == null) getter = _ => 0;
+					else
 					{
-						pi = t.GetProperty(n);
-						if (pi != null) break;
+						var captured = pi;
+						getter = obj =>
+						{
+							object v = captured.GetValue(obj);
+							if (v is double d) return d;
+							if (v is float f) return f;
+							if (v is decimal dec) return (double)dec;
+							if (v is int ii) return ii;
+							try { return Convert.ToDouble(v); } catch { return 0; }
+						};
 					}
-					TradeProfitCache[t] = pi; // null = no profit prop, avoid re-scan
+					TradeProfitGetterCache[t] = getter;
 				}
-				if (pi != null)
-				{
-					object v = pi.GetValue(trade);
-					if (v is double d) return d;
-					if (v is float f) return f;
-					if (v is decimal dec) return (double)dec;
-					if (v is int ii) return ii;
-					try { return Convert.ToDouble(v); } catch {}
-				}
+				return getter(trade);
 			}
 			catch {}
 			return 0;

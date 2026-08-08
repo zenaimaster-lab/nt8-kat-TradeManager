@@ -23,6 +23,15 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.93] — 2026-08-08
+- **Re-audit P2 — tick lock + delegate + sorted cache + CI gate (design lock)**
+  - `KatTradeManager.cs:253` `GetEffectiveTickSize` đọc `cachedTickSize` ngoài lock race → bọc `lock(priceLock)` tick copy trước `ResolveTickSize`, giữ `fallback 0.25` testable.
+  - `KatTradeManager.Discipline:105` `TradeProfitCache PropertyInfo` → `TradeProfitGetterCache Func<object,double>` cache delegate (capture `PropertyInfo` + convert `double/float/decimal/int`), `watchdog 500ms` không còn `GetProperty` scan.
+  - `KatAtmTemplateService.cs:15` `GetNames()` sort mỗi 500ms (`254 tests` watchdog) → cache `cachedSorted` cùng TTL 5s, `GetNames()` clone cached sorted, `Clear()` reset cả 2.
+  - `scripts/Run-AllChecks.ps1:24` xunit `Format=cobertura` + parse `coverage.cobertura.xml` line-rate warn `<60%`, `ci.yml:21` `ps analyze Error` fail + `Warning` warn, thêm `coverage gate warn` step — compile gate luôn chạy (bỏ `hashFiles` guard).
+  - Note: `KatTradeManagerUI:2354` god vẫn giữ (ponytail: `AccountInfo` split deferred — 3 file vs 1 file ceiling, HUD design lock, tách chỉ khi UI >2500L hoặc cần test riêng).
+  - Verify: `5-way v1.93` sync (cs/header/UI/README/DIARY/AGENTS), `254 pass`, `CompileCheck 0 error`, `graph 844 nodes` pending update.
+
 ### [v1.92] — 2026-08-08
 - **Re-audit P1 — priceLock + DRY brush + cache + AGENTS + tooling + tests**
   - `KatTradeManager.OrderOps:338,347,807` `cachedCurrentPrice` đọc ngoài `priceLock` race watchdog/data thread → bọc `lock(priceLock)` 3 chỗ `checkPrice/liveCurrent/mktCheckPrice` — không đụng design.

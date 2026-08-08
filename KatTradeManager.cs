@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 1.92 (2026-08-08)
+ * Version: 1.93 (2026-08-08)
  * NinjaTrader 8 TradeManager Indicator
  */
  
@@ -69,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "1.92";
+		public const string VERSION = "1.93";
 		public const string RELEASE_DATE = "2026-08-08";
 
 		private volatile Account account;
@@ -254,7 +254,9 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		{
 			double instrumentTick = 0;
 			try { if (Instrument != null && Instrument.MasterInstrument != null) instrumentTick = Instrument.MasterInstrument.TickSize; } catch {}
-			return KatTradeCalculator.ResolveTickSize(cachedTickSize, instrumentTick, fallback);
+			double tick;
+			lock (priceLock) { tick = cachedTickSize; }
+			return KatTradeCalculator.ResolveTickSize(tick, instrumentTick, fallback);
 		}
 
 		// Shared account-selection chain — used in DataLoaded and in the watchdog auto-recovery.

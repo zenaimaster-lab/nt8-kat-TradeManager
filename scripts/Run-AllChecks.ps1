@@ -22,8 +22,19 @@ if (Get-Module -ListAvailable PSScriptAnalyzer) {
 } else { Write-Host 'PSScriptAnalyzer not installed — skip' }
 
 Write-Host '=== 2/4: xunit suite ==='
-dotnet test (Join-Path $repoRoot 'tests\KatTradeManager.Tests') --nologo --verbosity quiet --collect:"XPlat Code Coverage"
+dotnet test (Join-Path $repoRoot 'tests\KatTradeManager.Tests') --nologo --verbosity quiet --collect:"XPlat Code Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
 $testsOk = ($LASTEXITCODE -eq 0)
+if ($testsOk) {
+    $covFile = Get-ChildItem -Path (Join-Path $repoRoot 'tests\KatTradeManager.Tests\TestResults') -Recurse -Filter coverage.cobertura.xml -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    if ($covFile) {
+        try {
+            [xml]$cov = Get-Content $covFile.FullName
+            $rate = 0; if ($cov.coverage -and $cov.coverage.'line-rate') { $rate = [double]$cov.coverage.'line-rate' * 100 }
+            Write-Host ("Coverage line-rate: {0:N1}%" -f $rate)
+            if ($rate -lt 60 -and $rate -gt 0) { Write-Host "WARNING: coverage <60% — add tests" -ForegroundColor Yellow }
+        } catch {}
+    }
+}
 
 Write-Host '=== 3/4: CompileCheck (net48 gate) ==='
 dotnet build (Join-Path $repoRoot 'tools\CompileCheck') --nologo --verbosity quiet

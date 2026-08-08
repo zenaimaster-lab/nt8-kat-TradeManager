@@ -14,6 +14,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 	{
 		private static readonly object cacheLock = new object();
 		private static HashSet<string> cachedNames;
+		private static List<string> cachedSorted;
 		private static DateTime cachedUtc = DateTime.MinValue;
 		private const double TtlSeconds = 5.0;
 
@@ -21,7 +22,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			lock (cacheLock)
 			{
-				if (cachedNames != null && (DateTime.UtcNow - cachedUtc).TotalSeconds < TtlSeconds)
+				if (cachedNames != null && cachedSorted != null && (DateTime.UtcNow - cachedUtc).TotalSeconds < TtlSeconds)
 					return cachedNames;
 			}
 			// ponytail: reflection avoids CS0433 Globals ambiguous (Core vs Client both define it) when service is linked into test project
@@ -47,7 +48,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 						fresh.Add(Path.GetFileNameWithoutExtension(f));
 			}
 			catch { }
-			lock (cacheLock) { cachedNames = fresh; cachedUtc = DateTime.UtcNow; }
+			List<string> sorted = new List<string>(fresh);
+			sorted.Sort(StringComparer.OrdinalIgnoreCase);
+			lock (cacheLock) { cachedNames = fresh; cachedSorted = sorted; cachedUtc = DateTime.UtcNow; }
 			return fresh;
 		}
 
@@ -59,13 +62,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		public static List<string> GetNames()
 		{
-			var set = GetOrRefresh();
-			List<string> list = new List<string>(set);
-			list.Sort(StringComparer.OrdinalIgnoreCase);
-			return list;
+			GetOrRefresh();
+			lock (cacheLock) { return new List<string>(cachedSorted ?? new List<string>()); }
 		}
 
 		// For tests: force refresh
-		internal static void Clear() { lock (cacheLock) { cachedNames = null; cachedUtc = DateTime.MinValue; } }
+		internal static void Clear() { lock (cacheLock) { cachedNames = null; cachedSorted = null; cachedUtc = DateTime.MinValue; } }
 	}
 }
