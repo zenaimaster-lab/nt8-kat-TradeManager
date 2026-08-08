@@ -2,13 +2,6 @@
  * KatTradeManager.cs
  * Version: 1.54 (2026-08-08)
  * NinjaTrader 8 TradeManager Indicator
-		private Border panelBorder;
-		private StackPanel mainPanel;
-		private ComboBox atmSelector;
-		private System.Windows.Threading.DispatcherTimer panelWatchdog;
-		private volatile bool isTerminated;
-
-		// Daily Risk Control cached states & fields (default ON)
 		private volatile bool cachedIsDailyMaxDD = true;
 		private volatile bool cachedIsDailyMaxProfit = true;
 		private double cachedDailyMaxDD = 500.0;
