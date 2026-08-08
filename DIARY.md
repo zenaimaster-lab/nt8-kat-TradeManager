@@ -23,6 +23,12 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.56] — 2026-08-08
+- **Hotfix — Program buttons label clipped to "P" (must be centered)**
+  - **Root cause**: `KatTradeManagerUI.CreateButton` tạo `TextBlock` với `HorizontalAlignment Stretch` + `HorizontalContentAlignment Stretch` + `Padding 1,0` + `TextTrimming CharacterEllipsis` nhưng `TextAlignment Center` chỉ center trong `TextBlock` đã stretch 53px — trông đúng trong unit test nhưng trên NT8 theme `Button` style có `Padding`/`Border` mặc định làm `ContentPresenter` không stretch, `TextBlock` bị measure với `Stretch` vẫn cho `DesiredSize` nhỏ, `Grid` star + gap 1.5px sub-pixel làm rounding 0.5px khiến cột star cuối bị thiếu 1-2px, `TextBlock` 53px bị clip phải 1px → "P1" với font 8 mảnh ("1" chỉ 1px stroke) bị anti-alias + alpha 128 (50% `QuickSetLabelOpacityPercent`) làm "1" gần như tàng hình, screenshot nén thấp thành "P".
+  - **Fix**: `CreateButton:1757` đổi `Padding 1→2`, `HorizontalAlignment Stretch→Center`, `HorizontalContentAlignment Stretch→Center`, `VerticalContentAlignment Center`, `TextBlock` `HorizontalAlignment Center` + `Margin 0`; `SetButtonLabel:62` enforce `Center`/ `Center`/`Center` mỗi tick + `Padding 2,0` + early-return cho `StackPanel` `DISCIPLINED`; `GetQuickSetLabelBrush:45` `Freeze()` brush để tránh cross-thread; `CreateEightColumnGrid` subGap `1.5→2` cho pixel nguyên; verify `dotnet build` 0 errors, render `P1-P8` 55px/53px centered không clip.
+  - Graphify entity mapping: `KatTradeManagerUI.CreateButton(Center)`, `SetButtonLabel(Center)`, `GetQuickSetLabelBrush(Freeze)`, `CreateEightColumnGrid(2px)`.
+
 ### [v1.55] — 2026-08-08
 - **Hotfix — restore truncated KatTradeManager.cs header (CS1035 cascade)**
   - **Root cause**: `v1.54` commit `0efdcd8` accidentally deleted the 80-line file header of `KatTradeManager.cs` (block comment close `*/`, `using` declarations, `public enum KatTimeframe/KatEmaTimeframe/KatHudLocation`, `namespace`/`partial class` opening and `VERSION`/`RELEASE_DATE` constants + 7 field declarations). NinjaTrader compiler reported `CS1035 End-of-file found, '*/' expected` at line 1:1, then every `partial class` file (`AtmMerge`, `OrderOps`, `Properties`, `UI`) failed with `CS0246` (type not found) and `CS0103` (name does not exist: `atmScaleInLock`, `account`, `Print`, `Instrument`, etc.) — exactly the screenshot errors.

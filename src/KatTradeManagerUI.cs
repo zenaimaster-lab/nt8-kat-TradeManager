@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.55 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.56 (2026-08-08) */
 
 using System;
 using System.Collections.Generic;
@@ -55,9 +55,11 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				if (pct == 0) pct = 50;
 				byte alpha = (byte)(pct * 255 / 100);
 				Color c = Color.FromArgb(alpha, baseColor.R, baseColor.G, baseColor.B);
-				return new SolidColorBrush(c);
+				var nb = new SolidColorBrush(c);
+				if (nb.CanFreeze) nb.Freeze();
+				return nb;
 			}
-			catch { return new SolidColorBrush(Color.FromArgb(128, 255, 255, 255)); }
+			catch { var fb = new SolidColorBrush(Color.FromArgb(128, 255, 255, 255)); if (fb.CanFreeze) fb.Freeze(); return fb; }
 		}
 		private void SetButtonLabel(Button btn, string text)
 		{
@@ -65,13 +67,24 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			if (btn.Content is TextBlock tb)
 			{
 				if (tb.Text != text) tb.Text = text;
+				tb.TextAlignment = TextAlignment.Center;
+				tb.HorizontalAlignment = HorizontalAlignment.Center;
+				tb.VerticalAlignment = VerticalAlignment.Center;
+				tb.TextTrimming = TextTrimming.CharacterEllipsis;
+				tb.TextWrapping = TextWrapping.NoWrap;
+			}
+			else if (btn.Content is StackPanel)
+			{
+				// DISCIPLINED blaze panel — do not overwrite
+				return;
 			}
 			else
 			{
-				btn.Content = new TextBlock { Text = text, TextAlignment = TextAlignment.Center, HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap };
+				btn.Content = new TextBlock { Text = text, TextAlignment = TextAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap };
 			}
-			btn.HorizontalContentAlignment = HorizontalAlignment.Stretch;
-			btn.VerticalContentAlignment = VerticalAlignment.Stretch;
+			btn.HorizontalContentAlignment = HorizontalAlignment.Center;
+			btn.VerticalContentAlignment = VerticalAlignment.Center;
+			btn.Padding = new Thickness(2, 0, 2, 0);
 		}
 		private string GetButtonLabel(Button btn)
 		{
@@ -1420,7 +1433,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			// --- ATM Quick Set buttons (A–H), 8 in single row, one-click ATM selection ---
 			atmSetButtons = new Button[8];
-			Grid atmSetGrid = CreateEightColumnGrid(0, 4, 1.5);
+			Grid atmSetGrid = CreateEightColumnGrid(0, 4, 2);
 
 			for (int i = 0; i < 8; i++)
 			{
@@ -1756,7 +1769,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 		private Button CreateButton(string text, Brush bg, RoutedEventHandler handler, double height = 24, double fontSize = 10)
 		{
-			var tb = new TextBlock { Text = text, TextAlignment = TextAlignment.Center, HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap };
+			var tb = new TextBlock { Text = text, TextAlignment = TextAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap, Margin = new Thickness(0), Padding = new Thickness(0) };
 			Button btn = new Button
 			{
 				Content = tb,
@@ -1765,12 +1778,13 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				FontWeight = FontWeights.Normal,
 				FontSize = fontSize,
 				Margin = new Thickness(0),
-				Padding = new Thickness(1, 0, 1, 0),
+				Padding = new Thickness(2, 0, 2, 0),
 				Height = height,
 				BorderThickness = new Thickness(0),
-				HorizontalContentAlignment = HorizontalAlignment.Stretch,
-				VerticalContentAlignment = VerticalAlignment.Stretch,
-				HorizontalAlignment = HorizontalAlignment.Stretch
+				HorizontalContentAlignment = HorizontalAlignment.Center,
+				VerticalContentAlignment = VerticalAlignment.Center,
+				HorizontalAlignment = HorizontalAlignment.Stretch,
+				VerticalAlignment = VerticalAlignment.Center
 			};
 			if (handler != null)
 				btn.Click += handler;
