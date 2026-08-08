@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.88 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.89 (2026-08-08) */
 // ponytail: many catch{} for UI button updates are expected (control not yet created, dispatcher not ready) — silent. Critical watchdog tick already logs.
 
 using System;
@@ -34,6 +34,12 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private Button[] disciplineButtons;
 		private Button btnDisciplineAll;
 		private readonly SolidColorBrush disciplineOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
+		// ponytail: shift controls reuse same dark bg — single static to avoid 3 allocs per rebuild
+		private static readonly SolidColorBrush shiftControlBg = CreateFrozenBrush(Color.FromRgb(20, 20, 20));
+		private static readonly SolidColorBrush toggleOffBgStatic = CreateFrozenBrush(Color.FromRgb(45, 50, 65));
+		private static readonly SolidColorBrush stopLimitOnBgStatic = CreateFrozenBrush(Color.FromRgb(18, 6, 48));
+		private static readonly SolidColorBrush emaOnBgStatic = CreateFrozenBrush(Color.FromRgb(12, 35, 75));
+		private static SolidColorBrush CreateFrozenBrush(Color c) { var b = new SolidColorBrush(c); if (b.CanFreeze) b.Freeze(); return b; }
 		// Trading profiles — 8 buttons in 2 rows x4 above account selector, row-based ON colors, height 22 same as ATM row
 		private Button[] tradingProfileButtons;
 
@@ -804,20 +810,16 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private void UpdateStopLimitButton()
 		{
 			if (btnStopLimit == null) return;
-			SolidColorBrush offBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
-			SolidColorBrush onBg = new SolidColorBrush(Color.FromRgb(18, 6, 48)); // extra dark purple — distinct from Max DD/Profit purple
 			SetButtonLabel(btnStopLimit, cachedIsStopLimit ? "Stop-Limit: ON" : "Stop-Limit: OFF");
-			btnStopLimit.Background = cachedIsStopLimit ? onBg : offBg;
+			btnStopLimit.Background = cachedIsStopLimit ? stopLimitOnBgStatic : toggleOffBgStatic;
 			btnStopLimit.Foreground = cachedIsStopLimit ? new SolidColorBrush(Color.FromArgb(128, 255, 255, 255)) : Brushes.LightGray;
 		}
 
 		private void UpdateEmaPlaceButton()
 		{
 			if (btnEmaPlace == null) return;
-			SolidColorBrush offBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
-			SolidColorBrush onBg = new SolidColorBrush(Color.FromRgb(12, 35, 75));
 			SetButtonLabel(btnEmaPlace, "EmaZoneOnly");
-			btnEmaPlace.Background = cachedIsEmaPlace ? onBg : offBg;
+			btnEmaPlace.Background = cachedIsEmaPlace ? emaOnBgStatic : toggleOffBgStatic;
 			btnEmaPlace.Foreground = cachedIsEmaPlace ? Brushes.White : Brushes.LightGray;
 			// ON: no bright purple border
 			if (cachedIsEmaPlace)
@@ -1628,7 +1630,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			SolidColorBrush sell34Bg = new SolidColorBrush(Color.FromRgb(85, 25, 65)); // much darker pink vs Sell 89
 			SolidColorBrush buy89Bg  = new SolidColorBrush(Color.FromRgb(35, 95, 110));
 			SolidColorBrush sell89Bg = new SolidColorBrush(Color.FromRgb(130, 35, 95));
-			SolidColorBrush entryShiftBg = new SolidColorBrush(Color.FromRgb(20, 20, 20));
+			SolidColorBrush entryShiftBg = shiftControlBg;
 
 			Grid entryShiftGrid = CreateTwoColumnGrid(HudGap, HudGap);
 
@@ -1646,7 +1648,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			Grid candleShiftGrid = CreateTwoColumnGrid(HudGap, HudGap);
 
-			SolidColorBrush candleShiftBg = new SolidColorBrush(Color.FromRgb(20, 20, 20));
+			SolidColorBrush candleShiftBg = shiftControlBg;
 
 			Button btnCandleBack = CreateButton("◀ Entry candle", candleShiftBg, (s, ev) => ShiftCandleEntry(false), 30, 12);
 			btnCandleBack.Foreground = new SolidColorBrush(Color.FromArgb(77, 255, 255, 255));
@@ -1737,7 +1739,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			StackPanel sec3bPanel = new StackPanel { UseLayoutRounding = true, SnapsToDevicePixels = true };
 			Grid swingSlGrid = CreateTwoColumnGrid(HudGap, HudGap);
 
-			SolidColorBrush swingSlBg = new SolidColorBrush(Color.FromRgb(20, 20, 20));
+			SolidColorBrush swingSlBg = shiftControlBg;
 
 			Button btnSlBack = CreateButton("◀ SL", swingSlBg, (s, ev) => ShiftSlToSwing(false), 30, 12);
 			btnSlBack.Foreground = new SolidColorBrush(Color.FromArgb(77, 255, 255, 255));

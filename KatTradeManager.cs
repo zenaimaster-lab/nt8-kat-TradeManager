@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 1.88 (2026-08-08)
+ * Version: 1.89 (2026-08-08)
  * NinjaTrader 8 TradeManager Indicator
  */
  
@@ -69,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "1.88";
+		public const string VERSION = "1.89";
 		public const string RELEASE_DATE = "2026-08-08";
 
 		private volatile Account account;
@@ -757,7 +757,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			DateTime foundTime = DateTime.MinValue;
 			List<EmaTouchBarInfo> touchBars = new List<EmaTouchBarInfo>();
 
-			for (int barsAgo = 0; barsAgo < maxBars; barsAgo++)
+			for (int barsAgo = 0; barsAgo <= maxBars; barsAgo++)
 			{
 				double high = Highs[bip][barsAgo];
 				double low = Lows[bip][barsAgo];

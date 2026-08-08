@@ -26,6 +26,13 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private int currentCandleBarsAgo = 0;
 		private DateTime lastCandleBarTime = DateTime.MinValue;
 
+		private static int IndexOfCandleBar(List<CandleBarInfo> bars, DateTime t)
+		{
+			if (bars == null) return -1;
+			for (int i = 0; i < bars.Count; i++) if (bars[i].Time == t) return i;
+			return -1;
+		}
+
 		private List<double> GetSwingPoints(MarketPosition position, int maxSwings = 20, int strength = 3)
 		{
 			List<double> empty = new List<double>();
@@ -137,9 +144,13 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 							currentStop = effectivePos == MarketPosition.Long ? effectiveEntry - 20 * tickSize : effectiveEntry + 20 * tickSize;
 						else
 						{
-							// pending with no stop yet — seed from pending entry price +/- 20 ticks (ponytail: single fallback chain)
+							// pending with no stop yet — seed from majority pending entry price +/- 20 ticks
 							double pendingPrice = 0;
-							try { pendingPrice = pendingEntries[0].StopPrice != 0 ? pendingEntries[0].StopPrice : pendingEntries[0].LimitPrice; } catch {}
+							try
+							{
+								var seedRepr = pendingEntries.GroupBy(o => (o.OrderAction == OrderAction.Buy || o.OrderAction == OrderAction.BuyToCover) ? 0 : 1).OrderByDescending(g => g.Count()).First().First();
+								pendingPrice = seedRepr.StopPrice != 0 ? seedRepr.StopPrice : seedRepr.LimitPrice;
+							} catch {}
 							if (pendingPrice <= 0) pendingPrice = livePrice;
 							if (pendingPrice > 0)
 								currentStop = effectivePos == MarketPosition.Long ? pendingPrice - 20 * tickSize : pendingPrice + 20 * tickSize;
@@ -459,13 +470,11 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				OrderAction resolvedAction;
 				DateTime refTime = DateTime.MinValue;
 				int refBarsAgo = 0;
-				// ponytail: helper to map time → candle index fallback
-				Func<DateTime, int> mapTime = t => { for (int i = 0; i < allBars.Count; i++) if (allBars[i].Time == t) return i; return -1; };
 				if (workingEntries.Count > 0)
 				{
-					// majority side wins if mixed Buy/Sell pending (rare — CancelWorking usually single side)
-					var grouped = workingEntries.GroupBy(o => o.OrderAction).OrderByDescending(g => g.Count()).First();
-					resolvedAction = grouped.Key;
+					// majority side wins — normalize Buy/BuyToCover → Long, Sell/SellShort → Short (avoid split)
+					var grouped = workingEntries.GroupBy(o => (o.OrderAction == OrderAction.Buy || o.OrderAction == OrderAction.BuyToCover) ? 0 : 1).OrderByDescending(g => g.Count()).First();
+					resolvedAction = grouped.First().OrderAction;
 					bool candleMatch = hasCandleOrder && lastCandleOrderAction == resolvedAction;
 					bool emaMatch = (lastEmaOrderPeriod == 34 || lastEmaOrderPeriod == 89) && lastEmaOrderAction == resolvedAction;
 					if (candleMatch && !emaMatch)
@@ -476,14 +485,14 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					else if (emaMatch && !candleMatch)
 					{
 						refTime = lastEmaTouchBarTime;
-						int m = mapTime(lastEmaTouchBarTime);
+						int m = IndexOfCandleBar(allBars, lastEmaTouchBarTime);
 						refBarsAgo = m >= 0 ? m : 0;
 					}
 					else if (candleMatch && emaMatch)
 					{
 						bool useCandle = lastCandleBarTime > lastEmaTouchBarTime;
 						if (useCandle) { refTime = lastCandleBarTime; refBarsAgo = currentCandleBarsAgo; }
-						else { refTime = lastEmaTouchBarTime; int m = mapTime(lastEmaTouchBarTime); refBarsAgo = m >= 0 ? m : 0; }
+						else { refTime = lastEmaTouchBarTime; int m = IndexOfCandleBar(allBars, lastEmaTouchBarTime); refBarsAgo = m >= 0 ? m : 0; }
 					}
 					else
 					{
@@ -501,7 +510,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				{
 					resolvedAction = lastEmaOrderAction;
 					refTime = lastEmaTouchBarTime;
-					int m = mapTime(lastEmaTouchBarTime);
+					int m = IndexOfCandleBar(allBars, lastEmaTouchBarTime);
 					refBarsAgo = m >= 0 ? m : 0;
 				}
 

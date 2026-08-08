@@ -53,20 +53,25 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		{
 			if (account == null || Instrument == null) return null;
 			var positions = account.Positions;
+			if (positions == null) return null;
 			lock (positions)
 				return positions.FirstOrDefault(p => p.Instrument == Instrument);
 		}
 
 		private List<Order> GetAccountOrdersSnapshot()
 		{
+			if (account == null) return new List<Order>();
 			var orders = account.Orders;
+			if (orders == null) return new List<Order>();
 			lock (orders)
 				return orders.ToList();
 		}
 
 		private List<Position> GetAccountPositionsSnapshot()
 		{
+			if (account == null) return new List<Position>();
 			var positions = account.Positions;
+			if (positions == null) return new List<Position>();
 			lock (positions)
 				return positions.ToList();
 		}

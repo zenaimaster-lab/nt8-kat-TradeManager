@@ -69,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			{
 				Position pos = GetInstrumentPosition();
 				bool hasOpenPos = (pos != null && pos.MarketPosition != MarketPosition.Flat);
-				bool hasWorkingOrders = GetAccountOrdersSnapshot().Any(o => (o.OrderState == OrderState.Working || o.OrderState == OrderState.Accepted) && o.Instrument == Instrument);
+				bool hasWorkingOrders = GetAccountOrdersSnapshot().Any(o => IsActiveOrderState(o.OrderState) && o.Instrument == Instrument);
 
 				// ponytail: flatten once per breach episode — flag resets when PnL recovers, prevents order spam from 500ms watchdog
 				// Interlocked: this method runs on BOTH data thread (OnBarUpdate) and UI thread (watchdog) —

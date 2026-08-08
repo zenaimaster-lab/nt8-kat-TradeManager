@@ -23,6 +23,16 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.89] — 2026-08-08
+- **Re-audit P0 — DailyRisk + EmaTouch + GroupBy + UI static + snapshot guards**
+  - `KatTradeManager.DailyRisk:72` `Working||Accepted` → `IsActiveOrderState` (11 states `Submitted/TriggerPending/PartFilled/Suspended/ChangePending/CancelPending`) — daily-risk flatten giờ bắt mọi pending, không miss `TriggerPending/PartFilled`.
+  - `KatTradeManager.UpdateEmaTouchCache:760` `barsAgo < maxBars` → `<= maxBars` đồng bộ `OnBarUpdate:836` candle `<=` — đủ oldest bar khi `CurrentBars 500`.
+  - `SwingOps.ShiftCandleEntry:467` `GroupBy(OrderAction)` tách `Buy` vs `BuyToCover` → normalize ` (Buy||BuyToCover)?0:1` lấy `grouped.First().OrderAction` majority, tránh split Long.
+  - `ShiftSlToSwing:141` seed `pendingEntries[0]` → majority `seedRepr` grouped first — không lấy minority price.
+  - `KatTradeManagerUI:36` `shiftControlBg/toggleOffBgStatic/stopLimitOnBgStatic/emaOnBgStatic` frozen static reuse — bỏ 3x `new SolidColorBrush(20,20,20)` + per-tick `new` trong `UpdateStopLimit/EmaPlace` (watchdog 500ms GC).
+  - `SwingOps:31` `IndexOfCandleBar` static helper thay `Func<DateTime,int> mapTime` closure — 0 alloc, testable.
+  - `KatTradeManager.OrderOps:60` `GetAccountOrdersSnapshot/Positions` + `GetInstrumentPosition:52` null-guard `account==null||Orders==null||Positions==null` → `new List<>`/`null` tránh NRE khi `SwitchAccount(null)` race watchdog.
+
 ### [v1.88] — 2026-08-08
 - **Feat — Program label color + opacity setting (default 80% trong suốt)**
   - User yêu cầu 1 setting chung chỉnh màu và độ trong suốt riêng cho 8 nút Program, default mờ 80% như hiện tại Program (khác ATM/DD trắng rõ 100%).
