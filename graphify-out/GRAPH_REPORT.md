@@ -1,16 +1,16 @@
 # Graph Report - nt8-kat-TradeManager  (2026-08-07)
 
 ## Corpus Check
-- 39 files · ~62,338 words
+- 39 files · ~62,768 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 732 nodes · 1412 edges · 40 communities (17 shown, 23 thin omitted)
+- 734 nodes · 1421 edges · 41 communities (18 shown, 23 thin omitted)
 - Extraction: 86% EXTRACTED · 14% INFERRED · 0% AMBIGUOUS · INFERRED: 202 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `59a5c79a`
+- Built from commit: `7db38885`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -45,9 +45,10 @@
 - [[_COMMUNITY_Community 27|Community 27]]
 - [[_COMMUNITY_Community 28|Community 28]]
 - [[_COMMUNITY_Community 29|Community 29]]
+- [[_COMMUNITY_Community 30|Community 30]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `KatTradeManager` - 97 edges
+1. `KatTradeManager` - 99 edges
 2. `KatTradeManager` - 97 edges
 3. `KatTradeManager` - 49 edges
 4. `KatTradeCalculator` - 48 edges
@@ -59,44 +60,48 @@
 10. `KatTradeCalculatorTests` - 22 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `KatTradeManager` --references--> `string`  [EXTRACTED]
+  KatTradeManager.cs → src/KatTradeManagerUI.cs
 - `KatTradeManager` --references--> `ComboBox`  [EXTRACTED]
   KatTradeManager.cs → src/KatTradeManagerUI.cs
 - `KatTradeManager` --references--> `DispatcherTimer`  [EXTRACTED]
   KatTradeManager.cs → src/KatTradeManagerUI.cs
-- `KatTradeManager` --references--> `DateTime`  [EXTRACTED]
-  src/KatTradeManager.OrderOps.cs → tests/KatTradeManager.Tests/KatEntryShiftTests.cs
-- `KatTradeManager` --references--> `DateTime`  [EXTRACTED]
-  src/KatTradeManagerUI.cs → tests/KatTradeManager.Tests/KatEntryShiftTests.cs
-- `KatTradeManager` --references--> `DateTime`  [EXTRACTED]
-  src/KatTradeManager.FreezeTrail.cs → tests/KatTradeManager.Tests/KatEntryShiftTests.cs
+- `KatTradeManager` --references--> `bool`  [EXTRACTED]
+  KatTradeManager.cs → src/KatTradeManagerUI.cs
+- `KatTradeManager` --references--> `double`  [EXTRACTED]
+  KatTradeManager.cs → src/KatTradeManagerUI.cs
 
-## Communities (40 total, 23 thin omitted)
+## Communities (41 total, 23 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.06
 Nodes (11): Button, Canvas, IInputElement, Point, SolidColorBrush, KatTradeManager, NinjaTrader.NinjaScript.Indicators, NinjaTrader.NinjaScript.Indicators.KAT (+3 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.07
-Nodes (4): OrderAction, Queue, KatTradeManager, KatTradeManager
+Cohesion: 0.08
+Nodes (3): OrderAction, Queue, KatTradeManager
 
 ### Community 2 - "Community 2"
-Cohesion: 0.05
-Nodes (37): Account, AccountOperationType, Action, AtmLevels, bool, Border, ComboBox, DateTime (+29 more)
-
-### Community 5 - "Community 5"
 Cohesion: 0.11
 Nodes (4): KatTradeManager, NinjaTrader.NinjaScript.Indicators, NinjaTrader.NinjaScript.Indicators.KAT, KatTradeManager
 
-### Community 7 - "Community 7"
-Cohesion: 0.13
+### Community 5 - "Community 5"
+Cohesion: 0.11
+Nodes (12): Account, AtmLevels, Border, ComboBox, DispatcherTimer, EMA, Grid, Indicator (+4 more)
+
+### Community 6 - "Community 6"
+Cohesion: 0.07
+Nodes (26): AccountOperationType, Action, bool, DateTime, double, int, List, MarketPosition (+18 more)
+
+### Community 8 - "Community 8"
+Cohesion: 0.15
 Nodes (3): Dictionary, KatTradeManager, NinjaTrader.NinjaScript.Indicators.KAT
 
-### Community 12 - "Community 12"
+### Community 13 - "Community 13"
 Cohesion: 0.14
 Nodes (6): Brush, AtmTemplateNameConverter, KatTradeManager, NinjaTrader.NinjaScript.Indicators, NinjaTrader.NinjaScript.Indicators.KAT, TypeConverter
 
-### Community 24 - "Community 24"
+### Community 25 - "Community 25"
 Cohesion: 0.38
 Nodes (3): AtmTemplateData, KatAtmXmlParser, NinjaTrader.NinjaScript.Indicators
 
@@ -108,17 +113,17 @@ Nodes (3): AtmTemplateData, KatAtmXmlParser, NinjaTrader.NinjaScript.Indicators
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `KatTradeManager` connect `Community 1` to `Community 0`, `Community 2`, `Community 5`, `Community 7`?**
+- **Why does `KatTradeManager` connect `Community 1` to `Community 8`, `Community 2`, `Community 5`, `Community 6`?**
   _High betweenness centrality (0.109) - this node is a cross-community bridge._
-- **Why does `KatTradeManager` connect `Community 0` to `Community 2`, `Community 12`, `Community 5`?**
-  _High betweenness centrality (0.095) - this node is a cross-community bridge._
-- **Why does `string` connect `Community 2` to `Community 0`, `Community 1`, `Community 4`, `Community 12`?**
+- **Why does `KatTradeManager` connect `Community 0` to `Community 13`, `Community 2`, `Community 5`, `Community 6`?**
+  _High betweenness centrality (0.097) - this node is a cross-community bridge._
+- **Why does `string` connect `Community 6` to `Community 0`, `Community 1`, `Community 3`, `Community 5`, `Community 13`?**
   _High betweenness centrality (0.088) - this node is a cross-community bridge._
 - **What connects `NinjaTrader.NinjaScript.Indicators.KAT`, `Account`, `Grid` to the rest of the system?**
   _58 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.06 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.07 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
-  _Cohesion score 0.05 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.11 - nodes in this community are weakly interconnected._

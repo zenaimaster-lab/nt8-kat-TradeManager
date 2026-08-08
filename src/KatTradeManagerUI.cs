@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.51 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.52 (2026-08-08) */
 
 using System;
 using System.Collections.Generic;
@@ -59,6 +59,35 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			}
 			catch { return new SolidColorBrush(Color.FromArgb(128, 255, 255, 255)); }
 		}
+		private void SetButtonLabel(Button btn, string text)
+		{
+			if (btn == null) return;
+			if (btn.Content is TextBlock tb)
+			{
+				if (tb.Text != text) tb.Text = text;
+			}
+			else if (btn.Content is string s)
+			{
+				if (s == text)
+				{
+					// replace string with centered TextBlock for proper distribution/trim
+					btn.Content = new TextBlock { Text = text, TextAlignment = TextAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap };
+				}
+				else btn.Content = new TextBlock { Text = text, TextAlignment = TextAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap };
+			}
+			else
+			{
+				btn.Content = new TextBlock { Text = text, TextAlignment = TextAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap };
+			}
+			btn.HorizontalContentAlignment = HorizontalAlignment.Center;
+			btn.VerticalContentAlignment = VerticalAlignment.Center;
+		}
+		private string GetButtonLabel(Button btn)
+		{
+			if (btn == null) return null;
+			if (btn.Content is TextBlock tb) return tb.Text;
+			return btn.Content as string;
+		}
 		private ComboBox accSelector;
 		private Button btnStopLimit;
 		private Button btnEmaPlace;
@@ -69,8 +98,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private readonly SolidColorBrush profileOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
 		private readonly SolidColorBrush[] profileRowOnBgs = new SolidColorBrush[]
 		{
-			new SolidColorBrush(Color.FromRgb(20, 110, 110)), // Row0 (P1-P3) teal — distinct from discipline blues
-			new SolidColorBrush(Color.FromRgb(135, 35, 65)),  // Row1 (P4-P6) rose — distinct from ATM amber
+			new SolidColorBrush(Color.FromRgb(20, 110, 110)), // Row0 (P1-P4) teal — distinct from discipline blues
+			new SolidColorBrush(Color.FromRgb(135, 35, 65)),  // Row1 (P5-P8) rose — distinct from ATM amber
 		};
 		// Row-based ON colors: 2 buttons per row share same shade (3 rows)
 		private readonly SolidColorBrush[] disciplineRowBgs = new SolidColorBrush[]
@@ -389,8 +418,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				atmSetButtons[i].Foreground = labelBrush;
 				atmSetButtons[i].FontSize = fs;
 				string expected = GetAtmSetName(i);
-				if (atmSetButtons[i].Content as string != expected)
-					atmSetButtons[i].Content = expected;
+				if (GetButtonLabel(atmSetButtons[i]) != expected)
+					SetButtonLabel(atmSetButtons[i], expected);
 			}
 		}
 
@@ -458,8 +487,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				dailyRiskPresetButtons[i].Foreground = labelBrush;
 				dailyRiskPresetButtons[i].FontSize = fs;
 				string expected = GetDailyRiskPresetName(i);
-				if (dailyRiskPresetButtons[i].Content as string != expected)
-					dailyRiskPresetButtons[i].Content = expected;
+				if (GetButtonLabel(dailyRiskPresetButtons[i]) != expected)
+					SetButtonLabel(dailyRiskPresetButtons[i], expected);
 			}
 		}
 
@@ -612,10 +641,10 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					tradingProfileButtons[i].Foreground = labelBrush;
 				}
 				tradingProfileButtons[i].FontSize = fs;
-				// keep label in sync if user changed name in settings without rebuild
+				// keep label centered with trimming — avoids overlap/missing as in screenshot P1-P8
 				string expected = GetTradingProfileName(i);
-				if (tradingProfileButtons[i].Content as string != expected)
-					tradingProfileButtons[i].Content = expected;
+				if (GetButtonLabel(tradingProfileButtons[i]) != expected)
+					SetButtonLabel(tradingProfileButtons[i], expected);
 				try
 				{
 					string tAcc2 = GetTradingProfileAccount(i);
@@ -669,7 +698,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			if (allOn)
 			{
 				StackPanel sp = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-				TextBlock icon = new TextBlock { Text = "⚡", Foreground = new SolidColorBrush(Color.FromRgb(255, 140, 0)), FontSize = 11, Margin = new Thickness(0, 0, 4, 0), VerticalAlignment = VerticalAlignment.Center };
+				TextBlock icon = new TextBlock { Text = "⚡", Foreground = new SolidColorBrush(Color.FromRgb(255, 140, 0)), FontSize = 11, Margin = new Thickness(0, 0, 2, 0), VerticalAlignment = VerticalAlignment.Center };
 				TextBlock label = new TextBlock { Text = "DISCIPLINED", Foreground = Brushes.White, FontSize = 11, VerticalAlignment = VerticalAlignment.Center };
 				sp.Children.Add(icon);
 				sp.Children.Add(label);
@@ -1283,10 +1312,13 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				for (int cc = 0; cc < 4; cc++)
 				{
 					int idx = prow * 4 + cc;
-					Button pBtn = CreateButton(GetTradingProfileName(idx), profileOffBg, null, 22, GetQuickSetFontSize());
+					Button pBtn = CreateButton("", profileOffBg, null, 22, GetQuickSetFontSize());
+					SetButtonLabel(pBtn, GetTradingProfileName(idx));
 					pBtn.Foreground = GetQuickSetLabelBrush();
-					pBtn.Margin = cc == 0 ? new Thickness(0) : new Thickness(2, 0, 0, 0);
+					pBtn.Margin = cc == 0 ? new Thickness(0) : new Thickness(4, 0, 0, 0);
 					pBtn.HorizontalAlignment = HorizontalAlignment.Stretch;
+					pBtn.HorizontalContentAlignment = HorizontalAlignment.Center;
+					pBtn.VerticalContentAlignment = VerticalAlignment.Center;
 					int captured = idx;
 					pBtn.Click += (s, ev) => ApplyTradingProfile(captured);
 					Grid.SetColumn(pBtn, cc);
@@ -1412,10 +1444,13 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			for (int i = 0; i < 8; i++)
 			{
 				int setIdx = i;
-				Button setBtn = CreateButton(GetAtmSetName(setIdx), atmSetOffBg, null, 22, GetQuickSetFontSize());
+				Button setBtn = CreateButton("", atmSetOffBg, null, 22, GetQuickSetFontSize());
+				SetButtonLabel(setBtn, GetAtmSetName(setIdx));
 				setBtn.Foreground = GetQuickSetLabelBrush();
-				setBtn.Margin = i == 0 ? new Thickness(0) : new Thickness(2, 0, 0, 0);
+				setBtn.Margin = i == 0 ? new Thickness(0) : new Thickness(3, 0, 0, 0);
 				setBtn.HorizontalAlignment = HorizontalAlignment.Stretch;
+				setBtn.HorizontalContentAlignment = HorizontalAlignment.Center;
+				setBtn.VerticalContentAlignment = VerticalAlignment.Center;
 				setBtn.Click += (s, ev) => ApplyAtmSetSelection(setIdx);
 				Grid.SetColumn(setBtn, setIdx);
 				atmSetButtons[setIdx] = setBtn;
@@ -1682,10 +1717,13 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			for (int i = 0; i < 6; i++)
 			{
 				int presetIdx = i;
-				Button presetButton = CreateButton(GetDailyRiskPresetName(presetIdx), dailyRiskPresetOffBg, null, 22, GetQuickSetFontSize());
+				Button presetButton = CreateButton("", dailyRiskPresetOffBg, null, 22, GetQuickSetFontSize());
+				SetButtonLabel(presetButton, GetDailyRiskPresetName(presetIdx));
 				presetButton.Foreground = GetQuickSetLabelBrush();
-				presetButton.Margin = i == 0 ? new Thickness(0) : new Thickness(2, 0, 0, 0);
+				presetButton.Margin = i == 0 ? new Thickness(0) : new Thickness(3, 0, 0, 0);
 				presetButton.HorizontalAlignment = HorizontalAlignment.Stretch;
+				presetButton.HorizontalContentAlignment = HorizontalAlignment.Center;
+				presetButton.VerticalContentAlignment = VerticalAlignment.Center;
 				presetButton.Click += (s, ev) => ApplyDailyRiskPreset(presetIdx);
 				Grid.SetColumn(presetButton, presetIdx);
 				dailyRiskPresetButtons[presetIdx] = presetButton;
@@ -1713,7 +1751,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			{
 				btnDisciplineAll = CreateButton("DISCIPLINED", disciplineAllOnBg, null, 26, 11);
 				StackPanel spInit = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-				TextBlock iconInit = new TextBlock { Text = "⚡", Foreground = new SolidColorBrush(Color.FromRgb(255, 140, 0)), FontSize = 11, Margin = new Thickness(0, 0, 4, 0), VerticalAlignment = VerticalAlignment.Center };
+				TextBlock iconInit = new TextBlock { Text = "⚡", Foreground = new SolidColorBrush(Color.FromRgb(255, 140, 0)), FontSize = 11, Margin = new Thickness(0, 0, 2, 0), VerticalAlignment = VerticalAlignment.Center };
 				TextBlock labelInit = new TextBlock { Text = "DISCIPLINED", Foreground = Brushes.White, FontSize = 11, VerticalAlignment = VerticalAlignment.Center };
 				spInit.Children.Add(iconInit);
 				spInit.Children.Add(labelInit);

@@ -23,6 +23,14 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.52] — 2026-08-08
+- **HUD design polish — even distribution + centered P1-P8 + tighter ⚡ gap + 10-loop re-audit**:
+  - **1. Even distribution**: `src/KatTradeManagerUI.cs:1304` Profile `2×4` Grid `4 star` `HorizontalAlignment Stretch` + button `Margin 4,0,0,0` (first 0) gap đều 4px giữa 4 nút (thay `7 cols` gap-column 2px rounding), ATM `8 star` gap 3px `Margin 3`, DailyRisk `6 star` gap 3px — `CreateSectionCard Padding 6` outer đều, star `1*` share leftover → buttons equal width, justify full width nhìn đều và đẹp.
+  - **2. Label center không overlap/mất**: `CreateButton:1794` `Padding 2,0` + `HorizontalContentAlignment Center`/`VerticalContentAlignment Center`/`HorizontalAlignment Stretch`, helper mới `SetButtonLabel/GetButtonLabel:62` tạo `TextBlock {TextAlignment Center, HorizontalAlignment Center, TextTrimming CharacterEllipsis, NoWrap}` thay `string` — `UpdateAtmSetButtons/UpdateDailyRiskPresetButtons/UpdateTradingProfileButtons` dùng `GetButtonLabel/SetButtonLabel` để thay thế so sánh `as string` cũ, `CreateWpfControls:1315/1444/1717` `PBtn/SetBtn/presetButton` sau `CreateButton("")` gọi ngay `SetButtonLabel` với `Get*Name` + `Foreground GetQuickSetLabelBrush()` + `FontSize GetQuickSetFontSize()` — fix screenshot `P1 P1 P P` chỉ hiện `P` do `string` left-align và bị gap-column lệch phải clip; giờ `P1-P8` center, ellipsis nếu 8 chars vượt.
+  - **3. ⚡ gần DISCI** `UpdateDisciplineAllButton:701` + `CreateWpfControls:1745` icon `TextBlock Margin 0,0,4,0 → 0,0,2,0` giảm 2px khoảng cách sét-chữ cho gọn.
+  - **Re-audit 10 loops** qua toàn bộ add/sửa: (1) Brush freeze cross-thread (2) Profile 8 migration (3) `j<8 row i/4` highlight (4) debounce (5) opacity clamp (6) font clamp (7) DailyRisk sync (8) AtmSet sync (9) StopLimit 18,6,48 (10) Center/Trim/Even gap — `dotnet build` 0 errors, 197 tests, deploy recompiled.
+  - Verify: CompileCheck 0 errors (2 obsolete), 197/197 tests, Deploy 11 files.
+  - Graphify entity mapping: `KatTradeManagerUI.SetButtonLabel/GetButtonLabel/CreateButton(center)`, `KatTradeManagerUI.CreateWpfControls(distribution 4/8/6 star)`, `KatTradeManagerUI.UpdateDisciplineAllButton(⚡ margin 2)`.
 ### [v1.51] — 2026-08-08
 - **Hotfix — QuickSetLabelColor thread-ownership + Program button overlap/right-align (10-loop re-audit)**:
   - **Root cause 1 (Error popup)**: `QuickSetLabelColor` `Brush` là `DispatcherObject` có thread affinity — `NinjaScript` property getter bị NT8 gọi từ background thread (property grid / serialize) nên `The calling thread cannot access this object because a different thread owns it`. `Brushes.White` tĩnh đã Frozen nên không lỗi, nhưng mọi `new SolidColorBrush(c)` tạo trên UI thread còn mutable thì cross-thread read throw. `src/KatTradeManager.Properties.cs:98` setter và `Serializable` setter trước không `Freeze()`.
