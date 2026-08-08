@@ -23,6 +23,11 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.70] — 2026-08-08
+- **Fix — revert MaxDD/Profit toggle opaque + preset height sync**
+  - `KatTradeManagerUI:1697` `dailyOnBg` `58,19,107` revert `FromArgb(51)` → `FromRgb` opaque — chỉ quick-set `atmSetOnBg` + `dailyRiskPresetOnBg` giữ `51` (80% transperant) per correction; toggle ON/OFF MaxDD/Profit đặc như cũ.
+  - `KatTradeManagerUI:1750` 6 `dailyRiskPresetButtons` height `24` ≡ `btnDailyMaxDD/Profit` `24` (6-col grid) — đã bằng nhau, giữ sync; không đổi height.
+
 ### [v1.69] — 2026-08-08
 - **UI — Program larger + left inset, ATM/DD ON 80% transparent**
   - `KatTradeManagerUI:29/32` `atmSetOnBg` amber + `dailyRiskPresetOnBg` purple → `Color.FromArgb(51, ...)` 80% trong suốt (alpha 51, rất mờ) per request; `sec4Panel dailyOnBg:1697` `58,19,107` cùng `51` cho MaxDD/MaxProfit toggle ON.

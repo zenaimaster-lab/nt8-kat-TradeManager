@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.69 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.70 (2026-08-08) */
 // ponytail: many catch{} for UI button updates are expected (control not yet created, dispatcher not ready) — silent. Critical watchdog tick already logs.
 
 using System;
@@ -1699,7 +1699,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			// Daily Max DD + Daily Max Profit side-by-side — share 6-col base with preset row for pixel-perfect center
 			Grid dailyRiskGrid = CreateSixColumnGrid(HudGap, HudGap, HudGap);
 
-			SolidColorBrush dailyOnBg = new SolidColorBrush(Color.FromArgb(51, 58, 19, 107)); // 80% transparent ON per request (alpha 51)
+			SolidColorBrush dailyOnBg = new SolidColorBrush(Color.FromRgb(58, 19, 107)); // opaque — quick-set ON is transparent, toggle stays solid per correction
 
 			Button btnDailyMaxDD = CreateButton(cachedIsDailyMaxDD ? "Max DD: ON" : "Max DD: OFF",
 				cachedIsDailyMaxDD ? dailyOnBg : toggleOffBg, null, 24, 10);
