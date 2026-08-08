@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.82 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.83 (2026-08-08) */
 // ponytail: many catch{} for UI button updates are expected (control not yet created, dispatcher not ready) — silent. Critical watchdog tick already logs.
 
 using System;
@@ -30,6 +30,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private Button[] dailyRiskPresetButtons;
 		private readonly SolidColorBrush dailyRiskPresetOffBg = new SolidColorBrush(Color.FromArgb(128, 45, 50, 65)); // gray OFF 50% transparent per request (dim)
 		private readonly SolidColorBrush dailyRiskPresetOnBg = new SolidColorBrush(Color.FromArgb(51, 36, 7, 72)); // 80% transparent ON per request
+		private static ControlTemplate _quickSetButtonTemplate;
 		private Button[] disciplineButtons;
 		private Button btnDisciplineAll;
 		private readonly SolidColorBrush disciplineOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
@@ -1548,7 +1549,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			sec1Panel.Children.Add(atmSelector);
 
-			// --- ATM Quick Set buttons (A–H), 8 in single row — hard white + larger font, use default template (custom template may clip narrow buttons)
+			// --- ATM Quick Set buttons (A–H), 8 in single row — robust quick-set template (TextBlock bound to Content)
 			atmSetButtons = new Button[8];
 			Grid atmSetGrid = CreateEightColumnGrid(0, HudGap, HudGap);
 			for (int i = 0; i < 8; i++)
@@ -1558,8 +1559,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				double fsAtm = Math.Min(14, fsAtmBase + 2);
 				string atmLabel = GetAtmSetName(setIdx);
 				Button setBtn = CreateButton(atmLabel, atmSetOffBg, null, 22, fsAtm);
-				// Bypass custom HUD template for narrow quick-set — default template renders text reliably
-				setBtn.ClearValue(Button.TemplateProperty);
+				setBtn.Template = GetQuickSetButtonTemplate();
 				setBtn.Foreground = Brushes.White;
 				setBtn.FontSize = fsAtm;
 				setBtn.FontWeight = FontWeights.SemiBold;
@@ -1567,7 +1567,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				setBtn.VerticalContentAlignment = VerticalAlignment.Center;
 				setBtn.Padding = new Thickness(1, 0, 1, 0);
 				setBtn.BorderThickness = new Thickness(0);
-				// Ensure Content is plain string — no TextBlock inherit issue
 				setBtn.Content = atmLabel;
 				setBtn.Click += (s, ev) => ApplyAtmSetSelection(setIdx);
 				Grid.SetColumn(setBtn, setIdx * 2);
@@ -1575,11 +1574,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				atmSetGrid.Children.Add(setBtn);
 			}
 			sec1Panel.Children.Add(atmSetGrid);
-			// Diagnostic: show labels as text below grid to prove data non-empty
-			{
-				var diagAtm = new TextBlock { Text = string.Join(" ", Enumerable.Range(0, 8).Select(k => GetAtmSetName(k))), Foreground = Brushes.Yellow, FontSize = 8, Margin = new Thickness(0, 2, 0, 0), HorizontalAlignment = HorizontalAlignment.Center, TextAlignment = TextAlignment.Center, Opacity = 0.9 };
-				sec1Panel.Children.Add(diagAtm);
-			}
 			UpdateAtmSetButtons();
 			mainPanel.Children.Add(CreateSectionCard(sec1Panel, HudGap));
 
@@ -1808,7 +1802,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			sec4Panel.Children.Add(dailyRiskGrid);
 
-			// Daily Risk Quick Set buttons: hard white + default template
+			// Daily Risk Quick Set buttons: robust quick-set template
 			dailyRiskPresetButtons = new Button[6];
 			Grid dailyRiskPresetGrid = CreateSixColumnGrid(0, HudGap, HudGap);
 			for (int i = 0; i < 6; i++)
@@ -1818,7 +1812,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				double fsDr = Math.Min(14, fsDrBase + 2);
 				string drLabel = GetDailyRiskPresetName(presetIdx);
 				Button presetButton = CreateButton(drLabel, dailyRiskPresetOffBg, null, 24, fsDr);
-				presetButton.ClearValue(Button.TemplateProperty);
+				presetButton.Template = GetQuickSetButtonTemplate();
 				presetButton.Foreground = Brushes.White;
 				presetButton.FontSize = fsDr;
 				presetButton.FontWeight = FontWeights.SemiBold;
@@ -1833,10 +1827,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				dailyRiskPresetGrid.Children.Add(presetButton);
 			}
 			sec4Panel.Children.Add(dailyRiskPresetGrid);
-			{
-				var diagDd = new TextBlock { Text = string.Join(" ", Enumerable.Range(0, 6).Select(k => GetDailyRiskPresetName(k))), Foreground = Brushes.Yellow, FontSize = 8, Margin = new Thickness(0, 2, 0, 0), HorizontalAlignment = HorizontalAlignment.Center, TextAlignment = TextAlignment.Center, Opacity = 0.9 };
-				sec4Panel.Children.Add(diagDd);
-			}
 			UpdateDailyRiskPresetButtons();
 
 			mainPanel.Children.Add(CreateSectionCard(sec4Panel, HudGap));
@@ -1969,6 +1959,32 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			border.AppendChild(cp);
 			_hudButtonTemplate = new ControlTemplate(typeof(Button)) { VisualTree = border };
 			return _hudButtonTemplate;
+		}
+
+		private static ControlTemplate GetQuickSetButtonTemplate()
+		{
+			if (_quickSetButtonTemplate != null) return _quickSetButtonTemplate;
+			var border = new FrameworkElementFactory(typeof(Border), "root");
+			border.SetBinding(Border.BackgroundProperty, new System.Windows.Data.Binding("Background") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent) });
+			border.SetBinding(Border.BorderBrushProperty, new System.Windows.Data.Binding("BorderBrush") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent) });
+			border.SetBinding(Border.BorderThicknessProperty, new System.Windows.Data.Binding("BorderThickness") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent) });
+			border.SetValue(Border.CornerRadiusProperty, new CornerRadius(3));
+			border.SetValue(Border.SnapsToDevicePixelsProperty, true);
+			border.SetValue(Border.UseLayoutRoundingProperty, true);
+			var tb = new FrameworkElementFactory(typeof(TextBlock), "label");
+			tb.SetBinding(TextBlock.TextProperty, new System.Windows.Data.Binding("Content") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent) });
+			tb.SetBinding(TextBlock.ForegroundProperty, new System.Windows.Data.Binding("Foreground") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent) });
+			tb.SetBinding(TextBlock.FontSizeProperty, new System.Windows.Data.Binding("FontSize") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent) });
+			tb.SetBinding(TextBlock.FontWeightProperty, new System.Windows.Data.Binding("FontWeight") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent) });
+			tb.SetValue(TextBlock.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+			tb.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
+			tb.SetValue(TextBlock.TextAlignmentProperty, TextAlignment.Center);
+			tb.SetValue(TextBlock.TextTrimmingProperty, TextTrimming.CharacterEllipsis);
+			tb.SetValue(TextBlock.TextWrappingProperty, TextWrapping.NoWrap);
+			tb.SetValue(TextBlock.MarginProperty, new Thickness(1, 0, 1, 0));
+			border.AppendChild(tb);
+			_quickSetButtonTemplate = new ControlTemplate(typeof(Button)) { VisualTree = border };
+			return _quickSetButtonTemplate;
 		}
 
 		private void ShowHudStatus(string message, Brush foreground)

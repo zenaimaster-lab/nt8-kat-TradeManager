@@ -23,6 +23,11 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.83] — 2026-08-08
+- **Fix — ATM/DD label hiện đúng trên button (robust TextBlock template, bỏ diag)**
+  - Sau v1.82 diag vàng hiện `abcd17.GH` / `2:5 1:3...` chứng minh `GetAtmSetName`/`GetDailyRiskPresetName` data non-empty, nhưng 8/6 nút vẫn trống; `ClearValue(Template)` dùng default NT8 theme cũng không render string trên star Grid hẹp; diag vàng lại hiện thành 1 dãy dưới button như user báo.
+  - Fix: thêm `GetQuickSetButtonTemplate:1975` — `Border` + `TextBlock` bound `Text={TemplateBinding Content}`, `Foreground={TemplateBinding Foreground}`, `FontSize/Weight` bound, `CornerRadius 3`, `Margin 1,0,1,0`, `Center`; `CreateWpfControls:1552/1805` `Template = GetQuickSetButtonTemplate()` + `Foreground White` + `fsUse = min(14, GetQuickSetFontSize()+2)` + `Content = label` string; bỏ diag `TextBlock` vàng; `UpdateAtmSetButtons:602` / `UpdateDailyRiskPresetButtons:685` chỉ set `Content = expected` string + `Foreground/FontSize` mỗi tick.
+
 ### [v1.82] — 2026-08-08
 - **Fix — ATM/DD vẫn blank, lỗi không phải màu (dùng default template + string Content)**
   - User báo v1.81 Program lại trắng 100% nhưng ATM 8 ô + DD 6 ô vẫn trống hoàn toàn, khẳng định lỗi không phải màu `Brushes.White` — text rỗng hoặc không render qua `ControlTemplate.ContentPresenter` custom. V1.81 vẫn dùng `CreateButton` với `GetHudButtonTemplate` + `TextBlock` explicit nhưng narrow star Grid có thể clip.
