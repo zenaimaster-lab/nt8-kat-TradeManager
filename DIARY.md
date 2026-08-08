@@ -23,6 +23,13 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.49] — 2026-08-08
+- **HUD polish — StopLimit very dark purple + EmaZoneOnly border OFF + DISCIPLINED blaze gold**:
+  - **1. StopLimit ON very dark purple**: `CreateWpfControls:1539` `stopLimitOnBg` `180,90,20` amber → `48,14,80` very dark purple (`#301050`), `UpdateStopLimitButton:48,14,80` off `45,50,65` gray giữ — đồng bộ palette tím với DISCIPLINED.
+  - **2. EmaZoneOnly khi ON bỏ viền tím**: `UpdateEmaPlaceButton` + `CreateWpfControls:1652` nếu `cachedIsEmaPlace` ON → `BorderThickness 0` `Transparent`, OFF → `1` `75,30,110` purple — đúng yêu cầu “khi On ko có viền sáng tím”.
+  - **3. DISCIPLINED blaze + gold border**: `UpdateDisciplineAllButton` khi `IsDisciplineAllOn()` ON tạo `StackPanel` `TextBlock ⚡ #FF8C00 orange` + `DISCIPLINED white` font 11, nền `disciplineAllOnBg 12,35,75` dark blue, viền `255,215,0` gold `1.5px`; OFF `UN-DISCIPLINED` nền `55,20,85` purple viền `75,30,110` 1px — `CreateWpfControls:1644` init cùng logic.
+  - Verify: CompileCheck 0 errors, Deploy 11 files.
+  - Graphify entity mapping: `KatTradeManagerUI.UpdateStopLimitButton(very dark purple)`, `KatTradeManagerUI.UpdateEmaPlaceButton(border 0/1)`, `KatTradeManagerUI.UpdateDisciplineAllButton(blaze+gold)`.
 ### [v1.48] — 2026-08-08
 - **Fix — Buy/Sell market lag ~1s do FIFO queue block (head-of-line)**:
   - **Root cause** `src/KatTradeManager.Queue.cs:95` `ScheduleAccountOperationPump` dùng `Dispatcher.BeginInvoke(Pump)` + `Pump:224` block mọi op mới khi `active != null` chờ `IsAccountOperationSettled:135` (Submit phải rời `Submitted`). `MergeAtmBrackets:272` enqueue `Change/Cancel` brackets mỗi 500ms/watchdog + mỗi `OrderUpdate`. Market click thường rơi sau bracket `ChangePending` → chờ broker 100-400ms + poll `OnPanelWatchdogTick:106` 500ms ⇒ ~0.8-1s. Log `queued` → `dispatch` delay khớp report. `EntryDebounceMs 500` `OrderOps.cs:103` cũng drop click thứ 2 trong 500ms.

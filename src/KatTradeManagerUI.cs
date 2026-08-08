@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.48 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.49 (2026-08-08) */
 
 using System;
 using System.Collections.Generic;
@@ -585,7 +585,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		{
 			if (btnStopLimit == null) return;
 			SolidColorBrush offBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
-			SolidColorBrush onBg = new SolidColorBrush(Color.FromRgb(180, 90, 20));
+			SolidColorBrush onBg = new SolidColorBrush(Color.FromRgb(48, 14, 80)); // very dark purple
 			btnStopLimit.Content = cachedIsStopLimit ? "Stop-Limit: ON" : "Stop-Limit: OFF";
 			btnStopLimit.Background = cachedIsStopLimit ? onBg : offBg;
 			btnStopLimit.Foreground = cachedIsStopLimit ? Brushes.White : Brushes.LightGray;
@@ -599,6 +599,17 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			btnEmaPlace.Content = "EmaZoneOnly";
 			btnEmaPlace.Background = cachedIsEmaPlace ? onBg : offBg;
 			btnEmaPlace.Foreground = cachedIsEmaPlace ? Brushes.White : Brushes.LightGray;
+			// ON: no bright purple border
+			if (cachedIsEmaPlace)
+			{
+				btnEmaPlace.BorderThickness = new Thickness(0);
+				btnEmaPlace.BorderBrush = Brushes.Transparent;
+			}
+			else
+			{
+				btnEmaPlace.BorderBrush = new SolidColorBrush(Color.FromRgb(75, 30, 110));
+				btnEmaPlace.BorderThickness = new Thickness(1);
+			}
 		}
 
 		private bool IsDisciplineAllOn()
@@ -610,9 +621,27 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		{
 			if (btnDisciplineAll == null) return;
 			bool allOn = IsDisciplineAllOn();
-			btnDisciplineAll.Content = allOn ? "DISCIPLINED" : "UN-DISCIPLINED";
-			btnDisciplineAll.Background = allOn ? disciplineAllOnBg : disciplineAllOffBg;
-			btnDisciplineAll.Foreground = Brushes.White;
+			if (allOn)
+			{
+				StackPanel sp = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+				TextBlock icon = new TextBlock { Text = "⚡", Foreground = new SolidColorBrush(Color.FromRgb(255, 140, 0)), FontSize = 11, Margin = new Thickness(0, 0, 4, 0), VerticalAlignment = VerticalAlignment.Center };
+				TextBlock label = new TextBlock { Text = "DISCIPLINED", Foreground = Brushes.White, FontSize = 11, VerticalAlignment = VerticalAlignment.Center };
+				sp.Children.Add(icon);
+				sp.Children.Add(label);
+				btnDisciplineAll.Content = sp;
+				btnDisciplineAll.Background = disciplineAllOnBg;
+				btnDisciplineAll.Foreground = Brushes.White;
+				btnDisciplineAll.BorderBrush = new SolidColorBrush(Color.FromRgb(255, 215, 0)); // bright gold
+				btnDisciplineAll.BorderThickness = new Thickness(1.5);
+			}
+			else
+			{
+				btnDisciplineAll.Content = "UN-DISCIPLINED";
+				btnDisciplineAll.Background = disciplineAllOffBg;
+				btnDisciplineAll.Foreground = Brushes.White;
+				btnDisciplineAll.BorderBrush = new SolidColorBrush(Color.FromRgb(75, 30, 110));
+				btnDisciplineAll.BorderThickness = new Thickness(1);
+			}
 		}
 
 		private void ApplyTradingProfile(int idx)
@@ -1536,7 +1565,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			StackPanel sec4Panel = new StackPanel();
 
 			SolidColorBrush toggleOffBg   = new SolidColorBrush(Color.FromRgb(45, 50, 65));
-			SolidColorBrush stopLimitOnBg = new SolidColorBrush(Color.FromRgb(180, 90, 20)); // Dark amber accent when active
+			SolidColorBrush stopLimitOnBg = new SolidColorBrush(Color.FromRgb(48, 14, 80)); // very dark purple when ON
 
 			btnStopLimit = CreateButton(cachedIsStopLimit ? "Stop-Limit: ON" : "Stop-Limit: OFF",
 				cachedIsStopLimit ? stopLimitOnBg : toggleOffBg, null, 24, 10);
@@ -1641,19 +1670,43 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			allToggleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 			allToggleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
 			allToggleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			btnDisciplineAll = CreateButton(allOnInit ? "DISCIPLINED" : "UN-DISCIPLINED", allOnInit ? disciplineAllOnBg : disciplineAllOffBg, null, 26, 11);
+			// Discipline All — ON: blaze orange + gold border, OFF: plain + purple border
+			if (allOnInit)
+			{
+				btnDisciplineAll = CreateButton("DISCIPLINED", disciplineAllOnBg, null, 26, 11);
+				StackPanel spInit = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+				TextBlock iconInit = new TextBlock { Text = "⚡", Foreground = new SolidColorBrush(Color.FromRgb(255, 140, 0)), FontSize = 11, Margin = new Thickness(0, 0, 4, 0), VerticalAlignment = VerticalAlignment.Center };
+				TextBlock labelInit = new TextBlock { Text = "DISCIPLINED", Foreground = Brushes.White, FontSize = 11, VerticalAlignment = VerticalAlignment.Center };
+				spInit.Children.Add(iconInit);
+				spInit.Children.Add(labelInit);
+				btnDisciplineAll.Content = spInit;
+				btnDisciplineAll.BorderBrush = new SolidColorBrush(Color.FromRgb(255, 215, 0));
+				btnDisciplineAll.BorderThickness = new Thickness(1.5);
+			}
+			else
+			{
+				btnDisciplineAll = CreateButton("UN-DISCIPLINED", disciplineAllOffBg, null, 26, 11);
+				btnDisciplineAll.BorderBrush = new SolidColorBrush(Color.FromRgb(75, 30, 110));
+				btnDisciplineAll.BorderThickness = new Thickness(1);
+			}
 			btnDisciplineAll.Foreground = Brushes.White;
 			btnDisciplineAll.FontWeight = FontWeights.Normal;
-			btnDisciplineAll.BorderBrush = new SolidColorBrush(Color.FromRgb(75, 30, 110));
-			btnDisciplineAll.BorderThickness = new Thickness(1);
 			btnDisciplineAll.Click += (s, ev) => SetAllDiscipline(!IsDisciplineAllOn());
 			Grid.SetColumn(btnDisciplineAll, 0);
 			allToggleGrid.Children.Add(btnDisciplineAll);
 			btnEmaPlace = CreateButton("EmaZoneOnly", cachedIsEmaPlace ? disciplineAllOnBg : disciplineOffBg, null, 26, 11);
 			btnEmaPlace.Foreground = cachedIsEmaPlace ? Brushes.White : Brushes.LightGray;
 			btnEmaPlace.FontWeight = FontWeights.Normal;
-			btnEmaPlace.BorderBrush = new SolidColorBrush(Color.FromRgb(75, 30, 110));
-			btnEmaPlace.BorderThickness = new Thickness(1);
+			if (cachedIsEmaPlace)
+			{
+				btnEmaPlace.BorderBrush = Brushes.Transparent;
+				btnEmaPlace.BorderThickness = new Thickness(0);
+			}
+			else
+			{
+				btnEmaPlace.BorderBrush = new SolidColorBrush(Color.FromRgb(75, 30, 110));
+				btnEmaPlace.BorderThickness = new Thickness(1);
+			}
 			btnEmaPlace.Click += (s, ev) =>
 			{
 				cachedIsEmaPlace = !cachedIsEmaPlace;
