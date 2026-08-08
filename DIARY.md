@@ -23,6 +23,11 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.82] — 2026-08-08
+- **Fix — ATM/DD vẫn blank, lỗi không phải màu (dùng default template + string Content)**
+  - User báo v1.81 Program lại trắng 100% nhưng ATM 8 ô + DD 6 ô vẫn trống hoàn toàn, khẳng định lỗi không phải màu `Brushes.White` — text rỗng hoặc không render qua `ControlTemplate.ContentPresenter` custom. V1.81 vẫn dùng `CreateButton` với `GetHudButtonTemplate` + `TextBlock` explicit nhưng narrow star Grid có thể clip.
+  - Fix: `CreateWpfControls:1578/1849` `ClearValue(Button.TemplateProperty)` dùng default NT8 Button template (hiển thị string đáng tin cậy như Program trước custom), `Content = label` string trực tiếp (không `TextBlock`), `Foreground Brushes.White`, `FontSize fsUse = min(14, GetQuickSetFontSize()+2)`, `FontWeight SemiBold`, `Padding 1,0,1,0`, `Border 0`; thêm diag `TextBlock` vàng `string.Join(" ", GetAtmSetName)` / `GetDailyRiskPresetName` để chứng minh data non-empty. `UpdateAtmSetButtons:602` + `UpdateDailyRiskPresetButtons:689` chỉ set `Content = expected` string + `Foreground/FontSize` mỗi tick, nếu `Content is TextBlock` cũ thì thay bằng string.
+
 ### [v1.81] — 2026-08-08
 - **Fix — ATM/DD quick-set vẫn blank (force white + fs+2 + string fallback)**
   - Sau v1.80 screenshot 05:35:46 `KAT TradeManager v1.80` 8 ô ATM nâu/xám + 6 ô DD xám trống dù Program `FN-Eva` thấy → `GetSmallQuickSetLabelBrush` opaque + fallback `"A"/"1"` + `TextBlock` sync chưa đủ; nghi `ControlTemplate.ContentPresenter` không inherit `Brushes.White` qua `Button.Foreground` trên star Grid hẹp, `fs 8` quá mờ.

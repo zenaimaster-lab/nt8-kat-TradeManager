@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.81 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.82 (2026-08-08) */
 // ponytail: many catch{} for UI button updates are expected (control not yet created, dispatcher not ready) — silent. Critical watchdog tick already logs.
 
 using System;
@@ -602,10 +602,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private void UpdateAtmSetButtons()
 		{
 			if (atmSetButtons == null) return;
-			// Use same label style as Program (visible) but keep small-button height; force string Content to avoid TextBlock template inherit bug
-			Brush labelBrush = GetQuickSetLabelBrush(); // Program uses 50% transparent white — visible; keep consistent
 			double fs = GetQuickSetFontSize();
-			double fsUse = Math.Min(14, fs + 2); // Program larger for readability
+			double fsUse = Math.Min(14, fs + 2);
 			for (int i = 0; i < atmSetButtons.Length; i++)
 			{
 				if (atmSetButtons[i] == null) continue;
@@ -614,35 +612,23 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					&& !string.IsNullOrEmpty(tpl)
 					&& tpl.Equals(cachedAtmTemplate, StringComparison.OrdinalIgnoreCase);
 				atmSetButtons[i].Background = on ? atmSetOnBg : atmSetOffBg;
-				atmSetButtons[i].Foreground = Brushes.White; // hard white — bypass QuickSetLabelColor var
+				atmSetButtons[i].Foreground = Brushes.White;
 				atmSetButtons[i].FontSize = fsUse;
-				atmSetButtons[i].FontWeight = FontWeights.Normal;
+				atmSetButtons[i].FontWeight = FontWeights.SemiBold;
 				atmSetButtons[i].HorizontalContentAlignment = HorizontalAlignment.Center;
 				atmSetButtons[i].VerticalContentAlignment = VerticalAlignment.Center;
-				atmSetButtons[i].Padding = new Thickness(2, 0, 2, 0);
+				atmSetButtons[i].Padding = new Thickness(1, 0, 1, 0);
+				atmSetButtons[i].BorderThickness = new Thickness(0);
 				string expected = GetAtmSetName(i);
-				// Force string Content + explicit TextBlock fallback — triệt để: if Button.Content is TextBlock we update, else set string
-				if (atmSetButtons[i].Content is TextBlock tb)
+				// triệt để: always set string Content — bypass TextBlock/template inherit bug; default template renders string reliably
+				try
 				{
-					if (tb.Text != expected) tb.Text = expected;
-					tb.Foreground = Brushes.White;
-					tb.FontSize = fsUse;
-					tb.TextAlignment = TextAlignment.Center;
-					tb.HorizontalAlignment = HorizontalAlignment.Center;
-					tb.VerticalAlignment = VerticalAlignment.Center;
-					tb.TextTrimming = TextTrimming.CharacterEllipsis;
-					tb.TextWrapping = TextWrapping.NoWrap;
-					tb.Margin = new Thickness(0);
-					tb.Padding = new Thickness(0);
-					tb.Opacity = 1;
-					tb.Visibility = Visibility.Visible;
-				}
-				else
-				{
-					atmSetButtons[i].Content = expected; // fallback string — ContentPresenter will render
-				}
-				// ensure labelBrush still applied via GetQuickSetLabelBrush for future, but hard white above guarantees visible
-				try { atmSetButtons[i].Foreground = Brushes.White; } catch {}
+					if (!string.Equals(atmSetButtons[i].Content as string, expected, StringComparison.Ordinal))
+						atmSetButtons[i].Content = expected;
+					// if still TextBlock from old template, replace with string
+					if (atmSetButtons[i].Content is TextBlock)
+						atmSetButtons[i].Content = expected;
+				} catch { atmSetButtons[i].Content = expected; }
 			}
 		}
 
@@ -696,7 +682,6 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			EvaluateDailyRiskLimits();
 		}
 
-		// triệt để: mirror Program — force white string Content, larger font
 		private void UpdateDailyRiskPresetButtons()
 		{
 			if (dailyRiskPresetButtons == null) return;
@@ -710,31 +695,19 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				dailyRiskPresetButtons[i].Background = on ? dailyRiskPresetOnBg : dailyRiskPresetOffBg;
 				dailyRiskPresetButtons[i].Foreground = Brushes.White;
 				dailyRiskPresetButtons[i].FontSize = fsUse;
-				dailyRiskPresetButtons[i].FontWeight = FontWeights.Normal;
+				dailyRiskPresetButtons[i].FontWeight = FontWeights.SemiBold;
 				dailyRiskPresetButtons[i].HorizontalContentAlignment = HorizontalAlignment.Center;
 				dailyRiskPresetButtons[i].VerticalContentAlignment = VerticalAlignment.Center;
-				dailyRiskPresetButtons[i].Padding = new Thickness(2, 0, 2, 0);
+				dailyRiskPresetButtons[i].Padding = new Thickness(1, 0, 1, 0);
+				dailyRiskPresetButtons[i].BorderThickness = new Thickness(0);
 				string expected = GetDailyRiskPresetName(i);
-				if (dailyRiskPresetButtons[i].Content is TextBlock tb)
+				try
 				{
-					if (tb.Text != expected) tb.Text = expected;
-					tb.Foreground = Brushes.White;
-					tb.FontSize = fsUse;
-					tb.TextAlignment = TextAlignment.Center;
-					tb.HorizontalAlignment = HorizontalAlignment.Center;
-					tb.VerticalAlignment = VerticalAlignment.Center;
-					tb.TextTrimming = TextTrimming.CharacterEllipsis;
-					tb.TextWrapping = TextWrapping.NoWrap;
-					tb.Margin = new Thickness(0);
-					tb.Padding = new Thickness(0);
-					tb.Opacity = 1;
-					tb.Visibility = Visibility.Visible;
-				}
-				else
-				{
-					dailyRiskPresetButtons[i].Content = expected;
-				}
-				try { dailyRiskPresetButtons[i].Foreground = Brushes.White; } catch {}
+					if (!string.Equals(dailyRiskPresetButtons[i].Content as string, expected, StringComparison.Ordinal))
+						dailyRiskPresetButtons[i].Content = expected;
+					if (dailyRiskPresetButtons[i].Content is TextBlock)
+						dailyRiskPresetButtons[i].Content = expected;
+				} catch { dailyRiskPresetButtons[i].Content = expected; }
 			}
 		}
 
@@ -1575,49 +1548,38 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			sec1Panel.Children.Add(atmSelector);
 
-			// --- ATM Quick Set buttons (A–H), 8 in single row — hard white + larger font like Program (visible)
+			// --- ATM Quick Set buttons (A–H), 8 in single row — hard white + larger font, use default template (custom template may clip narrow buttons)
 			atmSetButtons = new Button[8];
 			Grid atmSetGrid = CreateEightColumnGrid(0, HudGap, HudGap);
 			for (int i = 0; i < 8; i++)
 			{
 				int setIdx = i;
 				double fsAtmBase = GetQuickSetFontSize();
-				double fsAtm = Math.Min(14, fsAtmBase + 2); // same as Program fsProg for readability
+				double fsAtm = Math.Min(14, fsAtmBase + 2);
 				string atmLabel = GetAtmSetName(setIdx);
 				Button setBtn = CreateButton(atmLabel, atmSetOffBg, null, 22, fsAtm);
+				// Bypass custom HUD template for narrow quick-set — default template renders text reliably
+				setBtn.ClearValue(Button.TemplateProperty);
 				setBtn.Foreground = Brushes.White;
 				setBtn.FontSize = fsAtm;
+				setBtn.FontWeight = FontWeights.SemiBold;
 				setBtn.HorizontalContentAlignment = HorizontalAlignment.Center;
 				setBtn.VerticalContentAlignment = VerticalAlignment.Center;
-				setBtn.Padding = new Thickness(2, 0, 2, 0);
-				SetButtonLabel(setBtn, atmLabel);
-				if (setBtn.Content is TextBlock tbAtm)
-				{
-					tbAtm.Text = atmLabel;
-					tbAtm.Foreground = Brushes.White;
-					tbAtm.FontSize = fsAtm;
-					tbAtm.FontWeight = FontWeights.Normal;
-					tbAtm.TextAlignment = TextAlignment.Center;
-					tbAtm.HorizontalAlignment = HorizontalAlignment.Center;
-					tbAtm.VerticalAlignment = VerticalAlignment.Center;
-					tbAtm.TextTrimming = TextTrimming.CharacterEllipsis;
-					tbAtm.TextWrapping = TextWrapping.NoWrap;
-					tbAtm.Margin = new Thickness(0);
-					tbAtm.Padding = new Thickness(0);
-					tbAtm.Opacity = 1;
-					tbAtm.Visibility = Visibility.Visible;
-				}
-				else
-				{
-					setBtn.Content = atmLabel;
-					setBtn.Foreground = Brushes.White;
-				}
+				setBtn.Padding = new Thickness(1, 0, 1, 0);
+				setBtn.BorderThickness = new Thickness(0);
+				// Ensure Content is plain string — no TextBlock inherit issue
+				setBtn.Content = atmLabel;
 				setBtn.Click += (s, ev) => ApplyAtmSetSelection(setIdx);
 				Grid.SetColumn(setBtn, setIdx * 2);
 				atmSetButtons[setIdx] = setBtn;
 				atmSetGrid.Children.Add(setBtn);
 			}
 			sec1Panel.Children.Add(atmSetGrid);
+			// Diagnostic: show labels as text below grid to prove data non-empty
+			{
+				var diagAtm = new TextBlock { Text = string.Join(" ", Enumerable.Range(0, 8).Select(k => GetAtmSetName(k))), Foreground = Brushes.Yellow, FontSize = 8, Margin = new Thickness(0, 2, 0, 0), HorizontalAlignment = HorizontalAlignment.Center, TextAlignment = TextAlignment.Center, Opacity = 0.9 };
+				sec1Panel.Children.Add(diagAtm);
+			}
 			UpdateAtmSetButtons();
 			mainPanel.Children.Add(CreateSectionCard(sec1Panel, HudGap));
 
@@ -1846,7 +1808,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			sec4Panel.Children.Add(dailyRiskGrid);
 
-			// Daily Risk Quick Set buttons: hard white + larger font like Program (visible)
+			// Daily Risk Quick Set buttons: hard white + default template
 			dailyRiskPresetButtons = new Button[6];
 			Grid dailyRiskPresetGrid = CreateSixColumnGrid(0, HudGap, HudGap);
 			for (int i = 0; i < 6; i++)
@@ -1856,39 +1818,25 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				double fsDr = Math.Min(14, fsDrBase + 2);
 				string drLabel = GetDailyRiskPresetName(presetIdx);
 				Button presetButton = CreateButton(drLabel, dailyRiskPresetOffBg, null, 24, fsDr);
+				presetButton.ClearValue(Button.TemplateProperty);
 				presetButton.Foreground = Brushes.White;
 				presetButton.FontSize = fsDr;
+				presetButton.FontWeight = FontWeights.SemiBold;
 				presetButton.HorizontalContentAlignment = HorizontalAlignment.Center;
 				presetButton.VerticalContentAlignment = VerticalAlignment.Center;
-				presetButton.Padding = new Thickness(2, 0, 2, 0);
-				SetButtonLabel(presetButton, drLabel);
-				if (presetButton.Content is TextBlock tbDr)
-				{
-					tbDr.Text = drLabel;
-					tbDr.Foreground = Brushes.White;
-					tbDr.FontSize = fsDr;
-					tbDr.FontWeight = FontWeights.Normal;
-					tbDr.TextAlignment = TextAlignment.Center;
-					tbDr.HorizontalAlignment = HorizontalAlignment.Center;
-					tbDr.VerticalAlignment = VerticalAlignment.Center;
-					tbDr.TextTrimming = TextTrimming.CharacterEllipsis;
-					tbDr.TextWrapping = TextWrapping.NoWrap;
-					tbDr.Margin = new Thickness(0);
-					tbDr.Padding = new Thickness(0);
-					tbDr.Opacity = 1;
-					tbDr.Visibility = Visibility.Visible;
-				}
-				else
-				{
-					presetButton.Content = drLabel;
-					presetButton.Foreground = Brushes.White;
-				}
+				presetButton.Padding = new Thickness(1, 0, 1, 0);
+				presetButton.BorderThickness = new Thickness(0);
+				presetButton.Content = drLabel;
 				presetButton.Click += (s, ev) => ApplyDailyRiskPreset(presetIdx);
 				Grid.SetColumn(presetButton, presetIdx * 2);
 				dailyRiskPresetButtons[presetIdx] = presetButton;
 				dailyRiskPresetGrid.Children.Add(presetButton);
 			}
 			sec4Panel.Children.Add(dailyRiskPresetGrid);
+			{
+				var diagDd = new TextBlock { Text = string.Join(" ", Enumerable.Range(0, 6).Select(k => GetDailyRiskPresetName(k))), Foreground = Brushes.Yellow, FontSize = 8, Margin = new Thickness(0, 2, 0, 0), HorizontalAlignment = HorizontalAlignment.Center, TextAlignment = TextAlignment.Center, Opacity = 0.9 };
+				sec4Panel.Children.Add(diagDd);
+			}
 			UpdateDailyRiskPresetButtons();
 
 			mainPanel.Children.Add(CreateSectionCard(sec4Panel, HudGap));
