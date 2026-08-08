@@ -1,4 +1,4 @@
-/* KatTradeManager.HudFactory.cs - HUD grid/card/button factory (partial class) v1.96 (2026-08-08) */
+/* KatTradeManager.HudFactory.cs - HUD grid/card/button factory (partial class) v1.97 (2026-08-08) */
 // ponytail: extracted from KatTradeManagerUI.cs 1739-1976 — 7 helpers + 2 templates. Was 1967L god, now ~1650L.
 // Keeps UI.cs focused on wiring/handlers; factory is pure WPF layout, no business logic.
 using System.Windows;

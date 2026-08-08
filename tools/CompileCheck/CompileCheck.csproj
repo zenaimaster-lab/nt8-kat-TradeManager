@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    Compile gate for the NinjaScript indicator sources (all 16 .cs files).
+    Compile gate for the NinjaScript indicator sources (all 18 .cs files).
     NT8 compiles these inside NinjaTrader with .NET Framework 4.8 Roslyn;
     this project reproduces that locally. Run:  dotnet build tools/CompileCheck
     Reference assemblies come from NuGet (no admin / no VS required).
@@ -41,6 +41,8 @@
     <Compile Include="..\..\src\KatTradeManager.SwingOps.cs" />
     <Compile Include="..\..\src\KatTradeManager.AccountInfo.cs" />
     <Compile Include="..\..\src\KatTradeManager.HudFactory.cs" />
+    <Compile Include="..\..\src\KatTradeManager.HudUpdates.cs" />
+    <Compile Include="..\..\src\KatTradeManager.HudBuilder.cs" />
   </ItemGroup>
 
   <ItemGroup>

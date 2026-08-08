@@ -27,6 +27,14 @@ $hudFactoryPath = Join-Path $repoRoot "src\KatTradeManager.HudFactory.cs"
 if (Test-Path $hudFactoryPath) {
     (Get-Content $hudFactoryPath -Raw) -replace 'v\d+\.\d+\s*\(\d{4}-\d{2}-\d{2}\)', "v$newVer ($Date)" | Set-Content $hudFactoryPath -NoNewline
 }
+$hudUpdatesPath = Join-Path $repoRoot "src\KatTradeManager.HudUpdates.cs"
+if (Test-Path $hudUpdatesPath) {
+    (Get-Content $hudUpdatesPath -Raw) -replace 'v\d+\.\d+\s*\(\d{4}-\d{2}-\d{2}\)', "v$newVer ($Date)" | Set-Content $hudUpdatesPath -NoNewline
+}
+$hudBuilderPath = Join-Path $repoRoot "src\KatTradeManager.HudBuilder.cs"
+if (Test-Path $hudBuilderPath) {
+    (Get-Content $hudBuilderPath -Raw) -replace 'v\d+\.\d+\s*\(\d{4}-\d{2}-\d{2}\)', "v$newVer ($Date)" | Set-Content $hudBuilderPath -NoNewline
+}
 (Get-Content $readmePath -Raw) -replace 'v\d+\.\d+', "v$newVer" -replace '\d{4}-\d{2}-\d{2}', $Date | Set-Content $readmePath -NoNewline
 if (Test-Path $agentsPath) {
     (Get-Content $agentsPath -Raw) -replace 'Current: v\d+\.\d+ \(\d{4}-\d{2}-\d{2}\)', "Current: v$newVer ($Date)" | Set-Content $agentsPath -NoNewline

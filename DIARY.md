@@ -23,6 +23,13 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.97] — 2026-08-08
+- **Tách UI god 1803→544 + Builder/Updates + SetDefaults DRY (ponytail: 18 files)**
+  - `src/KatTradeManagerUI.cs:1803→544` tách `KatTradeManager.HudUpdates.cs:620` (ApplyAtmSelection, GetAtmSet*, ApplyAtmSetSelection, UpdateAtmSetButtons, DailyRisk presets, UpdateTradingProfileButtons, ApplyTradingProfile 151L, ToggleDiscipline, UpdateDiscipline* , SyncChartTraderAccount, FindVisualChildByTypeName, FindAllVisualChildren) + `KatTradeManager.HudBuilder.cs:672` (GetVisualDepth, FindChartTraderPanel, FindVisualChild, DetachFromParent, IsPanelAttached, CreateWpfControls 668L) — UI còn watchdog+SyncCachedValues+ShowHudStatus+Hotkey+Remove (544L), no file >672L, trung bình UI layer 6 files ~400L.
+  - Giữ `HudFactory:177` (factory), `HudDrag:174`, `AccountInfo:210`, `ProfileOps:128` — UI layer 6 files phân bổ đều, god node `KatTradeManager:115` edges giảm, `GRAPH_REPORT` cohesion improve.
+  - `KatTradeManager.cs:1005→856` DRY `OnStateChange.SetDefaults` 8× P1-P8 duplicate 168L (8050 chars) → `InitTradingProfileDefaults(idx)` loop `for 0..7`, kèm `SeedTradingProfileDefaults` đã có v1.96 — file 856L (<1000 ceiling), migrate helper `Seed` giữ loop per-quantity==0.
+  - `tools/CompileCheck.csproj:4,42` + `scripts/Deploy-NT8.ps1:53` thêm `HudUpdates` + `HudBuilder` → `18 files` sync (Verify `18 .cs` passed), `NoWarn MSB3277` giữ, `Bump-Version.ps1` auto bump 3 UI headers (UI/Factory/Updates/Builder).
+  - Verify: `5-way v1.97` sync, `288 pass`, `CompileCheck 0 warn/0 error`, `18 files` deploy ready, `graph 884→~950 nodes` pending update.
 ### [v1.96] — 2026-08-08
 - **Re-audit P0 + HudFactory split + NoWarn + githook (ponytail: keep solo)**
   - `src/KatTradeManager.OrderOps:81` `SwitchAccount` ghost state → thêm `entryOrder=null; pendingDrawOrder=null; pendingDrawRequest=false; pendingRemoveLines=false` trước `ResetAtmScaleInTracking()`, tránh line/order cũ survive qua account mới (kế thừa fix v1.95 `ResetAtmScaleIn` chưa đủ).
