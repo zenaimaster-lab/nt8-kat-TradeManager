@@ -23,6 +23,12 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.55] — 2026-08-08
+- **Hotfix — restore truncated KatTradeManager.cs header (CS1035 cascade)**
+  - **Root cause**: `v1.54` commit `0efdcd8` accidentally deleted the 80-line file header of `KatTradeManager.cs` (block comment close `*/`, `using` declarations, `public enum KatTimeframe/KatEmaTimeframe/KatHudLocation`, `namespace`/`partial class` opening and `VERSION`/`RELEASE_DATE` constants + 7 field declarations). NinjaTrader compiler reported `CS1035 End-of-file found, '*/' expected` at line 1:1, then every `partial class` file (`AtmMerge`, `OrderOps`, `Properties`, `UI`) failed with `CS0246` (type not found) and `CS0103` (name does not exist: `atmScaleInLock`, `account`, `Print`, `Instrument`, etc.) — exactly the screenshot errors.
+  - **Fix**: Restored header verbatim from `v1.53` (`HEAD~2`), bumped `VERSION` header + constant to `1.55` (2026-08-08). Verified `dotnet build tools/CompileCheck` → `Build succeeded 0 Error(s)`.
+  - Graphify entity mapping: `KatTradeManager` (partial class restored), `KatTimeframe`, `KatEmaTimeframe`, `KatHudLocation`.
+
 ### [v1.54] — 2026-08-08
 - **HUD UI design refactor — uniform 4px center channel + 2-column main alignment**:
   - **1. Master 4px Center Channel**: Standardized center column gap across ALL HUD rows (2-column, 4-column, 6-column, 8-column) to a uniform 4px (`CreateTwoColumnGrid`, `CreateFourColumnGrid`, `CreateSixColumnGrid`, `CreateEightColumnGrid`), creating a clean, continuous vertical dividing channel between Main Left Column (SELL / ◀) and Main Right Column (BUY / ▶) down the entire HUD.
