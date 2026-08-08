@@ -23,6 +23,12 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.64] — 2026-08-08
+- **Top group pixel-perfect — MaxDD 2-col → 6-col shared base**
+  - **Root cause**: `MaxDD/Profit` dùng `CreateTwoColumnGrid (2 sao, 1 gap)` còn `preset 6` dùng `CreateSixColumnGrid (6 sao, 5 gap)` → dù `238` perfect, rounding star riêng vẫn có thể lệch `0.5px` tâm giữa khi DPI khác hoặc container stretch; screenshot top nhóm vẫn lệch nhẹ tâm.
+  - **Fix**: `dailyRiskGrid` chuyển sang `CreateSixColumnGrid(HudGap,HudGap,HudGap)` `cs:1632` + `Column 0 Span5` cho MaxDD và `Column 6 Span5` cho MaxProfit `cs:1654/1673` → cùng `11 cột (6 sao+5 gap)` với preset → `starWidth 38` shared, tâm `118-120` align pixel-perfect mọi width/DPI; chỉ sửa top group, ko đụng chỗ khác.
+  - Verify: `Run-AllChecks` 197 pass.
+
 ### [v1.63] — 2026-08-08
 - **HUD sec4 uniform 24 — preset vs MaxDD size sync**
   - **Root cause**: `dailyRiskPreset 6` quick-set `22/8` trong cùng card `sec4` với `StopLimit/MaxDD/Profit 24/10` → 2px lệch chiều cao, card mất nhịp đều; `Hor` đã perfect `238` gap2 nhưng `Ver` lệch.

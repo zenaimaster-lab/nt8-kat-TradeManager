@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.63 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.64 (2026-08-08) */
 
 using System;
 using System.Collections.Generic;
@@ -1628,8 +1628,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			};
 			sec4Panel.Children.Add(btnStopLimit);
 
-			// Daily Max DD + Daily Max Profit side-by-side
-			Grid dailyRiskGrid = CreateTwoColumnGrid(HudGap, HudGap);
+			// Daily Max DD + Daily Max Profit side-by-side — share 6-col base with preset row for pixel-perfect center
+			Grid dailyRiskGrid = CreateSixColumnGrid(HudGap, HudGap, HudGap);
 
 			SolidColorBrush dailyOnBg = new SolidColorBrush(Color.FromRgb(58, 19, 107)); // Darker purple (#3A136B)
 
@@ -1652,6 +1652,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				try { UpdateTradingProfileButtons(); } catch {}
 			};
 			Grid.SetColumn(btnDailyMaxDD, 0);
+			Grid.SetColumnSpan(btnDailyMaxDD, 5);
 			dailyRiskGrid.Children.Add(btnDailyMaxDD);
 
 			Button btnDailyMaxProfit = CreateButton(cachedIsDailyMaxProfit ? "Max Profit: ON" : "Max Profit: OFF",
@@ -1670,7 +1671,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				EvaluateDailyRiskLimits();
 				try { UpdateTradingProfileButtons(); } catch {}
 			};
-			Grid.SetColumn(btnDailyMaxProfit, 2);
+			Grid.SetColumn(btnDailyMaxProfit, 6);
+			Grid.SetColumnSpan(btnDailyMaxProfit, 5);
 			dailyRiskGrid.Children.Add(btnDailyMaxProfit);
 
 			sec4Panel.Children.Add(dailyRiskGrid);
