@@ -23,6 +23,11 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.85] — 2026-08-08
+- **Fix — Program 8 label 50% transparent mờ như yêu cầu**
+  - User báo Program 8 nút đang trắng 100% quá rõ, muốn mờ 50% như thiết kế; ATM/DD đã trắng rõ ở v1.83 với `GetQuickSetButtonTemplate`.
+  - Fix: `CreateWpfControls:1442` `progBrush = GetQuickSetLabelBrush()` (alpha `QuickSetLabelOpacityPercent` 50 → 128) set trước `SetButtonLabel` và `if (_pTb) _pTb.Foreground = progBrush`; `UpdateTradingProfileButtons:739` `labelBrush = GetQuickSetLabelBrush()` + `if (_tbU) { ... _tbU.Foreground = labelBrush; }` mỗi tick để đảm bảo 50% mờ; ATM/DD giữ `Brushes.White` 100% nên vẫn rõ.
+
 ### [v1.84] — 2026-08-08
 - **Polish — thêm pad/margin đen trống dưới cùng mọi section (account → Close/flatten)**
   - User thấy diagnostic vàng cũ (`2:5 1:3...`) tạo pad đen đẹp ở đáy section; yêu cầu thêm pad đen trống (không text) cho tất cả sections.

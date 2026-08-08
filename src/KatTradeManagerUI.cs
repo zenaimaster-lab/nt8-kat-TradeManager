@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.84 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.85 (2026-08-08) */
 // ponytail: many catch{} for UI button updates are expected (control not yet created, dispatcher not ready) — silent. Critical watchdog tick already logs.
 
 using System;
@@ -765,13 +765,13 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					tradingProfileButtons[i].Foreground = labelBrush;
 				}
 				tradingProfileButtons[i].FontSize = fsProg;
-				// Program buttons: label left-aligned + slightly inset from left edge per request
+				// Program buttons: label left-aligned + slightly inset from left edge per request — 50% transparent
 				string expected = GetTradingProfileName(i);
 				if (GetButtonLabel(tradingProfileButtons[i]) != expected)
 					SetButtonLabel(tradingProfileButtons[i], expected);
 				tradingProfileButtons[i].HorizontalContentAlignment = HorizontalAlignment.Left;
 				tradingProfileButtons[i].Padding = new Thickness(4, 0, 2, 0);
-				if (tradingProfileButtons[i].Content is TextBlock _tbU) { _tbU.TextAlignment = TextAlignment.Left; _tbU.HorizontalAlignment = HorizontalAlignment.Left; _tbU.Margin = new Thickness(4, 0, 0, 0); _tbU.FontSize = fsProg; }
+				if (tradingProfileButtons[i].Content is TextBlock _tbU) { _tbU.TextAlignment = TextAlignment.Left; _tbU.HorizontalAlignment = HorizontalAlignment.Left; _tbU.Margin = new Thickness(4, 0, 0, 0); _tbU.FontSize = fsProg; _tbU.Foreground = labelBrush; _tbU.Opacity = 1; }
 				try
 				{
 					string tAcc2 = GetTradingProfileAccount(i);
@@ -1447,13 +1447,14 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				{
 					int idx = cc * 2 + prow; // pairs 1,2 | 3,4 | 5,6 | 7,8 → row0:1,3,5,7 row1:2,4,6,8 per request
 					double _fsProg = Math.Min(14, GetQuickSetFontSize() + 2);
+					Brush progBrush = GetQuickSetLabelBrush(); // 50% transparent per request
 					Button pBtn = CreateButton("", profileOffBg, null, 22, _fsProg);
-					SetButtonLabel(pBtn, GetTradingProfileName(idx));
-					pBtn.Foreground = GetQuickSetLabelBrush();
+					pBtn.Foreground = progBrush;
 					pBtn.FontSize = _fsProg;
+					SetButtonLabel(pBtn, GetTradingProfileName(idx));
 					pBtn.HorizontalContentAlignment = HorizontalAlignment.Left;
 					pBtn.Padding = new Thickness(4, 0, 2, 0);
-					if (pBtn.Content is TextBlock _pTb) { _pTb.TextAlignment = TextAlignment.Left; _pTb.HorizontalAlignment = HorizontalAlignment.Left; _pTb.Margin = new Thickness(4, 0, 0, 0); _pTb.FontSize = _fsProg; }
+					if (pBtn.Content is TextBlock _pTb) { _pTb.TextAlignment = TextAlignment.Left; _pTb.HorizontalAlignment = HorizontalAlignment.Left; _pTb.Margin = new Thickness(4, 0, 0, 0); _pTb.FontSize = _fsProg; _pTb.Foreground = progBrush; _pTb.Opacity = 1; }
 					int captured = idx;
 					pBtn.Click += (s, ev) => ApplyTradingProfile(captured);
 					Grid.SetColumn(pBtn, cc * 2);
