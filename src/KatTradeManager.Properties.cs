@@ -1,4 +1,4 @@
-/* KatTradeManager.Properties.cs - NinjaScript properties (partial class) v1.50 (2026-08-08) */
+/* KatTradeManager.Properties.cs - NinjaScript properties (partial class) v1.51 (2026-08-08) */
 
 using System;
 using System.ComponentModel;
@@ -6,6 +6,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 using System.IO;
 using System.Windows.Input;
+using System.Windows;
 using System.Windows.Media;
 using System.Xml.Serialization;
 using NinjaTrader.NinjaScript;
@@ -102,7 +103,28 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		public Brush QuickSetLabelColor
 		{
 			get { return quickSetLabelColor; }
-			set { quickSetLabelColor = value ?? Brushes.White; }
+			set
+			{
+				try
+				{
+					if (value == null) { quickSetLabelColor = Brushes.White; return; }
+					if (value is SolidColorBrush scb)
+					{
+						var c = scb.Color;
+						var nb = new SolidColorBrush(c);
+						if (nb.CanFreeze) nb.Freeze();
+						quickSetLabelColor = nb;
+					}
+					else if (value is Freezable f && f.CanFreeze)
+					{
+						var clone = f.Clone() as Freezable;
+						if (clone != null && clone.CanFreeze) clone.Freeze();
+						quickSetLabelColor = clone as Brush ?? value;
+					}
+					else quickSetLabelColor = value;
+				}
+				catch { quickSetLabelColor = Brushes.White; }
+			}
 		}
 
 		[Browsable(false)]
@@ -125,7 +147,9 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					if (!string.IsNullOrWhiteSpace(value))
 					{
 						var c = (Color)ColorConverter.ConvertFromString(value);
-						quickSetLabelColor = new SolidColorBrush(c);
+						var nb = new SolidColorBrush(c);
+						if (nb.CanFreeze) nb.Freeze();
+						quickSetLabelColor = nb;
 					}
 					else quickSetLabelColor = Brushes.White;
 				}

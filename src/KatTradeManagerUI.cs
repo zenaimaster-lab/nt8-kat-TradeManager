@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.50 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.51 (2026-08-08) */
 
 using System;
 using System.Collections.Generic;
@@ -1274,24 +1274,22 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			// --- Trading Profile quick presets (8 buttons, 2 rows x 4 cols, above account, align left) ---
 			tradingProfileButtons = new Button[8];
-			StackPanel profileStack = new StackPanel { Margin = new Thickness(0, 0, 0, 4) };
+			StackPanel profileStack = new StackPanel { Margin = new Thickness(0, 0, 0, 4), HorizontalAlignment = HorizontalAlignment.Stretch };
 			for (int prow = 0; prow < 2; prow++)
 			{
-				Grid rowGrid = new Grid { Margin = new Thickness(0, 0, 0, prow == 0 ? 2 : 0) };
+				Grid rowGrid = new Grid { Margin = new Thickness(0, 0, 0, prow == 0 ? 2 : 0), HorizontalAlignment = HorizontalAlignment.Stretch };
 				for (int c = 0; c < 4; c++)
-				{
 					rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-					if (c < 3) rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
-				}
 				for (int cc = 0; cc < 4; cc++)
 				{
 					int idx = prow * 4 + cc;
 					Button pBtn = CreateButton(GetTradingProfileName(idx), profileOffBg, null, 22, GetQuickSetFontSize());
 					pBtn.Foreground = GetQuickSetLabelBrush();
-					pBtn.Margin = new Thickness(0);
+					pBtn.Margin = cc == 0 ? new Thickness(0) : new Thickness(2, 0, 0, 0);
+					pBtn.HorizontalAlignment = HorizontalAlignment.Stretch;
 					int captured = idx;
 					pBtn.Click += (s, ev) => ApplyTradingProfile(captured);
-					Grid.SetColumn(pBtn, cc * 2);
+					Grid.SetColumn(pBtn, cc);
 					tradingProfileButtons[idx] = pBtn;
 					rowGrid.Children.Add(pBtn);
 				}
@@ -1407,22 +1405,19 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			// --- ATM Quick Set buttons (A–H), 8 in single row, one-click ATM selection ---
 			atmSetButtons = new Button[8];
-			Grid atmSetGrid = new Grid { Margin = new Thickness(0, 4, 0, 0) };
+			Grid atmSetGrid = new Grid { Margin = new Thickness(0, 4, 0, 0), HorizontalAlignment = HorizontalAlignment.Stretch };
 			for (int i = 0; i < 8; i++)
-			{
 				atmSetGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-				if (i < 7)
-					atmSetGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
-			}
 
 			for (int i = 0; i < 8; i++)
 			{
 				int setIdx = i;
 				Button setBtn = CreateButton(GetAtmSetName(setIdx), atmSetOffBg, null, 22, GetQuickSetFontSize());
 				setBtn.Foreground = GetQuickSetLabelBrush();
-				setBtn.Margin = new Thickness(0);
+				setBtn.Margin = i == 0 ? new Thickness(0) : new Thickness(2, 0, 0, 0);
+				setBtn.HorizontalAlignment = HorizontalAlignment.Stretch;
 				setBtn.Click += (s, ev) => ApplyAtmSetSelection(setIdx);
-				Grid.SetColumn(setBtn, setIdx * 2);
+				Grid.SetColumn(setBtn, setIdx);
 				atmSetButtons[setIdx] = setBtn;
 				atmSetGrid.Children.Add(setBtn);
 			}
@@ -1680,21 +1675,19 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			// Daily Risk Quick Set buttons: values only; enabled states stay unchanged.
 			dailyRiskPresetButtons = new Button[6];
-			Grid dailyRiskPresetGrid = new Grid { Margin = new Thickness(0, 4, 0, 0) };
+			Grid dailyRiskPresetGrid = new Grid { Margin = new Thickness(0, 4, 0, 0), HorizontalAlignment = HorizontalAlignment.Stretch };
 			for (int i = 0; i < 6; i++)
-			{
 				dailyRiskPresetGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-				if (i < 5)
-					dailyRiskPresetGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
-			}
 
 			for (int i = 0; i < 6; i++)
 			{
 				int presetIdx = i;
 				Button presetButton = CreateButton(GetDailyRiskPresetName(presetIdx), dailyRiskPresetOffBg, null, 22, GetQuickSetFontSize());
 				presetButton.Foreground = GetQuickSetLabelBrush();
+				presetButton.Margin = i == 0 ? new Thickness(0) : new Thickness(2, 0, 0, 0);
+				presetButton.HorizontalAlignment = HorizontalAlignment.Stretch;
 				presetButton.Click += (s, ev) => ApplyDailyRiskPreset(presetIdx);
-				Grid.SetColumn(presetButton, presetIdx * 2);
+				Grid.SetColumn(presetButton, presetIdx);
 				dailyRiskPresetButtons[presetIdx] = presetButton;
 				dailyRiskPresetGrid.Children.Add(presetButton);
 			}
@@ -1801,9 +1794,12 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				FontWeight = FontWeights.Normal,
 				FontSize = fontSize,
 				Margin = new Thickness(0),
-				Padding = new Thickness(2),
+				Padding = new Thickness(2, 0, 2, 0),
 				Height = height,
-				BorderThickness = new Thickness(0)
+				BorderThickness = new Thickness(0),
+				HorizontalContentAlignment = HorizontalAlignment.Center,
+				VerticalContentAlignment = VerticalAlignment.Center,
+				HorizontalAlignment = HorizontalAlignment.Stretch
 			};
 			if (handler != null)
 				btn.Click += handler;
