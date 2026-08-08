@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 1.46 (2026-08-08)
+ * Version: 1.47 (2026-08-08)
  * NinjaTrader 8 TradeManager Indicator
  */
  
@@ -69,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "1.46";
+		public const string VERSION = "1.47";
 		public const string RELEASE_DATE = "2026-08-08";
 
 		private volatile Account account;
@@ -521,11 +521,12 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				cachedAtmTemplate = DefaultAtmTemplate;
 				cachedHudLeftInset = Math.Max(0, HudLeftInset);
 				cachedHudDragEnabled = HudDragEnabled;
-				// Max DD always starts ON every session regardless of the persisted toggle.
+				// Max DD / Max Profit always start ON every session regardless of the persisted toggle.
 				DailyMaxDDEnabled = true;
 				cachedIsDailyMaxDD = true;
 				cachedDailyMaxDD = DailyMaxDD;
-				cachedIsDailyMaxProfit = DailyMaxProfitEnabled;
+				DailyMaxProfitEnabled = true;
+				cachedIsDailyMaxProfit = true;
 				cachedDailyMaxProfit = DailyMaxProfit;
 				// Discipline protects cache from persisted properties (default ON)
 				cachedSizingProtect = SizingProtectEnabled;
@@ -554,6 +555,9 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				// HUD master toggles
 				cachedIsStopLimit = StopLimitEnabled;
 				cachedIsEmaPlace = EmaProtectEnabled;
+				// DISCIPLINE (6 protects + EmaZoneOnly) always start ON every session (default ON)
+				SizingProtectEnabled = true; SlPullProtectEnabled = true; LossDcaProtectEnabled = true; TpEarlyProtectEnabled = true; LossTimesProtectEnabled = true; TimingWindowsProtectEnabled = true; EmaProtectEnabled = true;
+				cachedSizingProtect = true; cachedSlPullProtect = true; cachedLossDcaProtect = true; cachedTpEarlyProtect = true; cachedLossTimesProtect = true; cachedTimingProtect = true; cachedIsEmaPlace = true;
 				// Migration: pre-v1.25 instances have all discipline props 0/false -> force ON defaults
 				if (LossTimesMaxLosses == 0 && LossTimesLockMinutes == 0 && !SizingProtectEnabled && !SlPullProtectEnabled && !LossDcaProtectEnabled && !TpEarlyProtectEnabled && !LossTimesProtectEnabled && !TimingWindowsProtectEnabled)
 				{

@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.46 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.47 (2026-08-08) */
 
 using System;
 using System.Collections.Generic;
@@ -603,7 +603,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 		private bool IsDisciplineAllOn()
 		{
-			return cachedSizingProtect && cachedSlPullProtect && cachedLossDcaProtect && cachedTpEarlyProtect && cachedLossTimesProtect && cachedTimingProtect;
+			return cachedIsEmaPlace && cachedSizingProtect && cachedSlPullProtect && cachedLossDcaProtect && cachedTpEarlyProtect && cachedLossTimesProtect && cachedTimingProtect;
 		}
 
 		private void UpdateDisciplineAllButton()
@@ -823,6 +823,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 		private void SetAllDiscipline(bool isOn)
 		{
+			cachedIsEmaPlace = isOn; EmaProtectEnabled = isOn;
 			cachedSizingProtect = isOn; SizingProtectEnabled = isOn;
 			cachedSlPullProtect = isOn; SlPullProtectEnabled = isOn;
 			cachedLossDcaProtect = isOn; LossDcaProtectEnabled = isOn;
@@ -830,6 +831,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			cachedLossTimesProtect = isOn; LossTimesProtectEnabled = isOn;
 			cachedTimingProtect = isOn; TimingWindowsProtectEnabled = isOn;
 			for (int i = 0; i < 6; i++) UpdateDisciplineButton(i);
+			try { UpdateEmaPlaceButton(); } catch {}
 			try { UpdateDisciplineAllButton(); } catch {}
 			try { UpdateTradingProfileButtons(); } catch {}
 			if (!isOn)
@@ -1633,8 +1635,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			string[] discLabels = new[] { "Fix size", "No SL-pull", "No loss-DCA", "No TP-early", "StopWhenLoss", "TradingWindows" };
 			bool[] discStates = new[] { cachedSizingProtect, cachedSlPullProtect, cachedLossDcaProtect, cachedTpEarlyProtect, cachedLossTimesProtect, cachedTimingProtect };
 
-			// Row 0: DISCIPLINED / UN-DISCIPLINED toggle + EmaZoneOnly (replaces Un-Discipline)
-			bool allOnInit = cachedSizingProtect && cachedSlPullProtect && cachedLossDcaProtect && cachedTpEarlyProtect && cachedLossTimesProtect && cachedTimingProtect;
+			// Row 0: DISCIPLINED / UN-DISCIPLINED toggle + EmaZoneOnly (replaces Un-Discipline) — DISCIPLINE controls all 7 (6 discipline + EmaZoneOnly)
+			bool allOnInit = cachedIsEmaPlace && cachedSizingProtect && cachedSlPullProtect && cachedLossDcaProtect && cachedTpEarlyProtect && cachedLossTimesProtect && cachedTimingProtect;
 			Grid allToggleGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
 			allToggleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 			allToggleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
@@ -1657,6 +1659,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				cachedIsEmaPlace = !cachedIsEmaPlace;
 				EmaProtectEnabled = cachedIsEmaPlace;
 				UpdateEmaPlaceButton();
+				try { UpdateDisciplineAllButton(); } catch {}
 				try { UpdateTradingProfileButtons(); } catch {}
 			};
 			Grid.SetColumn(btnEmaPlace, 2);

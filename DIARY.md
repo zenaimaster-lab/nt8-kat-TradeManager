@@ -23,6 +23,12 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.47] — 2026-08-08
+- **DisciplineAll now controls EmaZoneOnly (7-way) + force ON defaults**:
+  - **1. DISCIPLINE scope mở rộng**: `IsDisciplineAllOn()` giờ `cachedIsEmaPlace && 6 discipline`; `SetAllDiscipline(isOn)` set `cachedIsEmaPlace/EmaProtectEnabled` cùng 6 protects, refresh `UpdateEmaPlaceButton()` + `UpdateDisciplineAllButton()`; `btnEmaPlace` click cũng `UpdateDisciplineAllButton()`; `allOnInit` trong `CreateWpfControls` tính cả `cachedIsEmaPlace` nên `DISCIPLINED` chỉ khi cả 7 ON.
+  - **2. Force ON per session**: `State.DataLoaded` force `Sizing/SlPull/LossDca/TpEarly/LossTimes/Timing` + `EmaProtectEnabled` = true và `DailyMaxProfitEnabled` = true (cùng `DailyMaxDDEnabled` đã force) — đảm bảo mặc định `DISCIPLINE` (DISCIPLINED) + `Max DD` + `Max Profit` luôn ON mỗi lần load chart, đúng yêu cầu “default luôn ON”.
+  - Verify: CompileCheck 0 errors, Deploy 11 files.
+  - Graphify entity mapping: `KatTradeManagerUI.IsDisciplineAllOn(7-way)`, `KatTradeManagerUI.SetAllDiscipline(EmaZoneOnly)`, `KatTradeManager.OnStateChange` (force ON per session).
 ### [v1.46] — 2026-08-08
 - **Protect section rework — EmaZoneOnly + DisciplineAll toggle + Stop-Limit full width**:
   - **1. Rename label** `Ema protect` → `EmaZoneOnly` HUD only: khi ON không hiện `ON`, chỉ đổi màu (ON `12,35,75` dark blue, OFF `45,50,65` gray). Button chuyển vị trí thay thế `Un-Discipline` hiện tại (top row phải của Sec5).
