@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.62 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.63 (2026-08-08) */
 
 using System;
 using System.Collections.Generic;
@@ -1682,7 +1682,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			for (int i = 0; i < 6; i++)
 			{
 				int presetIdx = i;
-				Button presetButton = CreateButton("", dailyRiskPresetOffBg, null, 22, GetQuickSetFontSize());
+				Button presetButton = CreateButton("", dailyRiskPresetOffBg, null, 24, GetQuickSetFontSize());
 				SetButtonLabel(presetButton, GetDailyRiskPresetName(presetIdx));
 				presetButton.Foreground = GetQuickSetLabelBrush();
 				presetButton.Click += (s, ev) => ApplyDailyRiskPreset(presetIdx);

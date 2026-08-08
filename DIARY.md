@@ -23,6 +23,12 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.63] — 2026-08-08
+- **HUD sec4 uniform 24 — preset vs MaxDD size sync**
+  - **Root cause**: `dailyRiskPreset 6` quick-set `22/8` trong cùng card `sec4` với `StopLimit/MaxDD/Profit 24/10` → 2px lệch chiều cao, card mất nhịp đều; `Hor` đã perfect `238` gap2 nhưng `Ver` lệch.
+  - **Fix**: `dailyRiskPresetButtons 22→24` `cs:1685` sync `24` với `MaxDD/Profit 24` và `StopLimit 24` → sec4 3 hàng đều `24`; quick-set `P1-8/ATM 22/8` giữ `22` ở sec1 riêng (hierarchy), sec4 preset giờ `24/8` blend với toggle nhưng vẫn `GetQuickSetLabelBrush` transparent.
+  - Verify: `Run-AllChecks` 197 pass.
+
 ### [v1.62] — 2026-08-08
 - **Fix BE/Revert sync + UN-DISCIPLINED + full UseLayoutRounding**
   - **Bug1 BE/Revert lệch + gap rộng**: `BE 33→48` `cs:1585/1588` sync với `SELL/BUY previous/market 48` (trước secondary 33 lệch nhịp), `main/sec StackPanel` + `Create*Grid` + `ComboBox` + `Button` `UseLayoutRounding/SnapsToDevicePixels true` hết → gap `HudGap 2` pixel-perfect giữa mọi hàng.
