@@ -23,6 +23,10 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.77] — 2026-08-08
+- **Fix — quick-set small label fully opaque**
+  - `KatTradeManagerUI.GetSmallQuickSetLabelBrush:75` `204` (80% opaque) → `255` opaque per request (không trong suốt) — ATM 8 + DailyRisk 6 font nhỏ giờ trắng đặc, dễ thấy trên nền xám 50%; vẫn fallback `"1".."6"` cho chart cũ.
+
 ### [v1.76] — 2026-08-08
 - **Fix — quick-set label invisible (still empty)**
   - Root: `GetSmallQuickSetLabelBrush` `alpha 51` 80% transparent trên nền xám 50% → tương phản ~1.5:1, mắt thường thấy trống; `GetDailyRiskPresetName` chỉ fallback `null` nên chart cũ lưu `""` vẫn empty dù setting có text.

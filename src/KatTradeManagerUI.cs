@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.76 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.77 (2026-08-08) */
 // ponytail: many catch{} for UI button updates are expected (control not yet created, dispatcher not ready) — silent. Critical watchdog tick already logs.
 
 using System;
@@ -64,7 +64,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			}
 			catch { var fb = new SolidColorBrush(Color.FromArgb(128, 255, 255, 255)); if (fb.CanFreeze) fb.Freeze(); return fb; }
 		}
-		// Small quick-set (ATM + DailyRisk 6) — fixed 80% opaque (20% transparent, alpha 204) per request, readable
+		// Small quick-set (ATM + DailyRisk 6) — fully opaque per user request (was 80% transparent, looked empty)
 		private Brush GetSmallQuickSetLabelBrush()
 		{
 			try
@@ -72,13 +72,13 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				Brush baseBrush = QuickSetLabelColor ?? Brushes.White;
 				Color baseColor = Colors.White;
 				if (baseBrush is SolidColorBrush scb) baseColor = scb.Color;
-				byte alpha = 204; // 80% opaque per request (readable, not 51 very faint which looked empty)
+				byte alpha = 255; // opaque per request (no transparency)
 				Color c = Color.FromArgb(alpha, baseColor.R, baseColor.G, baseColor.B);
 				var nb = new SolidColorBrush(c);
 				if (nb.CanFreeze) nb.Freeze();
 				return nb;
 			}
-			catch { var fb = new SolidColorBrush(Color.FromArgb(204, 255, 255, 255)); if (fb.CanFreeze) fb.Freeze(); return fb; }
+			catch { var fb = new SolidColorBrush(Color.FromArgb(255, 255, 255, 255)); if (fb.CanFreeze) fb.Freeze(); return fb; }
 		}
 		private void SetButtonLabel(Button btn, string text)
 		{
