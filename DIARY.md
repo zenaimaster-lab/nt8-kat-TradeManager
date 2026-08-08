@@ -23,6 +23,12 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.60] — 2026-08-08
+- **HUD align fix — width 246 perfect grid + discipline height sync**
+  - **Width 240→246**: 246 outer → 238 inner `22+24k` perfect divisible by 2/4/6/8 stars with gap2 (was 240→232 non-integer 0.5px for 4/8 cols) → center divider + outer edges pixel-perfect; `UseLayoutRounding/SnapsToDevicePixels` on `panelBorder` + `CreateSectionCard` for device-pixel snap.
+  - **Height sync**: `DisciplineAll/EmaZoneOnly 26→24` `KatTradeManagerUI.cs:1701/1713/1722` sync với 6 discipline rows 24 (was 26 standout) → sec5 all rows 24 uniform; quick-set `P/ATM/preset 22` vs toggle `24` vs exec primary `48` vs secondary `33` vs Close `66` kept as intentional hierarchy — BE `33` = secondary shift `33` (`Revert 33` identical) already sync.
+  - Verify: `Run-AllChecks` 197 tests + CompileCheck 0 errors.
+
 ### [v1.59] — 2026-08-08
 - **HUD uniform gap — all gaps = 2px (quick-set intra-column gap)**
   - **Root cause**: 4px center gap + 2px/1.5px subGap + 6px/4px vertical/section gaps gây lệch trục giữa/cột, trên-dưới không đều — screenshot 1.58 lộ cột P bị clip và divider lệch.

@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.59 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.60 (2026-08-08) */
 
 using System;
 using System.Collections.Generic;
@@ -1160,7 +1160,9 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				BorderThickness = new Thickness(1),
 				CornerRadius = new CornerRadius(6),
 				Padding = new Thickness(HudGap),
-				Margin = new Thickness(HudGap)
+				Margin = new Thickness(HudGap),
+				UseLayoutRounding = true,
+				SnapsToDevicePixels = true
 			};
 
 			bool isChartTraderAttached = false;
@@ -1211,7 +1213,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				System.Windows.Controls.Panel.SetZIndex(hudCanvas, 9999);
 				Grid.SetColumnSpan(hudCanvas, 3);
 				chartGrid.Children.Add(hudCanvas);
-				panelBorder.Width = 240;
+				panelBorder.Width = 246; // 246 outer => 238 inner (22+24k) perfect for gap2 across 2/4/6/8 cols
 				panelBorder.HorizontalAlignment = HorizontalAlignment.Left;
 				panelBorder.VerticalAlignment = VerticalAlignment.Top;
 				panelBorder.Margin = new Thickness(0);
@@ -1695,10 +1697,10 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			bool allOnInit = cachedIsEmaPlace && cachedSizingProtect && cachedSlPullProtect && cachedLossDcaProtect && cachedTpEarlyProtect && cachedLossTimesProtect && cachedTimingProtect;
 			Grid allToggleGrid = CreateTwoColumnGrid(HudGap, HudGap);
 
-			// Discipline All — ON: blaze orange + gold border, OFF: plain + purple border
+			// Discipline All — ON: blaze orange + gold border, OFF: plain + purple border — height 24 sync with other toggle rows (was 26)
 			if (allOnInit)
 			{
-				btnDisciplineAll = CreateButton("DISCIPLINED", disciplineAllOnBg, null, 26, 11);
+				btnDisciplineAll = CreateButton("DISCIPLINED", disciplineAllOnBg, null, 24, 11);
 				StackPanel spInit = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
 				TextBlock iconInit = new TextBlock { Text = "⚡", Foreground = new SolidColorBrush(Color.FromRgb(255, 140, 0)), FontSize = 11, Margin = new Thickness(0, 0, 2, 0), VerticalAlignment = VerticalAlignment.Center };
 				TextBlock labelInit = new TextBlock { Text = "DISCIPLINED", Foreground = Brushes.White, FontSize = 11, VerticalAlignment = VerticalAlignment.Center };
@@ -1710,7 +1712,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			}
 			else
 			{
-				btnDisciplineAll = CreateButton("UN-DISCIPLINED", disciplineAllOffBg, null, 26, 11);
+				btnDisciplineAll = CreateButton("UN-DISCIPLINED", disciplineAllOffBg, null, 24, 11);
 				btnDisciplineAll.BorderBrush = new SolidColorBrush(Color.FromRgb(75, 30, 110));
 				btnDisciplineAll.BorderThickness = new Thickness(1);
 			}
@@ -1719,7 +1721,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			btnDisciplineAll.Click += (s, ev) => SetAllDiscipline(!IsDisciplineAllOn());
 			Grid.SetColumn(btnDisciplineAll, 0);
 			allToggleGrid.Children.Add(btnDisciplineAll);
-			btnEmaPlace = CreateButton("EmaZoneOnly", cachedIsEmaPlace ? disciplineAllOnBg : disciplineOffBg, null, 26, 11);
+			btnEmaPlace = CreateButton("EmaZoneOnly", cachedIsEmaPlace ? disciplineAllOnBg : disciplineOffBg, null, 24, 11);
 			btnEmaPlace.Foreground = cachedIsEmaPlace ? Brushes.White : Brushes.LightGray;
 			btnEmaPlace.FontWeight = FontWeights.Normal;
 			if (cachedIsEmaPlace)
@@ -1948,7 +1950,9 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				CornerRadius = new CornerRadius(5),
 				Padding = new Thickness(HudGap),
 				Margin = new Thickness(0, 0, 0, bottomMargin),
-				Child = child
+				Child = child,
+				UseLayoutRounding = true,
+				SnapsToDevicePixels = true
 			};
 		}
 
