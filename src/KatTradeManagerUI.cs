@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.79 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.80 (2026-08-08) */
 // ponytail: many catch{} for UI button updates are expected (control not yet created, dispatcher not ready) — silent. Critical watchdog tick already logs.
 
 using System;
@@ -91,6 +91,11 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				tb.VerticalAlignment = VerticalAlignment.Center;
 				tb.TextTrimming = TextTrimming.CharacterEllipsis;
 				tb.TextWrapping = TextWrapping.NoWrap;
+				// triệt để: bypass Foreground/FontSize inheritance via template — explicit sync (Program pattern reference)
+				try { if (btn.Foreground != null) tb.Foreground = btn.Foreground; } catch {}
+				try { if (btn.FontSize > 0) tb.FontSize = btn.FontSize; } catch {}
+				tb.Margin = new Thickness(0);
+				tb.Padding = new Thickness(0);
 			}
 			else if (btn.Content is StackPanel)
 			{
@@ -99,7 +104,10 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			}
 			else
 			{
-				btn.Content = new TextBlock { Text = text, TextAlignment = TextAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap };
+				var nTb = new TextBlock { Text = text, TextAlignment = TextAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap, Margin = new Thickness(0), Padding = new Thickness(0) };
+				try { if (btn.Foreground != null) nTb.Foreground = btn.Foreground; } catch {}
+				try { if (btn.FontSize > 0) nTb.FontSize = btn.FontSize; } catch {}
+				btn.Content = nTb;
 			}
 			btn.HorizontalContentAlignment = HorizontalAlignment.Center;
 			btn.VerticalContentAlignment = VerticalAlignment.Center;
@@ -590,10 +598,11 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 		// Exactly one set button is ON: the one whose assigned ATM equals the current selection.
 		// ATM None (empty) turns every button OFF.
+		// triệt để: mirror Program's UpdateTradingProfileButtons — explicit TextBlock sync every tick (bypass template inheritance)
 		private void UpdateAtmSetButtons()
 		{
 			if (atmSetButtons == null) return;
-			Brush labelBrush = GetSmallQuickSetLabelBrush(); // 80% transparent small per request
+			Brush labelBrush = GetSmallQuickSetLabelBrush(); // opaque per request — reference Program's GetQuickSetLabelBrush pattern but opaque for small buttons
 			double fs = GetQuickSetFontSize();
 			for (int i = 0; i < atmSetButtons.Length; i++)
 			{
@@ -605,9 +614,25 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				atmSetButtons[i].Background = on ? atmSetOnBg : atmSetOffBg;
 				atmSetButtons[i].Foreground = labelBrush;
 				atmSetButtons[i].FontSize = fs;
+				atmSetButtons[i].HorizontalContentAlignment = HorizontalAlignment.Center;
+				atmSetButtons[i].VerticalContentAlignment = VerticalAlignment.Center;
+				atmSetButtons[i].Padding = new Thickness(2, 0, 2, 0);
 				string expected = GetAtmSetName(i);
-				if (GetButtonLabel(atmSetButtons[i]) != expected)
-					SetButtonLabel(atmSetButtons[i], expected);
+				// ensure label always set + TextBlock explicit (Program reference: UpdateTradingProfileButtons sets TextBlock props every tick)
+				SetButtonLabel(atmSetButtons[i], expected);
+				if (atmSetButtons[i].Content is TextBlock tb)
+				{
+					if (tb.Text != expected) tb.Text = expected;
+					tb.Foreground = labelBrush;
+					tb.FontSize = fs;
+					tb.TextAlignment = TextAlignment.Center;
+					tb.HorizontalAlignment = HorizontalAlignment.Center;
+					tb.VerticalAlignment = VerticalAlignment.Center;
+					tb.TextTrimming = TextTrimming.CharacterEllipsis;
+					tb.TextWrapping = TextWrapping.NoWrap;
+					tb.Margin = new Thickness(0);
+					tb.Padding = new Thickness(0);
+				}
 			}
 		}
 
@@ -661,10 +686,11 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			EvaluateDailyRiskLimits();
 		}
 
+		// triệt để: mirror Program's UpdateTradingProfileButtons — explicit TextBlock sync every tick
 		private void UpdateDailyRiskPresetButtons()
 		{
 			if (dailyRiskPresetButtons == null) return;
-			Brush labelBrush = GetSmallQuickSetLabelBrush(); // 80% transparent small per request
+			Brush labelBrush = GetSmallQuickSetLabelBrush(); // opaque — reference Program pattern but opaque for small
 			double fs = GetQuickSetFontSize();
 			for (int i = 0; i < dailyRiskPresetButtons.Length; i++)
 			{
@@ -674,9 +700,24 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				dailyRiskPresetButtons[i].Background = on ? dailyRiskPresetOnBg : dailyRiskPresetOffBg;
 				dailyRiskPresetButtons[i].Foreground = labelBrush;
 				dailyRiskPresetButtons[i].FontSize = fs;
+				dailyRiskPresetButtons[i].HorizontalContentAlignment = HorizontalAlignment.Center;
+				dailyRiskPresetButtons[i].VerticalContentAlignment = VerticalAlignment.Center;
+				dailyRiskPresetButtons[i].Padding = new Thickness(2, 0, 2, 0);
 				string expected = GetDailyRiskPresetName(i);
-				if (GetButtonLabel(dailyRiskPresetButtons[i]) != expected)
-					SetButtonLabel(dailyRiskPresetButtons[i], expected);
+				SetButtonLabel(dailyRiskPresetButtons[i], expected);
+				if (dailyRiskPresetButtons[i].Content is TextBlock tb)
+				{
+					if (tb.Text != expected) tb.Text = expected;
+					tb.Foreground = labelBrush;
+					tb.FontSize = fs;
+					tb.TextAlignment = TextAlignment.Center;
+					tb.HorizontalAlignment = HorizontalAlignment.Center;
+					tb.VerticalAlignment = VerticalAlignment.Center;
+					tb.TextTrimming = TextTrimming.CharacterEllipsis;
+					tb.TextWrapping = TextWrapping.NoWrap;
+					tb.Margin = new Thickness(0);
+					tb.Padding = new Thickness(0);
+				}
 			}
 		}
 
@@ -1517,16 +1558,33 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			sec1Panel.Children.Add(atmSelector);
 
-			// --- ATM Quick Set buttons (A–H), 8 in single row, one-click ATM selection ---
+			// --- ATM Quick Set buttons (A–H), 8 in single row, one-click ATM selection — reference Program pattern triệt để
 			atmSetButtons = new Button[8];
 			Grid atmSetGrid = CreateEightColumnGrid(0, HudGap, HudGap);
-
 			for (int i = 0; i < 8; i++)
 			{
 				int setIdx = i;
-				Button setBtn = CreateButton("", atmSetOffBg, null, 22, GetQuickSetFontSize());
+				double fsAtm = GetQuickSetFontSize();
+				Brush lbAtm = GetSmallQuickSetLabelBrush();
+				Button setBtn = CreateButton("", atmSetOffBg, null, 22, fsAtm);
+				setBtn.Foreground = lbAtm;
+				setBtn.FontSize = fsAtm;
+				setBtn.HorizontalContentAlignment = HorizontalAlignment.Center;
+				setBtn.VerticalContentAlignment = VerticalAlignment.Center;
+				setBtn.Padding = new Thickness(2, 0, 2, 0);
 				SetButtonLabel(setBtn, GetAtmSetName(setIdx));
-				setBtn.Foreground = GetSmallQuickSetLabelBrush(); // 80% transparent small
+				if (setBtn.Content is TextBlock tbAtm)
+				{
+					tbAtm.Foreground = lbAtm;
+					tbAtm.FontSize = fsAtm;
+					tbAtm.TextAlignment = TextAlignment.Center;
+					tbAtm.HorizontalAlignment = HorizontalAlignment.Center;
+					tbAtm.VerticalAlignment = VerticalAlignment.Center;
+					tbAtm.TextTrimming = TextTrimming.CharacterEllipsis;
+					tbAtm.TextWrapping = TextWrapping.NoWrap;
+					tbAtm.Margin = new Thickness(0);
+					tbAtm.Padding = new Thickness(0);
+				}
 				setBtn.Click += (s, ev) => ApplyAtmSetSelection(setIdx);
 				Grid.SetColumn(setBtn, setIdx * 2);
 				atmSetButtons[setIdx] = setBtn;
@@ -1761,16 +1819,33 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			sec4Panel.Children.Add(dailyRiskGrid);
 
-			// Daily Risk Quick Set buttons: values only; enabled states stay unchanged.
+			// Daily Risk Quick Set buttons: values only; enabled states stay unchanged — reference Program pattern triệt để
 			dailyRiskPresetButtons = new Button[6];
 			Grid dailyRiskPresetGrid = CreateSixColumnGrid(0, HudGap, HudGap);
-
 			for (int i = 0; i < 6; i++)
 			{
 				int presetIdx = i;
-				Button presetButton = CreateButton("", dailyRiskPresetOffBg, null, 24, GetQuickSetFontSize());
+				double fsDr = GetQuickSetFontSize();
+				Brush lbDr = GetSmallQuickSetLabelBrush();
+				Button presetButton = CreateButton("", dailyRiskPresetOffBg, null, 24, fsDr);
+				presetButton.Foreground = lbDr;
+				presetButton.FontSize = fsDr;
+				presetButton.HorizontalContentAlignment = HorizontalAlignment.Center;
+				presetButton.VerticalContentAlignment = VerticalAlignment.Center;
+				presetButton.Padding = new Thickness(2, 0, 2, 0);
 				SetButtonLabel(presetButton, GetDailyRiskPresetName(presetIdx));
-				presetButton.Foreground = GetSmallQuickSetLabelBrush(); // 80% transparent small
+				if (presetButton.Content is TextBlock tbDr)
+				{
+					tbDr.Foreground = lbDr;
+					tbDr.FontSize = fsDr;
+					tbDr.TextAlignment = TextAlignment.Center;
+					tbDr.HorizontalAlignment = HorizontalAlignment.Center;
+					tbDr.VerticalAlignment = VerticalAlignment.Center;
+					tbDr.TextTrimming = TextTrimming.CharacterEllipsis;
+					tbDr.TextWrapping = TextWrapping.NoWrap;
+					tbDr.Margin = new Thickness(0);
+					tbDr.Padding = new Thickness(0);
+				}
 				presetButton.Click += (s, ev) => ApplyDailyRiskPreset(presetIdx);
 				Grid.SetColumn(presetButton, presetIdx * 2);
 				dailyRiskPresetButtons[presetIdx] = presetButton;
@@ -2076,6 +2151,9 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			}
 			hudStatusText = null;
 			tradingProfileButtons = null;
+			atmSetButtons = null;
+			dailyRiskPresetButtons = null;
+			disciplineButtons = null;
 			accSelector = null;
 			btnStopLimit = null;
 			btnEmaPlace = null;

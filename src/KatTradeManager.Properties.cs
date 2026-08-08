@@ -938,9 +938,20 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		#endregion
 
 		#region Daily Risk Quick Set Properties
+		private string dailyRiskSet1Name = "1";
+		private string dailyRiskSet2Name = "2";
+		private string dailyRiskSet3Name = "3";
+		private string dailyRiskSet4Name = "4";
+		private string dailyRiskSet5Name = "5";
+		private string dailyRiskSet6Name = "6";
+
 		[NinjaScriptProperty]
-		[Display(Name="Set 1 Name", Order=1, GroupName="Daily Risk Quick Sets")]
-		public string DailyRiskSet1Name { get; set; }
+		[Display(Name="Set 1 Name", Order=1, GroupName="Daily Risk Quick Sets", Description="Button label (max 3 chars)")]
+		public string DailyRiskSet1Name
+		{
+			get { return dailyRiskSet1Name; }
+			set { dailyRiskSet1Name = KatTradeCalculator.NormalizeAtmSetName(value, "1"); }
+		}
 
 		[NinjaScriptProperty]
 		[Range(0, 1000000)]
@@ -953,8 +964,12 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		public double DailyRiskSet1MaxProfit { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name="Set 2 Name", Order=4, GroupName="Daily Risk Quick Sets")]
-		public string DailyRiskSet2Name { get; set; }
+		[Display(Name="Set 2 Name", Order=4, GroupName="Daily Risk Quick Sets", Description="Button label (max 3 chars)")]
+		public string DailyRiskSet2Name
+		{
+			get { return dailyRiskSet2Name; }
+			set { dailyRiskSet2Name = KatTradeCalculator.NormalizeAtmSetName(value, "2"); }
+		}
 
 		[NinjaScriptProperty]
 		[Range(0, 1000000)]
@@ -967,8 +982,12 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		public double DailyRiskSet2MaxProfit { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name="Set 3 Name", Order=7, GroupName="Daily Risk Quick Sets")]
-		public string DailyRiskSet3Name { get; set; }
+		[Display(Name="Set 3 Name", Order=7, GroupName="Daily Risk Quick Sets", Description="Button label (max 3 chars)")]
+		public string DailyRiskSet3Name
+		{
+			get { return dailyRiskSet3Name; }
+			set { dailyRiskSet3Name = KatTradeCalculator.NormalizeAtmSetName(value, "3"); }
+		}
 
 		[NinjaScriptProperty]
 		[Range(0, 1000000)]
@@ -981,8 +1000,12 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		public double DailyRiskSet3MaxProfit { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name="Set 4 Name", Order=10, GroupName="Daily Risk Quick Sets")]
-		public string DailyRiskSet4Name { get; set; }
+		[Display(Name="Set 4 Name", Order=10, GroupName="Daily Risk Quick Sets", Description="Button label (max 3 chars)")]
+		public string DailyRiskSet4Name
+		{
+			get { return dailyRiskSet4Name; }
+			set { dailyRiskSet4Name = KatTradeCalculator.NormalizeAtmSetName(value, "4"); }
+		}
 
 		[NinjaScriptProperty]
 		[Range(0, 1000000)]
@@ -995,8 +1018,12 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		public double DailyRiskSet4MaxProfit { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name="Set 5 Name", Order=13, GroupName="Daily Risk Quick Sets")]
-		public string DailyRiskSet5Name { get; set; }
+		[Display(Name="Set 5 Name", Order=13, GroupName="Daily Risk Quick Sets", Description="Button label (max 3 chars)")]
+		public string DailyRiskSet5Name
+		{
+			get { return dailyRiskSet5Name; }
+			set { dailyRiskSet5Name = KatTradeCalculator.NormalizeAtmSetName(value, "5"); }
+		}
 
 		[NinjaScriptProperty]
 		[Range(0, 1000000)]
@@ -1009,8 +1036,12 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		public double DailyRiskSet5MaxProfit { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name="Set 6 Name", Order=16, GroupName="Daily Risk Quick Sets")]
-		public string DailyRiskSet6Name { get; set; }
+		[Display(Name="Set 6 Name", Order=16, GroupName="Daily Risk Quick Sets", Description="Button label (max 3 chars)")]
+		public string DailyRiskSet6Name
+		{
+			get { return dailyRiskSet6Name; }
+			set { dailyRiskSet6Name = KatTradeCalculator.NormalizeAtmSetName(value, "6"); }
+		}
 
 		[NinjaScriptProperty]
 		[Range(0, 1000000)]

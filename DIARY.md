@@ -23,6 +23,11 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.80] — 2026-08-08
+- **Fix — quick-set ATM(8)/DailyRisk(6) label invisible triệt để (mirror Program)**
+  - So với Program (hiển thị rõ `P1..P8` qua `TradingProfileXName` backing + `NormalizeProfileName`): ATM đã có backing `atmSetXName "A".."H"` + `NormalizeAtmSetName` nhưng `UpdateAtmSetButtons/CreateWpfControls` chỉ set `Button.Foreground/FontSize`, `TextBlock` inherit qua `ControlTemplate.ContentPresenter` bị chặn → đen trên nền xám `45,50,65` thấy trống; DailyRisk còn `auto {get;set;}` `null/""` trống dù setting có text, thiếu `Normalize`.
+  - Fix triệt để: `KatTradeManager.Properties:940` `DailyRiskSet1..6Name` `auto` → backing `dailyRiskSetXName "1".."6"` + setter `NormalizeAtmSetName(value,"1".."6")` khớp Program/ATM pattern; `KatTradeManagerUI.SetButtonLabel:83` sync `tb.Foreground=btn.Foreground` + `tb.FontSize=btn.FontSize` bypass template inherit; `UpdateAtmSetButtons:593` + `UpdateDailyRiskPresetButtons:664` luôn set `Button.Foreground/FontSize/HorizontalContentAlignment/Padding` + `TextBlock.Foreground/FontSize/TextAlignment/Margin` mỗi watchdog tick (như `UpdateTradingProfileButtons:684`); `CreateWpfControls:1561/1805` set `lbAtm/lbDr=GetSmallQuickSetLabelBrush(255 opaque)` + `fs=GetQuickSetFontSize()` trước `SetButtonLabel` + explicit `TextBlock` props; `RemoveWpfControls:2152` null `atmSetButtons/dailyRiskPresetButtons/disciplineButtons` sạch.
+
 ### [v1.79] — 2026-08-08
 - **Fix — ATM quick-set label still empty (getter fallback triệt để)**
   - Screenshot v1.78 Program `FN-Eva` thấy, ATM 8 ô nâu/xám trống → `GetAtmSetName` return `AtmSet1Name` trực tiếp, chart cũ lưu `""` nên `""` hiện trống dù setting có text (setter `Normalize` chỉ chạy khi set mới).
