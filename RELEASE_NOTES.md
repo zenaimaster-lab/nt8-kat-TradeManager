@@ -1,15 +1,15 @@
-# Release Notes — v1.64 (2026-08-08)
+# Release Notes — v1.67 (2026-08-08)
 
-> Archive: v0.92 notes retained below. Current release v1.64 — see DIARY.md for full v1.00→v1.64 changelog. This file now tracks only latest verified smoke results; history lives in DIARY.md.
+> Archive: v0.92 notes retained below. Current release v1.67 — see DIARY.md for full v1.00→v1.67 changelog. This file now tracks only latest verified smoke results; history lives in DIARY.md.
 
-## Current (v1.64 2026-08-08) — smoke
+## Current (v1.67 2026-08-08) — smoke
 
 | Layer | Result |
 |---|---|
-| xunit suite | 197/197 passed |
-| CompileCheck (net48 gate) | 0 errors (2 obsolete warnings) |
-| Verify-Version | v1.64 header == VERSION == UI == README == DIARY |
-| Deploy | 11 files KAT\ SHA256 verified |
+| xunit suite | 238/238 passed |
+| CompileCheck (net48 gate) | 0 errors (0 warnings) |
+| Verify-Version | v1.67 header == VERSION == UI == README == DIARY |
+| Deploy | 14 files KAT\ SHA256 verified |
 
 ---
 
