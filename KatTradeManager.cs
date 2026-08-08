@@ -1,6 +1,6 @@
 /*
  * KatTradeManager.cs
- * Version: 1.49 (2026-08-08)
+ * Version: 1.50 (2026-08-08)
  * NinjaTrader 8 TradeManager Indicator
  */
  
@@ -69,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 	public partial class KatTradeManager : Indicator
 	{
 		#region Metadata & Variables
-		public const string VERSION = "1.49";
+		public const string VERSION = "1.50";
 		public const string RELEASE_DATE = "2026-08-08";
 
 		private volatile Account account;
@@ -281,6 +281,9 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				PanelLocation							= KatHudLocation.InChart;
 				HudLeftInset                            = 10;
 				HudDragEnabled                         = true;
+				QuickSetFontSize                       = 8;
+				QuickSetLabelColor                     = new SolidColorBrush(Color.FromRgb(255, 255, 255));
+				QuickSetLabelOpacityPercent            = 50;
 				DefaultQuantity						= 1;
 				AccountName							= "Sim101";
 				AccountFilter						= "";
@@ -480,6 +483,48 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				TradingProfile6LossTimesMaxLosses   = 3;
 				TradingProfile6LossTimesLockMinutes = 30;
 
+				TradingProfile7Name                 = "P7";
+				TradingProfile7Account              = "Sim101";
+				TradingProfile7Atm                  = "";
+				TradingProfile7Quantity             = 1;
+				TradingProfile7Timeframe            = KatTimeframe.ChartTF;
+				TradingProfile7BufferTicks          = 2;
+				TradingProfile7StopLimitEnabled     = false;
+				TradingProfile7EmaProtectEnabled    = true;
+				TradingProfile7DailyMaxDDEnabled    = true;
+				TradingProfile7DailyMaxDD           = 500.0;
+				TradingProfile7DailyMaxProfitEnabled = true;
+				TradingProfile7DailyMaxProfit       = 1000.0;
+				TradingProfile7SizingProtect        = true;
+				TradingProfile7SlPullProtect        = true;
+				TradingProfile7LossDcaProtect       = true;
+				TradingProfile7TpEarlyProtect       = true;
+				TradingProfile7LossTimesProtect     = true;
+				TradingProfile7TimingProtect        = true;
+				TradingProfile7LossTimesMaxLosses   = 3;
+				TradingProfile7LossTimesLockMinutes = 30;
+
+				TradingProfile8Name                 = "P8";
+				TradingProfile8Account              = "Sim101";
+				TradingProfile8Atm                  = "";
+				TradingProfile8Quantity             = 1;
+				TradingProfile8Timeframe            = KatTimeframe.ChartTF;
+				TradingProfile8BufferTicks          = 2;
+				TradingProfile8StopLimitEnabled     = false;
+				TradingProfile8EmaProtectEnabled    = true;
+				TradingProfile8DailyMaxDDEnabled    = true;
+				TradingProfile8DailyMaxDD           = 500.0;
+				TradingProfile8DailyMaxProfitEnabled = true;
+				TradingProfile8DailyMaxProfit       = 1000.0;
+				TradingProfile8SizingProtect        = true;
+				TradingProfile8SlPullProtect        = true;
+				TradingProfile8LossDcaProtect       = true;
+				TradingProfile8TpEarlyProtect       = true;
+				TradingProfile8LossTimesProtect     = true;
+				TradingProfile8TimingProtect        = true;
+				TradingProfile8LossTimesMaxLosses   = 3;
+				TradingProfile8LossTimesLockMinutes = 30;
+
 				// HUD Master Toggles Defaults
 				StopLimitEnabled                    = false;
 				EmaProtectEnabled                   = true;
@@ -570,6 +615,10 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					cachedTw1Enabled = true; cachedTw1StartHour = 2; cachedTw1StartMinute = 0; cachedTw1EndHour = 15; cachedTw1EndMinute = 0;
 					cachedTw2Enabled = false; cachedTw3Enabled = false;
 				}
+				// QuickSet appearance migration: ensure defaults for charts saved before v1.50
+				if (QuickSetFontSize < 6 || QuickSetFontSize > 14) QuickSetFontSize = 8;
+				if (QuickSetLabelColor == null) QuickSetLabelColor = new SolidColorBrush(Color.FromRgb(255, 255, 255));
+				if (QuickSetLabelOpacityPercent < 10 || QuickSetLabelOpacityPercent > 100) QuickSetLabelOpacityPercent = 50;
 				// Migration: pre-v1.33 charts have profile quantities 0 -> seed defaults (ponytail: one-shot repair, no persist storm)
 				if (TradingProfile1Quantity == 0 && TradingProfile2Quantity == 0 && TradingProfile3Quantity == 0 && TradingProfile4Quantity == 0 && TradingProfile5Quantity == 0 && TradingProfile6Quantity == 0)
 				{
@@ -588,6 +637,17 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					// HUD master toggles migration for old charts (default Ema ON, StopLimit OFF)
 					StopLimitEnabled = false; EmaProtectEnabled = true;
 					cachedIsStopLimit = false; cachedIsEmaPlace = true;
+				}
+				// Additional migration for P7/P8 on pre-v1.50 charts (quantity 0 means never configured)
+				if (TradingProfile7Quantity == 0)
+				{
+					TradingProfile7Name = "P7"; TradingProfile7Quantity = 1; TradingProfile7BufferTicks = 2; TradingProfile7DailyMaxDD = 500; TradingProfile7DailyMaxProfit = 1000; TradingProfile7DailyMaxDDEnabled = true; TradingProfile7DailyMaxProfitEnabled = true; TradingProfile7SizingProtect = true; TradingProfile7SlPullProtect = true; TradingProfile7LossDcaProtect = true; TradingProfile7TpEarlyProtect = true; TradingProfile7LossTimesProtect = true; TradingProfile7TimingProtect = true; TradingProfile7LossTimesMaxLosses = 3; TradingProfile7LossTimesLockMinutes = 30; TradingProfile7EmaProtectEnabled = true;
+					if (string.IsNullOrWhiteSpace(TradingProfile7Account)) TradingProfile7Account = "Sim101";
+				}
+				if (TradingProfile8Quantity == 0)
+				{
+					TradingProfile8Name = "P8"; TradingProfile8Quantity = 1; TradingProfile8BufferTicks = 2; TradingProfile8DailyMaxDD = 500; TradingProfile8DailyMaxProfit = 1000; TradingProfile8DailyMaxDDEnabled = true; TradingProfile8DailyMaxProfitEnabled = true; TradingProfile8SizingProtect = true; TradingProfile8SlPullProtect = true; TradingProfile8LossDcaProtect = true; TradingProfile8TpEarlyProtect = true; TradingProfile8LossTimesProtect = true; TradingProfile8TimingProtect = true; TradingProfile8LossTimesMaxLosses = 3; TradingProfile8LossTimesLockMinutes = 30; TradingProfile8EmaProtectEnabled = true;
+					if (string.IsNullOrWhiteSpace(TradingProfile8Account)) TradingProfile8Account = "Sim101";
 				}
 				isRenkoChart = BarsPeriod.BarsPeriodType == BarsPeriodType.Renko
 

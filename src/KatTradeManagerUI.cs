@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.49 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.50 (2026-08-08) */
 
 using System;
 using System.Collections.Generic;
@@ -30,8 +30,35 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private Button[] disciplineButtons;
 		private Button btnDisciplineAll;
 		private readonly SolidColorBrush disciplineOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
-		// Trading profiles — 6 buttons in 2 rows above account selector, row-based ON colors, height 22 same as ATM row
+		// Trading profiles — 8 buttons in 2 rows x4 above account selector, row-based ON colors, height 22 same as ATM row
 		private Button[] tradingProfileButtons;
+
+		// Quick-set label styling — smaller font + 50% transparent color for ATM/DailyRisk/Profile buttons only
+		private double GetQuickSetFontSize()
+		{
+			double sz = QuickSetFontSize;
+			if (sz < 6) sz = 6;
+			if (sz > 14) sz = 14;
+			if (sz <= 0) sz = 8;
+			return sz;
+		}
+		private Brush GetQuickSetLabelBrush()
+		{
+			try
+			{
+				Brush baseBrush = QuickSetLabelColor ?? Brushes.White;
+				Color baseColor = Colors.White;
+				if (baseBrush is SolidColorBrush scb) baseColor = scb.Color;
+				int pct = QuickSetLabelOpacityPercent;
+				if (pct < 10) pct = 10;
+				if (pct > 100) pct = 100;
+				if (pct == 0) pct = 50;
+				byte alpha = (byte)(pct * 255 / 100);
+				Color c = Color.FromArgb(alpha, baseColor.R, baseColor.G, baseColor.B);
+				return new SolidColorBrush(c);
+			}
+			catch { return new SolidColorBrush(Color.FromArgb(128, 255, 255, 255)); }
+		}
 		private ComboBox accSelector;
 		private Button btnStopLimit;
 		private Button btnEmaPlace;
@@ -292,7 +319,9 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				case 2: return AtmSet3Atm;
 				case 3: return AtmSet4Atm;
 				case 4: return AtmSet5Atm;
-				default: return AtmSet6Atm;
+				case 5: return AtmSet6Atm;
+				case 6: return AtmSet7Atm;
+				default: return AtmSet8Atm;
 			}
 		}
 
@@ -305,7 +334,9 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				case 2: return AtmSet3Name;
 				case 3: return AtmSet4Name;
 				case 4: return AtmSet5Name;
-				default: return AtmSet6Name;
+				case 5: return AtmSet6Name;
+				case 6: return AtmSet7Name;
+				default: return AtmSet8Name;
 			}
 		}
 
@@ -345,6 +376,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private void UpdateAtmSetButtons()
 		{
 			if (atmSetButtons == null) return;
+			Brush labelBrush = GetQuickSetLabelBrush();
+			double fs = GetQuickSetFontSize();
 			for (int i = 0; i < atmSetButtons.Length; i++)
 			{
 				if (atmSetButtons[i] == null) continue;
@@ -353,7 +386,11 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					&& !string.IsNullOrEmpty(tpl)
 					&& tpl.Equals(cachedAtmTemplate, StringComparison.OrdinalIgnoreCase);
 				atmSetButtons[i].Background = on ? atmSetOnBg : atmSetOffBg;
-				atmSetButtons[i].Foreground = on ? Brushes.White : Brushes.LightGray;
+				atmSetButtons[i].Foreground = labelBrush;
+				atmSetButtons[i].FontSize = fs;
+				string expected = GetAtmSetName(i);
+				if (atmSetButtons[i].Content as string != expected)
+					atmSetButtons[i].Content = expected;
 			}
 		}
 
@@ -410,97 +447,102 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private void UpdateDailyRiskPresetButtons()
 		{
 			if (dailyRiskPresetButtons == null) return;
-
+			Brush labelBrush = GetQuickSetLabelBrush();
+			double fs = GetQuickSetFontSize();
 			for (int i = 0; i < dailyRiskPresetButtons.Length; i++)
 			{
 				if (dailyRiskPresetButtons[i] == null) continue;
 				bool on = DailyMaxDD == GetDailyRiskPresetMaxDD(i)
 					&& DailyMaxProfit == GetDailyRiskPresetMaxProfit(i);
 				dailyRiskPresetButtons[i].Background = on ? dailyRiskPresetOnBg : dailyRiskPresetOffBg;
-				dailyRiskPresetButtons[i].Foreground = on ? Brushes.White : Brushes.LightGray;
+				dailyRiskPresetButtons[i].Foreground = labelBrush;
+				dailyRiskPresetButtons[i].FontSize = fs;
+				string expected = GetDailyRiskPresetName(i);
+				if (dailyRiskPresetButtons[i].Content as string != expected)
+					dailyRiskPresetButtons[i].Content = expected;
 			}
 		}
 
-		// ponytail: trading profile helpers — ceiling = per-profile TradingWindows + EmaPlace expansion needs extra ~30 props (ponytail: upgrade when requested)
+		// ponytail: profile bundle covers account/ATM/qty/TF/buffer/StopLimit/EmaProtect/DailyRisk/Discipline (20 props ×8). TradingWindows (15) + EmaPlace (9) stay global by design — per-profile ceiling ~192 extra props, upgrade when requested.
 		private string GetTradingProfileName(int idx)
 		{
-			switch (idx) { case 0: return TradingProfile1Name; case 1: return TradingProfile2Name; case 2: return TradingProfile3Name; case 3: return TradingProfile4Name; case 4: return TradingProfile5Name; default: return TradingProfile6Name; }
+			switch (idx) { case 0: return TradingProfile1Name; case 1: return TradingProfile2Name; case 2: return TradingProfile3Name; case 3: return TradingProfile4Name; case 4: return TradingProfile5Name; case 5: return TradingProfile6Name; case 6: return TradingProfile7Name; default: return TradingProfile8Name; }
 		}
 		private string GetTradingProfileAccount(int idx)
 		{
-			switch (idx) { case 0: return TradingProfile1Account; case 1: return TradingProfile2Account; case 2: return TradingProfile3Account; case 3: return TradingProfile4Account; case 4: return TradingProfile5Account; default: return TradingProfile6Account; }
+			switch (idx) { case 0: return TradingProfile1Account; case 1: return TradingProfile2Account; case 2: return TradingProfile3Account; case 3: return TradingProfile4Account; case 4: return TradingProfile5Account; case 5: return TradingProfile6Account; case 6: return TradingProfile7Account; default: return TradingProfile8Account; }
 		}
 		private string GetTradingProfileAtm(int idx)
 		{
-			switch (idx) { case 0: return TradingProfile1Atm; case 1: return TradingProfile2Atm; case 2: return TradingProfile3Atm; case 3: return TradingProfile4Atm; case 4: return TradingProfile5Atm; default: return TradingProfile6Atm; }
+			switch (idx) { case 0: return TradingProfile1Atm; case 1: return TradingProfile2Atm; case 2: return TradingProfile3Atm; case 3: return TradingProfile4Atm; case 4: return TradingProfile5Atm; case 5: return TradingProfile6Atm; case 6: return TradingProfile7Atm; default: return TradingProfile8Atm; }
 		}
 		private int GetTradingProfileQuantity(int idx)
 		{
-			switch (idx) { case 0: return TradingProfile1Quantity; case 1: return TradingProfile2Quantity; case 2: return TradingProfile3Quantity; case 3: return TradingProfile4Quantity; case 4: return TradingProfile5Quantity; default: return TradingProfile6Quantity; }
+			switch (idx) { case 0: return TradingProfile1Quantity; case 1: return TradingProfile2Quantity; case 2: return TradingProfile3Quantity; case 3: return TradingProfile4Quantity; case 4: return TradingProfile5Quantity; case 5: return TradingProfile6Quantity; case 6: return TradingProfile7Quantity; default: return TradingProfile8Quantity; }
 		}
 		private KatTimeframe GetTradingProfileTimeframe(int idx)
 		{
-			switch (idx) { case 0: return TradingProfile1Timeframe; case 1: return TradingProfile2Timeframe; case 2: return TradingProfile3Timeframe; case 3: return TradingProfile4Timeframe; case 4: return TradingProfile5Timeframe; default: return TradingProfile6Timeframe; }
+			switch (idx) { case 0: return TradingProfile1Timeframe; case 1: return TradingProfile2Timeframe; case 2: return TradingProfile3Timeframe; case 3: return TradingProfile4Timeframe; case 4: return TradingProfile5Timeframe; case 5: return TradingProfile6Timeframe; case 6: return TradingProfile7Timeframe; default: return TradingProfile8Timeframe; }
 		}
 		private int GetTradingProfileBufferTicks(int idx)
 		{
-			switch (idx) { case 0: return TradingProfile1BufferTicks; case 1: return TradingProfile2BufferTicks; case 2: return TradingProfile3BufferTicks; case 3: return TradingProfile4BufferTicks; case 4: return TradingProfile5BufferTicks; default: return TradingProfile6BufferTicks; }
+			switch (idx) { case 0: return TradingProfile1BufferTicks; case 1: return TradingProfile2BufferTicks; case 2: return TradingProfile3BufferTicks; case 3: return TradingProfile4BufferTicks; case 4: return TradingProfile5BufferTicks; case 5: return TradingProfile6BufferTicks; case 6: return TradingProfile7BufferTicks; default: return TradingProfile8BufferTicks; }
 		}
 		private bool GetTradingProfileStopLimit(int idx)
 		{
-			switch (idx) { case 0: return TradingProfile1StopLimitEnabled; case 1: return TradingProfile2StopLimitEnabled; case 2: return TradingProfile3StopLimitEnabled; case 3: return TradingProfile4StopLimitEnabled; case 4: return TradingProfile5StopLimitEnabled; default: return TradingProfile6StopLimitEnabled; }
+			switch (idx) { case 0: return TradingProfile1StopLimitEnabled; case 1: return TradingProfile2StopLimitEnabled; case 2: return TradingProfile3StopLimitEnabled; case 3: return TradingProfile4StopLimitEnabled; case 4: return TradingProfile5StopLimitEnabled; case 5: return TradingProfile6StopLimitEnabled; case 6: return TradingProfile7StopLimitEnabled; default: return TradingProfile8StopLimitEnabled; }
 		}
 		private bool GetTradingProfileEmaProtect(int idx)
 		{
-			switch (idx) { case 0: return TradingProfile1EmaProtectEnabled; case 1: return TradingProfile2EmaProtectEnabled; case 2: return TradingProfile3EmaProtectEnabled; case 3: return TradingProfile4EmaProtectEnabled; case 4: return TradingProfile5EmaProtectEnabled; default: return TradingProfile6EmaProtectEnabled; }
+			switch (idx) { case 0: return TradingProfile1EmaProtectEnabled; case 1: return TradingProfile2EmaProtectEnabled; case 2: return TradingProfile3EmaProtectEnabled; case 3: return TradingProfile4EmaProtectEnabled; case 4: return TradingProfile5EmaProtectEnabled; case 5: return TradingProfile6EmaProtectEnabled; case 6: return TradingProfile7EmaProtectEnabled; default: return TradingProfile8EmaProtectEnabled; }
 		}
 		private bool GetTradingProfileDailyMaxDDEnabled(int idx)
 		{
-			switch (idx) { case 0: return TradingProfile1DailyMaxDDEnabled; case 1: return TradingProfile2DailyMaxDDEnabled; case 2: return TradingProfile3DailyMaxDDEnabled; case 3: return TradingProfile4DailyMaxDDEnabled; case 4: return TradingProfile5DailyMaxDDEnabled; default: return TradingProfile6DailyMaxDDEnabled; }
+			switch (idx) { case 0: return TradingProfile1DailyMaxDDEnabled; case 1: return TradingProfile2DailyMaxDDEnabled; case 2: return TradingProfile3DailyMaxDDEnabled; case 3: return TradingProfile4DailyMaxDDEnabled; case 4: return TradingProfile5DailyMaxDDEnabled; case 5: return TradingProfile6DailyMaxDDEnabled; case 6: return TradingProfile7DailyMaxDDEnabled; default: return TradingProfile8DailyMaxDDEnabled; }
 		}
 		private double GetTradingProfileDailyMaxDD(int idx)
 		{
-			switch (idx) { case 0: return TradingProfile1DailyMaxDD; case 1: return TradingProfile2DailyMaxDD; case 2: return TradingProfile3DailyMaxDD; case 3: return TradingProfile4DailyMaxDD; case 4: return TradingProfile5DailyMaxDD; default: return TradingProfile6DailyMaxDD; }
+			switch (idx) { case 0: return TradingProfile1DailyMaxDD; case 1: return TradingProfile2DailyMaxDD; case 2: return TradingProfile3DailyMaxDD; case 3: return TradingProfile4DailyMaxDD; case 4: return TradingProfile5DailyMaxDD; case 5: return TradingProfile6DailyMaxDD; case 6: return TradingProfile7DailyMaxDD; default: return TradingProfile8DailyMaxDD; }
 		}
 		private bool GetTradingProfileDailyMaxProfitEnabled(int idx)
 		{
-			switch (idx) { case 0: return TradingProfile1DailyMaxProfitEnabled; case 1: return TradingProfile2DailyMaxProfitEnabled; case 2: return TradingProfile3DailyMaxProfitEnabled; case 3: return TradingProfile4DailyMaxProfitEnabled; case 4: return TradingProfile5DailyMaxProfitEnabled; default: return TradingProfile6DailyMaxProfitEnabled; }
+			switch (idx) { case 0: return TradingProfile1DailyMaxProfitEnabled; case 1: return TradingProfile2DailyMaxProfitEnabled; case 2: return TradingProfile3DailyMaxProfitEnabled; case 3: return TradingProfile4DailyMaxProfitEnabled; case 4: return TradingProfile5DailyMaxProfitEnabled; case 5: return TradingProfile6DailyMaxProfitEnabled; case 6: return TradingProfile7DailyMaxProfitEnabled; default: return TradingProfile8DailyMaxProfitEnabled; }
 		}
 		private double GetTradingProfileDailyMaxProfit(int idx)
 		{
-			switch (idx) { case 0: return TradingProfile1DailyMaxProfit; case 1: return TradingProfile2DailyMaxProfit; case 2: return TradingProfile3DailyMaxProfit; case 3: return TradingProfile4DailyMaxProfit; case 4: return TradingProfile5DailyMaxProfit; default: return TradingProfile6DailyMaxProfit; }
+			switch (idx) { case 0: return TradingProfile1DailyMaxProfit; case 1: return TradingProfile2DailyMaxProfit; case 2: return TradingProfile3DailyMaxProfit; case 3: return TradingProfile4DailyMaxProfit; case 4: return TradingProfile5DailyMaxProfit; case 5: return TradingProfile6DailyMaxProfit; case 6: return TradingProfile7DailyMaxProfit; default: return TradingProfile8DailyMaxProfit; }
 		}
 		private bool GetTradingProfileSizing(int idx)
 		{
-			switch (idx) { case 0: return TradingProfile1SizingProtect; case 1: return TradingProfile2SizingProtect; case 2: return TradingProfile3SizingProtect; case 3: return TradingProfile4SizingProtect; case 4: return TradingProfile5SizingProtect; default: return TradingProfile6SizingProtect; }
+			switch (idx) { case 0: return TradingProfile1SizingProtect; case 1: return TradingProfile2SizingProtect; case 2: return TradingProfile3SizingProtect; case 3: return TradingProfile4SizingProtect; case 4: return TradingProfile5SizingProtect; case 5: return TradingProfile6SizingProtect; case 6: return TradingProfile7SizingProtect; default: return TradingProfile8SizingProtect; }
 		}
 		private bool GetTradingProfileSlPull(int idx)
 		{
-			switch (idx) { case 0: return TradingProfile1SlPullProtect; case 1: return TradingProfile2SlPullProtect; case 2: return TradingProfile3SlPullProtect; case 3: return TradingProfile4SlPullProtect; case 4: return TradingProfile5SlPullProtect; default: return TradingProfile6SlPullProtect; }
+			switch (idx) { case 0: return TradingProfile1SlPullProtect; case 1: return TradingProfile2SlPullProtect; case 2: return TradingProfile3SlPullProtect; case 3: return TradingProfile4SlPullProtect; case 4: return TradingProfile5SlPullProtect; case 5: return TradingProfile6SlPullProtect; case 6: return TradingProfile7SlPullProtect; default: return TradingProfile8SlPullProtect; }
 		}
 		private bool GetTradingProfileLossDca(int idx)
 		{
-			switch (idx) { case 0: return TradingProfile1LossDcaProtect; case 1: return TradingProfile2LossDcaProtect; case 2: return TradingProfile3LossDcaProtect; case 3: return TradingProfile4LossDcaProtect; case 4: return TradingProfile5LossDcaProtect; default: return TradingProfile6LossDcaProtect; }
+			switch (idx) { case 0: return TradingProfile1LossDcaProtect; case 1: return TradingProfile2LossDcaProtect; case 2: return TradingProfile3LossDcaProtect; case 3: return TradingProfile4LossDcaProtect; case 4: return TradingProfile5LossDcaProtect; case 5: return TradingProfile6LossDcaProtect; case 6: return TradingProfile7LossDcaProtect; default: return TradingProfile8LossDcaProtect; }
 		}
 		private bool GetTradingProfileTpEarly(int idx)
 		{
-			switch (idx) { case 0: return TradingProfile1TpEarlyProtect; case 1: return TradingProfile2TpEarlyProtect; case 2: return TradingProfile3TpEarlyProtect; case 3: return TradingProfile4TpEarlyProtect; case 4: return TradingProfile5TpEarlyProtect; default: return TradingProfile6TpEarlyProtect; }
+			switch (idx) { case 0: return TradingProfile1TpEarlyProtect; case 1: return TradingProfile2TpEarlyProtect; case 2: return TradingProfile3TpEarlyProtect; case 3: return TradingProfile4TpEarlyProtect; case 4: return TradingProfile5TpEarlyProtect; case 5: return TradingProfile6TpEarlyProtect; case 6: return TradingProfile7TpEarlyProtect; default: return TradingProfile8TpEarlyProtect; }
 		}
 		private bool GetTradingProfileLossTimes(int idx)
 		{
-			switch (idx) { case 0: return TradingProfile1LossTimesProtect; case 1: return TradingProfile2LossTimesProtect; case 2: return TradingProfile3LossTimesProtect; case 3: return TradingProfile4LossTimesProtect; case 4: return TradingProfile5LossTimesProtect; default: return TradingProfile6LossTimesProtect; }
+			switch (idx) { case 0: return TradingProfile1LossTimesProtect; case 1: return TradingProfile2LossTimesProtect; case 2: return TradingProfile3LossTimesProtect; case 3: return TradingProfile4LossTimesProtect; case 4: return TradingProfile5LossTimesProtect; case 5: return TradingProfile6LossTimesProtect; case 6: return TradingProfile7LossTimesProtect; default: return TradingProfile8LossTimesProtect; }
 		}
 		private bool GetTradingProfileTiming(int idx)
 		{
-			switch (idx) { case 0: return TradingProfile1TimingProtect; case 1: return TradingProfile2TimingProtect; case 2: return TradingProfile3TimingProtect; case 3: return TradingProfile4TimingProtect; case 4: return TradingProfile5TimingProtect; default: return TradingProfile6TimingProtect; }
+			switch (idx) { case 0: return TradingProfile1TimingProtect; case 1: return TradingProfile2TimingProtect; case 2: return TradingProfile3TimingProtect; case 3: return TradingProfile4TimingProtect; case 4: return TradingProfile5TimingProtect; case 5: return TradingProfile6TimingProtect; case 6: return TradingProfile7TimingProtect; default: return TradingProfile8TimingProtect; }
 		}
 		private int GetTradingProfileLossTimesMaxLosses(int idx)
 		{
-			switch (idx) { case 0: return TradingProfile1LossTimesMaxLosses; case 1: return TradingProfile2LossTimesMaxLosses; case 2: return TradingProfile3LossTimesMaxLosses; case 3: return TradingProfile4LossTimesMaxLosses; case 4: return TradingProfile5LossTimesMaxLosses; default: return TradingProfile6LossTimesMaxLosses; }
+			switch (idx) { case 0: return TradingProfile1LossTimesMaxLosses; case 1: return TradingProfile2LossTimesMaxLosses; case 2: return TradingProfile3LossTimesMaxLosses; case 3: return TradingProfile4LossTimesMaxLosses; case 4: return TradingProfile5LossTimesMaxLosses; case 5: return TradingProfile6LossTimesMaxLosses; case 6: return TradingProfile7LossTimesMaxLosses; default: return TradingProfile8LossTimesMaxLosses; }
 		}
 		private int GetTradingProfileLossTimesLockMinutes(int idx)
 		{
-			switch (idx) { case 0: return TradingProfile1LossTimesLockMinutes; case 1: return TradingProfile2LossTimesLockMinutes; case 2: return TradingProfile3LossTimesLockMinutes; case 3: return TradingProfile4LossTimesLockMinutes; case 4: return TradingProfile5LossTimesLockMinutes; default: return TradingProfile6LossTimesLockMinutes; }
+			switch (idx) { case 0: return TradingProfile1LossTimesLockMinutes; case 1: return TradingProfile2LossTimesLockMinutes; case 2: return TradingProfile3LossTimesLockMinutes; case 3: return TradingProfile4LossTimesLockMinutes; case 4: return TradingProfile5LossTimesLockMinutes; case 5: return TradingProfile6LossTimesLockMinutes; case 6: return TradingProfile7LossTimesLockMinutes; default: return TradingProfile8LossTimesLockMinutes; }
 		}
 
 		private bool IsTradingProfileConfigured(int idx)
@@ -549,24 +591,27 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			int uniqueMatch = -1;
 			{
 				int matches = 0;
-				for (int j = 0; j < 6; j++) if (IsTradingProfileActive(j)) { matches++; uniqueMatch = j; }
+				for (int j = 0; j < 8; j++) if (IsTradingProfileActive(j)) { matches++; uniqueMatch = j; }
 				if (matches != 1) uniqueMatch = -1;
 			}
+			Brush labelBrush = GetQuickSetLabelBrush();
+			double fs = GetQuickSetFontSize();
 			for (int i = 0; i < tradingProfileButtons.Length; i++)
 			{
 				if (tradingProfileButtons[i] == null) continue;
 				bool on = (uniqueMatch != -1 && i == uniqueMatch) || (uniqueMatch == -1 && activeTradingProfile == i && IsTradingProfileActive(i));
 				if (on)
 				{
-					int row = i / 3; // 0 for P1-P3, 1 for P4-P6
+					int row = i / 4; // 0 for P1-P4, 1 for P5-P8
 					tradingProfileButtons[i].Background = profileRowOnBgs[Math.Min(row, profileRowOnBgs.Length - 1)];
-					tradingProfileButtons[i].Foreground = Brushes.White;
+					tradingProfileButtons[i].Foreground = labelBrush;
 				}
 				else
 				{
 					tradingProfileButtons[i].Background = profileOffBg;
-					tradingProfileButtons[i].Foreground = Brushes.LightGray;
+					tradingProfileButtons[i].Foreground = labelBrush;
 				}
+				tradingProfileButtons[i].FontSize = fs;
 				// keep label in sync if user changed name in settings without rebuild
 				string expected = GetTradingProfileName(i);
 				if (tradingProfileButtons[i].Content as string != expected)
@@ -585,7 +630,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		{
 			if (btnStopLimit == null) return;
 			SolidColorBrush offBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
-			SolidColorBrush onBg = new SolidColorBrush(Color.FromRgb(48, 14, 80)); // very dark purple
+			SolidColorBrush onBg = new SolidColorBrush(Color.FromRgb(18, 6, 48)); // extra dark purple — distinct from Max DD/Profit purple
 			btnStopLimit.Content = cachedIsStopLimit ? "Stop-Limit: ON" : "Stop-Limit: OFF";
 			btnStopLimit.Background = cachedIsStopLimit ? onBg : offBg;
 			btnStopLimit.Foreground = cachedIsStopLimit ? Brushes.White : Brushes.LightGray;
@@ -646,7 +691,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 		private void ApplyTradingProfile(int idx)
 		{
-			if (idx < 0 || idx >= 6) return;
+			if (idx < 0 || idx >= 8) return;
 			// debounce: same profile double-click within 500ms ignored (anti-spam)
 			if (activeTradingProfile == idx && (DateTime.UtcNow - lastProfileApplyUtc).TotalMilliseconds < 500) return;
 			lastProfileApplyUtc = DateTime.UtcNow;
@@ -1227,22 +1272,22 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				}
 			}
 
-			// --- Trading Profile quick presets (6 buttons, 2 rows x 3 cols, above account) ---
-			tradingProfileButtons = new Button[6];
+			// --- Trading Profile quick presets (8 buttons, 2 rows x 4 cols, above account, align left) ---
+			tradingProfileButtons = new Button[8];
 			StackPanel profileStack = new StackPanel { Margin = new Thickness(0, 0, 0, 4) };
 			for (int prow = 0; prow < 2; prow++)
 			{
 				Grid rowGrid = new Grid { Margin = new Thickness(0, 0, 0, prow == 0 ? 2 : 0) };
-				for (int c = 0; c < 3; c++)
+				for (int c = 0; c < 4; c++)
 				{
 					rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-					if (c < 2) rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
+					if (c < 3) rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
 				}
-				for (int cc = 0; cc < 3; cc++)
+				for (int cc = 0; cc < 4; cc++)
 				{
-					int idx = prow * 3 + cc;
-					Button pBtn = CreateButton(GetTradingProfileName(idx), profileOffBg, null, 22, 10);
-					pBtn.Foreground = Brushes.LightGray;
+					int idx = prow * 4 + cc;
+					Button pBtn = CreateButton(GetTradingProfileName(idx), profileOffBg, null, 22, GetQuickSetFontSize());
+					pBtn.Foreground = GetQuickSetLabelBrush();
 					pBtn.Margin = new Thickness(0);
 					int captured = idx;
 					pBtn.Click += (s, ev) => ApplyTradingProfile(captured);
@@ -1257,7 +1302,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			// update tooltips with live profile snapshot (account/ATM/DD/Profit) after buttons created
 			try
 			{
-				for (int i = 0; i < 6; i++) if (tradingProfileButtons[i] != null)
+				for (int i = 0; i < 8; i++) if (tradingProfileButtons[i] != null)
 				{
 					string tAcc = GetTradingProfileAccount(i);
 					string tAtm = GetTradingProfileAtm(i);
@@ -1360,21 +1405,21 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			sec1Panel.Children.Add(atmSelector);
 
-			// --- ATM Quick Set buttons (A–F), one-click ATM selection ---
-			atmSetButtons = new Button[6];
+			// --- ATM Quick Set buttons (A–H), 8 in single row, one-click ATM selection ---
+			atmSetButtons = new Button[8];
 			Grid atmSetGrid = new Grid { Margin = new Thickness(0, 4, 0, 0) };
-			for (int i = 0; i < 6; i++)
+			for (int i = 0; i < 8; i++)
 			{
 				atmSetGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-				if (i < 5)
+				if (i < 7)
 					atmSetGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
 			}
 
-			for (int i = 0; i < 6; i++)
+			for (int i = 0; i < 8; i++)
 			{
 				int setIdx = i;
-				Button setBtn = CreateButton(GetAtmSetName(setIdx), atmSetOffBg, null, 22, 10);
-				setBtn.Foreground = Brushes.LightGray;
+				Button setBtn = CreateButton(GetAtmSetName(setIdx), atmSetOffBg, null, 22, GetQuickSetFontSize());
+				setBtn.Foreground = GetQuickSetLabelBrush();
 				setBtn.Margin = new Thickness(0);
 				setBtn.Click += (s, ev) => ApplyAtmSetSelection(setIdx);
 				Grid.SetColumn(setBtn, setIdx * 2);
@@ -1565,7 +1610,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			StackPanel sec4Panel = new StackPanel();
 
 			SolidColorBrush toggleOffBg   = new SolidColorBrush(Color.FromRgb(45, 50, 65));
-			SolidColorBrush stopLimitOnBg = new SolidColorBrush(Color.FromRgb(48, 14, 80)); // very dark purple when ON
+			SolidColorBrush stopLimitOnBg = new SolidColorBrush(Color.FromRgb(18, 6, 48)); // extra dark purple — distinct from Max DD/Profit purple
 
 			btnStopLimit = CreateButton(cachedIsStopLimit ? "Stop-Limit: ON" : "Stop-Limit: OFF",
 				cachedIsStopLimit ? stopLimitOnBg : toggleOffBg, null, 24, 10);
@@ -1646,8 +1691,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			for (int i = 0; i < 6; i++)
 			{
 				int presetIdx = i;
-				Button presetButton = CreateButton(GetDailyRiskPresetName(presetIdx), dailyRiskPresetOffBg, null, 22, 9);
-				presetButton.Foreground = Brushes.LightGray;
+				Button presetButton = CreateButton(GetDailyRiskPresetName(presetIdx), dailyRiskPresetOffBg, null, 22, GetQuickSetFontSize());
+				presetButton.Foreground = GetQuickSetLabelBrush();
 				presetButton.Click += (s, ev) => ApplyDailyRiskPreset(presetIdx);
 				Grid.SetColumn(presetButton, presetIdx * 2);
 				dailyRiskPresetButtons[presetIdx] = presetButton;
