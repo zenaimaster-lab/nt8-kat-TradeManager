@@ -23,6 +23,10 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.73] — 2026-08-08
+- **Spacing — Account info card top/bottom half-line padding**
+  - `KatTradeManagerUI.CreateAccountInfoSection:249` `Padding HudGap(2)` → `Thickness(2,6,2,6)` (+4 top/bottom ≈1/2 line @11pt) — cao hơn, inter-line `HudGap 2` giữ nguyên per request.
+
 ### [v1.72] — 2026-08-08
 - **Dim — ATM+Program gray OFF 50% transparent**
   - `KatTradeManagerUI:28` `atmSetOffBg` + `105` `profileOffBg` `FromRgb(45,50,65)` → `FromArgb(128,45,50,65)` 50% trong suốt (bớt sáng) cho 8 ATM quick-set + 8 Program; `dailyRiskPresetOffBg` đã 50% từ v1.71.

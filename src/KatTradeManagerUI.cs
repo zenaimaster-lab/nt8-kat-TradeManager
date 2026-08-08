@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.72 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.73 (2026-08-08) */
 // ponytail: many catch{} for UI button updates are expected (control not yet created, dispatcher not ready) — silent. Critical watchdog tick already logs.
 
 using System;
@@ -246,7 +246,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				BorderBrush = new SolidColorBrush(Color.FromRgb(35, 42, 56)),
 				BorderThickness = new Thickness(1),
 				CornerRadius = new CornerRadius(5),
-				Padding = new Thickness(HudGap),
+				Padding = new Thickness(HudGap, HudGap + 4, HudGap, HudGap + 4), // extra top/bottom ~1/2 line (6px) per request, inter-line gap unchanged
 				Margin = new Thickness(0, 0, 0, HudGap),
 				Child = inner,
 				UseLayoutRounding = true,
