@@ -405,9 +405,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		/// </summary>
 		public static string NormalizeAtmSetName(string value, string fallback)
 		{
-			if (value == null) return fallback;
-			string trimmed = value.Trim();
-			if (trimmed.Length == 0) return string.Empty; // allow explicit empty per request (empty setting → empty button)
+			string trimmed = (value ?? string.Empty).Trim();
+			if (trimmed.Length == 0) return fallback;
 			return trimmed.Length > 3 ? trimmed.Substring(0, 3) : trimmed;
 		}
 

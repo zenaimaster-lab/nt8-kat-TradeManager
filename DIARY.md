@@ -23,6 +23,11 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.78] — 2026-08-08
+- **Fix — quick-set label still empty (triệt để, ko đụng chỗ khác)**
+  - So sánh Program (thấy) vs ATM/DailyRisk (trống) trên screenshot v1.77: background OK, chỉ text missing → `NormalizeAtmSetName` cho phép `""` empty làm chart cũ `""` hiện trống dù setting có text; `GetSmallQuickSetLabelBrush` `alpha 51/204` vẫn mờ.
+  - Fix: revert `KatTradeCalculator.NormalizeAtmSetName:406` về `fallback` khi `trimmed empty` (đảm bảo `"A".."H"` hiện khi setting trống, khớp Program `P1` logic), `KatTradeManagerUI.GetDailyRiskPresetName:598` giữ `IsNullOrWhiteSpace` → `"1".."6"`, `GetSmallQuickSetLabelBrush:75` giữ `255` opaque trắng đặc per request trước — chỉ 3 dòng này, ko sửa gì khác.
+
 ### [v1.77] — 2026-08-08
 - **Fix — quick-set small label fully opaque**
   - `KatTradeManagerUI.GetSmallQuickSetLabelBrush:75` `204` (80% opaque) → `255` opaque per request (không trong suốt) — ATM 8 + DailyRisk 6 font nhỏ giờ trắng đặc, dễ thấy trên nền xám 50%; vẫn fallback `"1".."6"` cho chart cũ.

@@ -57,8 +57,7 @@ namespace KatTradeManager.Tests
 		[Theory]
 		[InlineData("A", "A")]
 		[InlineData("ABCD", "ABC")] // AtmSet 3 chars max
-		[InlineData("", "")] // explicit empty → empty (only null falls back) per request
-		[InlineData(null, "A")]
+		[InlineData("", "A")]
 		public void NormalizeAtmSetName_TrimsTo3(string input, string expected)
 		{
 			Assert.Equal(expected, KatTradeCalculator.NormalizeAtmSetName(input, "A"));

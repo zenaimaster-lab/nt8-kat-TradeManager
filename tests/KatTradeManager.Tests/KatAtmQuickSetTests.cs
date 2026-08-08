@@ -23,9 +23,9 @@ namespace KatTradeManager.Tests
 		[Fact]
 		public void NormalizeAtmSetName_EmptyOrWhitespace_FallsBack()
 		{
-			Assert.Equal("", KatTradeCalculator.NormalizeAtmSetName("", "B")); // explicit empty stays empty per request
-			Assert.Equal("", KatTradeCalculator.NormalizeAtmSetName("   ", "C"));
-			Assert.Equal("D", KatTradeCalculator.NormalizeAtmSetName(null, "D")); // only null falls back
+			Assert.Equal("B", KatTradeCalculator.NormalizeAtmSetName("", "B"));
+			Assert.Equal("C", KatTradeCalculator.NormalizeAtmSetName("   ", "C"));
+			Assert.Equal("D", KatTradeCalculator.NormalizeAtmSetName(null, "D"));
 		}
 
 		[Fact]
