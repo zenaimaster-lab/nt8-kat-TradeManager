@@ -1,6 +1,6 @@
 # NT8 Kat TradeManager
 
-**Current Version**: `v1.68` (Released: `2026-08-08`)
+**Current Version**: `v1.69` (Released: `2026-08-08`)
 
 An advanced TradeManager Indicator for **NinjaTrader 8 (NT8)** designed for fast execution, candle-based pending stop orders, and dynamic risk management.
 

@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.68 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.69 (2026-08-08) */
 // ponytail: many catch{} for UI button updates are expected (control not yet created, dispatcher not ready) — silent. Critical watchdog tick already logs.
 
 using System;
@@ -26,10 +26,10 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		#region WPF UI Construction & Handlers
 		private Button[] atmSetButtons;
 		private readonly SolidColorBrush atmSetOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65)); // same gray as other OFF buttons
-		private readonly SolidColorBrush atmSetOnBg = new SolidColorBrush(Color.FromRgb(180, 90, 20)); // amber when its ATM is selected
+		private readonly SolidColorBrush atmSetOnBg = new SolidColorBrush(Color.FromArgb(51, 180, 90, 20)); // amber ON — 80% transparent (alpha 51) per request very faint
 		private Button[] dailyRiskPresetButtons;
 		private readonly SolidColorBrush dailyRiskPresetOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
-		private readonly SolidColorBrush dailyRiskPresetOnBg = new SolidColorBrush(Color.FromRgb(36, 7, 72)); // darker than Max DD purple
+		private readonly SolidColorBrush dailyRiskPresetOnBg = new SolidColorBrush(Color.FromArgb(51, 36, 7, 72)); // 80% transparent ON per request
 		private Button[] disciplineButtons;
 		private Button btnDisciplineAll;
 		private readonly SolidColorBrush disciplineOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
@@ -677,6 +677,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			}
 			Brush labelBrush = GetQuickSetLabelBrush();
 			double fs = GetQuickSetFontSize();
+			double fsProg = Math.Min(14, fs + 2); // Program larger than quick-set base per request
 			for (int i = 0; i < tradingProfileButtons.Length; i++)
 			{
 				if (tradingProfileButtons[i] == null) continue;
@@ -692,13 +693,14 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					tradingProfileButtons[i].Background = profileOffBg;
 					tradingProfileButtons[i].Foreground = labelBrush;
 				}
-				tradingProfileButtons[i].FontSize = fs;
-				// Program buttons: label left-aligned (per request), others remain centered
+				tradingProfileButtons[i].FontSize = fsProg;
+				// Program buttons: label left-aligned + slightly inset from left edge per request
 				string expected = GetTradingProfileName(i);
 				if (GetButtonLabel(tradingProfileButtons[i]) != expected)
 					SetButtonLabel(tradingProfileButtons[i], expected);
 				tradingProfileButtons[i].HorizontalContentAlignment = HorizontalAlignment.Left;
-				if (tradingProfileButtons[i].Content is TextBlock _tbU) { _tbU.TextAlignment = TextAlignment.Left; _tbU.HorizontalAlignment = HorizontalAlignment.Left; }
+				tradingProfileButtons[i].Padding = new Thickness(4, 0, 2, 0);
+				if (tradingProfileButtons[i].Content is TextBlock _tbU) { _tbU.TextAlignment = TextAlignment.Left; _tbU.HorizontalAlignment = HorizontalAlignment.Left; _tbU.Margin = new Thickness(4, 0, 0, 0); _tbU.FontSize = fsProg; }
 				try
 				{
 					string tAcc2 = GetTradingProfileAccount(i);
@@ -1373,11 +1375,14 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				for (int cc = 0; cc < 4; cc++)
 				{
 					int idx = prow * 4 + cc;
-					Button pBtn = CreateButton("", profileOffBg, null, 22, GetQuickSetFontSize());
+					double _fsProg = Math.Min(14, GetQuickSetFontSize() + 2);
+					Button pBtn = CreateButton("", profileOffBg, null, 22, _fsProg);
 					SetButtonLabel(pBtn, GetTradingProfileName(idx));
 					pBtn.Foreground = GetQuickSetLabelBrush();
+					pBtn.FontSize = _fsProg;
 					pBtn.HorizontalContentAlignment = HorizontalAlignment.Left;
-					if (pBtn.Content is TextBlock _pTb) { _pTb.TextAlignment = TextAlignment.Left; _pTb.HorizontalAlignment = HorizontalAlignment.Left; }
+					pBtn.Padding = new Thickness(4, 0, 2, 0);
+					if (pBtn.Content is TextBlock _pTb) { _pTb.TextAlignment = TextAlignment.Left; _pTb.HorizontalAlignment = HorizontalAlignment.Left; _pTb.Margin = new Thickness(4, 0, 0, 0); _pTb.FontSize = _fsProg; }
 					int captured = idx;
 					pBtn.Click += (s, ev) => ApplyTradingProfile(captured);
 					Grid.SetColumn(pBtn, cc * 2);
@@ -1694,7 +1699,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			// Daily Max DD + Daily Max Profit side-by-side — share 6-col base with preset row for pixel-perfect center
 			Grid dailyRiskGrid = CreateSixColumnGrid(HudGap, HudGap, HudGap);
 
-			SolidColorBrush dailyOnBg = new SolidColorBrush(Color.FromRgb(58, 19, 107)); // Darker purple (#3A136B)
+			SolidColorBrush dailyOnBg = new SolidColorBrush(Color.FromArgb(51, 58, 19, 107)); // 80% transparent ON per request (alpha 51)
 
 			Button btnDailyMaxDD = CreateButton(cachedIsDailyMaxDD ? "Max DD: ON" : "Max DD: OFF",
 				cachedIsDailyMaxDD ? dailyOnBg : toggleOffBg, null, 24, 10);

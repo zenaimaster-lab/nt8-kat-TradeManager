@@ -23,6 +23,11 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.69] — 2026-08-08
+- **UI — Program larger + left inset, ATM/DD ON 80% transparent**
+  - `KatTradeManagerUI:29/32` `atmSetOnBg` amber + `dailyRiskPresetOnBg` purple → `Color.FromArgb(51, ...)` 80% trong suốt (alpha 51, rất mờ) per request; `sec4Panel dailyOnBg:1697` `58,19,107` cùng `51` cho MaxDD/MaxProfit toggle ON.
+  - `KatTradeManagerUI.CreateWpfControls:1376` + `UpdateTradingProfileButtons:682` Program `fsProg = min(14, fs+2)` (8→10 default) lớn hơn base, `TextBlock Margin 4,0,0,0` + `Button Padding 4,0,2,0` + `HorizontalContentAlignment Left` tạo khe 6px không chạm biên.
+
 ### [v1.68] — 2026-08-08
 - **Fix — Program buttons label align left**
   - `KatTradeManagerUI.GetHudButtonTemplate:1880` đổi `ContentPresenter Horizontal/Vertical Center` hard → bind `HorizontalContentAlignment`/`VerticalContentAlignment` (TemplatedParent) để left/center theo per-button, giữ center cho ATM/DailyRisk.
