@@ -236,7 +236,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		public static void CalculateStopLimitPrices(KatOrderAction action, double triggerPrice, double tickSize, out double limitPrice, out double stopPrice)
 		{
-			if (tickSize <= 0) tickSize = 0.01;
+			tickSize = ResolveTickSize(tickSize, 0, 0.01);
 			stopPrice = triggerPrice;
 			limitPrice = action == KatOrderAction.Buy
 				? triggerPrice + tickSize
@@ -310,22 +310,22 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public static AtmLevels CalculateAtmLevels(KatOrderAction action, double triggerPrice, int stopLossTicks, int targetTicks, int beTriggerTicks, int sl1TriggerTicks, int sl2TriggerTicks, double tickSize)
 		{
 			AtmLevels levels = new AtmLevels();
-			if (tickSize <= 0) tickSize = 0.25;
+			tickSize = ResolveTickSize(tickSize, 0, 0.25);
 			if (triggerPrice <= 0) return levels;
 
 			if (action == KatOrderAction.Buy)
 			{
-				levels.SlPrice  = triggerPrice - (stopLossTicks * tickSize);
-				levels.TpPrice  = triggerPrice + (targetTicks * tickSize);
-				levels.BePrice  = triggerPrice + (beTriggerTicks * tickSize);
+				levels.SlPrice = triggerPrice - (stopLossTicks * tickSize);
+				levels.TpPrice = triggerPrice + (targetTicks * tickSize);
+				levels.BePrice = triggerPrice + (beTriggerTicks * tickSize);
 				levels.Sl1Price = triggerPrice + (sl1TriggerTicks * tickSize);
 				levels.Sl2Price = triggerPrice + (sl2TriggerTicks * tickSize);
 			}
 			else
 			{
-				levels.SlPrice  = triggerPrice + (stopLossTicks * tickSize);
-				levels.TpPrice  = triggerPrice - (targetTicks * tickSize);
-				levels.BePrice  = triggerPrice - (beTriggerTicks * tickSize);
+				levels.SlPrice = triggerPrice + (stopLossTicks * tickSize);
+				levels.TpPrice = triggerPrice - (targetTicks * tickSize);
+				levels.BePrice = triggerPrice - (beTriggerTicks * tickSize);
 				levels.Sl1Price = triggerPrice - (sl1TriggerTicks * tickSize);
 				levels.Sl2Price = triggerPrice - (sl2TriggerTicks * tickSize);
 			}
@@ -452,7 +452,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (seriesBarsAgo == null || strength < 1 || maxSwings < 1) return swings;
 			int barCount = seriesBarsAgo.Length;
 			if (barCount < strength * 2 + 1) return swings;
-			if (tickSize <= 0) tickSize = 0.25;
+			tickSize = ResolveTickSize(tickSize, 0, 0.25);
 
 			int maxBarAgo = Math.Min(barCount - strength - 1, 500);
 

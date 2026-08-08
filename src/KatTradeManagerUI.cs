@@ -1,4 +1,5 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.66 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.67 (2026-08-08) */
+// ponytail: many catch{} for UI button updates are expected (control not yet created, dispatcher not ready) — silent. Critical watchdog tick already logs.
 
 using System;
 using System.Collections.Generic;

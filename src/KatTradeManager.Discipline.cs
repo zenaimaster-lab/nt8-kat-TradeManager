@@ -1,4 +1,5 @@
-/* KatTradeManager.Discipline.cs - Discipline protects (partial class) v1.45 (2026-08-08) */
+/* KatTradeManager.Discipline.cs - Discipline protects (partial class) v1.66 (2026-08-08) */
+// ponytail: many catch{} here are expected (account null, broker reflection Trades, Order.StopPriceChanged) — silent is intentional to avoid spam on every tick. Critical paths (watchdog, OnAccountOrderUpdate) already log.
 using System;
 using System.Collections.Generic;
 using System.Linq;

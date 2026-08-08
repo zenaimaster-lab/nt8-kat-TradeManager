@@ -4,12 +4,12 @@ using NinjaTrader.NinjaScript.Indicators;
 
 namespace KatTradeManager.Tests
 {
-    public class KatAtmXmlParserEdgeCaseTests
-    {
-        [Fact]
-        public void ParseXml_MultiBracketXml_SumsQuantitiesAndParsesFirstBracketLevels()
-        {
-            string xml = @"<AtmStrategy>
+	public class KatAtmXmlParserEdgeCaseTests
+	{
+		[Fact]
+		public void ParseXml_MultiBracketXml_SumsQuantitiesAndParsesFirstBracketLevels()
+		{
+			string xml = @"<AtmStrategy>
   <Brackets>
     <Bracket>
       <Quantity>2</Quantity>
@@ -35,20 +35,20 @@ namespace KatTradeManager.Tests
   </Brackets>
 </AtmStrategy>";
 
-            AtmTemplateData data = KatAtmXmlParser.ParseXml(xml);
+			AtmTemplateData data = KatAtmXmlParser.ParseXml(xml);
 
-            Assert.Equal(20, data.StopLoss);
-            Assert.Equal(40, data.Target);
-            Assert.Equal(12, data.BETrigger);
-            Assert.Equal(16, data.SL1Trigger);
-            Assert.Equal(24, data.SL2Trigger);
-            Assert.Equal(5, data.Quantity);
-        }
+			Assert.Equal(20, data.StopLoss);
+			Assert.Equal(40, data.Target);
+			Assert.Equal(12, data.BETrigger);
+			Assert.Equal(16, data.SL1Trigger);
+			Assert.Equal(24, data.SL2Trigger);
+			Assert.Equal(5, data.Quantity);
+		}
 
-        [Fact]
-        public void ParseXml_ZeroOrNegativeTriggers_DefaultToZero()
-        {
-            string xml = @"<AtmStrategy>
+		[Fact]
+		public void ParseXml_ZeroOrNegativeTriggers_DefaultToZero()
+		{
+			string xml = @"<AtmStrategy>
   <Brackets>
     <Bracket>
       <StopLoss>0</StopLoss>
@@ -57,13 +57,13 @@ namespace KatTradeManager.Tests
   </Brackets>
 </AtmStrategy>";
 
-            AtmTemplateData data = KatAtmXmlParser.ParseXml(xml);
+			AtmTemplateData data = KatAtmXmlParser.ParseXml(xml);
 
-            Assert.Equal(0, data.StopLoss);
-            Assert.Equal(0, data.Target);
-            Assert.Equal(0, data.BETrigger);
-            Assert.Equal(0, data.SL1Trigger);
-            Assert.Equal(0, data.SL2Trigger);
-        }
-    }
+			Assert.Equal(0, data.StopLoss);
+			Assert.Equal(0, data.Target);
+			Assert.Equal(0, data.BETrigger);
+			Assert.Equal(0, data.SL1Trigger);
+			Assert.Equal(0, data.SL2Trigger);
+		}
+	}
 }

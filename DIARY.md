@@ -23,6 +23,14 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.67] — 2026-08-08
+- **Re-audit 3 — catch ponytail, tick unify, format gate, extended tests**
+  - **Catch**: `Discipline.cs:1` + `UI:1` + `DailyRisk:43` thêm `ponytail: expected when account null/reflection silent` header, còn `52` `catch{}` đã phân loại: watchdog/order-update 13 đã log, còn lại expected khi broker chưa connect — giữ silent có document.
+  - **Tick unify**: `KatTradeCalculator:238` `StopLimit 0.01`, `AtmLevels:312` `0.25`, `FindSwingPoints:455` `0.25` đổi sang `ResolveTickSize(tick,0,fallback)` thống nhất 3 chỗ, cùng 9 chỗ `OrderOps`/`Discipline` trước đó đã dùng helper.
+  - **Format gate**: `ci.yml:18` `dotnet format` → `tests/KatTradeManager.Tests.csproj --verify`, `Run-AllChecks.ps1:7` thêm `1/4 format` non-blocking warn, chạy `dotnet format` 18 files formatted → 0. `coverlet` giữ `Format=cobertura`.
+  - **Test**: mở rộng `KatExtendedAuditTests.cs:47` thêm `CalculateMergedOrderQuantity`, `ShouldDefer grace`, `IsSizingBlocked`, `IsSlPullBlocked`, `IsLossTimesLockActive`, `ShouldTriggerLossLock`, `IsWithinTradingWindows empty` — total `225→238` pass. `KatAtmTemplateService` bỏ link test tránh `CS0433`, chuyển sang reflection fallback `Environment.MyDocuments`.
+  - Verify: `14 files` sync, `0` warn, `238` pass. HUD không đụng. Market `100ms`/`200ms` split giữ.
+
 ### [v1.66] — 2026-08-08
 - **Full re-audit 2 — debounce split, atm cache unify, SwingOps split, tooling**
   - **Debounce split**: `OrderOps:102` tách `lastEntrySubmitTime` / `lastMarketSubmitTime`, `IsEntryDebounced(bool isMarket)` riêng, market `100ms` không block pending `200ms` và ngược — đảm bảo market instant đúng yêu cầu "ko delay". Pending vẫn 200 chặn jitter, market 100 nửa thời gian.

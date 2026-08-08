@@ -58,4 +58,4 @@ On every code change, BEFORE closing session. NEVER edit version strings by hand
 ## Version Tracking
 - Code versions: KatTradeManager.cs VERSION constant (header must match constant — `Verify-Version.ps1` enforces)
 - Doc versions: README.md, DIARY.md
-- **Current: v1.66 (2026-08-08)** — next bump via `scripts/Bump-Version.ps1` only (never hand-edit)
+- **Current: v1.67 (2026-08-08)** — next bump via `scripts/Bump-Version.ps1` only (never hand-edit)

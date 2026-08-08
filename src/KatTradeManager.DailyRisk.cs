@@ -42,7 +42,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			{
 				dailyUnrealized = account.Get(AccountItem.UnrealizedProfitLoss, Currency.UsDollar);
 			}
-			catch {}
+			catch {} // ponytail: expected when account not yet connected — silent
 
 			return dailyRealized + dailyUnrealized;
 		}
