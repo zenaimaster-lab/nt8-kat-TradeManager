@@ -15,6 +15,9 @@
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <NoWarn>0436</NoWarn>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
   </PropertyGroup>
 
   <ItemGroup>
@@ -50,7 +53,7 @@
       <Private>False</Private>
     </Reference>
     <!-- Compiled NT8 built-ins (EMA etc.). CS0436 type-conflict warnings vs local sources are expected: source wins. -->
-    <Reference Include="NinjaTrader.Custom">
+    <Reference Include="NinjaTrader.Custom" Condition="Exists('$(USERPROFILE)\Documents\NinjaTrader 8\bin\Custom\NinjaTrader.Custom.dll')">
       <HintPath>$(USERPROFILE)\Documents\NinjaTrader 8\bin\Custom\NinjaTrader.Custom.dll</HintPath>
       <Private>False</Private>
     </Reference>

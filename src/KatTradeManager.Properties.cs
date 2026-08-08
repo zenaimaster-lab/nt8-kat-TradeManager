@@ -24,13 +24,15 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private static List<string> GetTemplateNames()
 		{
 			List<string> names = new List<string>();
-			string directory = GetAtmTemplateDirectory();
-			if (!Directory.Exists(directory)) return names;
-
-			foreach (string file in Directory.GetFiles(directory, "*.xml"))
-				names.Add(Path.GetFileNameWithoutExtension(file));
-
-			names.Sort(StringComparer.OrdinalIgnoreCase);
+			try
+			{
+				string directory = GetAtmTemplateDirectory();
+				if (!Directory.Exists(directory)) return names;
+				foreach (string file in Directory.GetFiles(directory, "*.xml"))
+					names.Add(Path.GetFileNameWithoutExtension(file));
+				names.Sort(StringComparer.OrdinalIgnoreCase);
+			}
+			catch { }
 			return names;
 		}
 

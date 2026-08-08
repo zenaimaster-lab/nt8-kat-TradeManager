@@ -50,7 +50,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 			catch { }
 			List<string> sorted = new List<string>(fresh);
 			sorted.Sort(StringComparer.OrdinalIgnoreCase);
-			lock (cacheLock) { cachedNames = fresh; cachedSorted = sorted; cachedUtc = DateTime.UtcNow; }
+			lock (cacheLock)
+			{
+				// double-check: another thread may have refreshed while we did IO outside lock
+				if (cachedNames != null && cachedSorted != null && (DateTime.UtcNow - cachedUtc).TotalSeconds < TtlSeconds)
+					return cachedNames;
+				cachedNames = fresh; cachedSorted = sorted; cachedUtc = DateTime.UtcNow;
+			}
 			return fresh;
 		}
 

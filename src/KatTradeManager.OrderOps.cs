@@ -87,6 +87,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			// A revert queued on the OLD account must never fire a market order on the new one.
 			System.Threading.Interlocked.Exchange(ref pendingRevertAction, 0);
 			System.Threading.Interlocked.Exchange(ref pendingRevertQuantity, 0);
+			ResetAtmScaleInTracking();
 			EnsureAccountEventSubscription();
 		}
 
@@ -114,8 +115,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private bool IsEntryDebounced(bool isMarket = false)
 		{
 			double threshold = isMarket ? MarketDebounceMs : EntryDebounceMs;
-			if ((DateTime.Now - lastEntrySubmitTime).TotalMilliseconds < threshold) return true;
-			lastEntrySubmitTime = DateTime.Now;
+			if ((DateTime.UtcNow - lastEntrySubmitTime).TotalMilliseconds < threshold) return true;
+			lastEntrySubmitTime = DateTime.UtcNow;
 			return false;
 		}
 
