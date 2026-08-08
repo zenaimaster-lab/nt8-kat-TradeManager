@@ -60,7 +60,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 					atmLastLifecycleActivityUtc = DateTime.UtcNow;
 			}
 		}
-		private static KatOrderAction ToKatAction(OrderAction action) => action == OrderAction.Buy ? KatOrderAction.Buy : KatOrderAction.Sell;
+		private static KatOrderAction ToKatAction(OrderAction action) => (action == OrderAction.Buy || action == OrderAction.BuyToCover) ? KatOrderAction.Buy : KatOrderAction.Sell;
 		private static OrderType ToNtOrderType(KatOrderType type) => type == KatOrderType.StopMarket ? OrderType.StopMarket : OrderType.Limit;
 		// ponytail: unified cache via KatAtmTemplateService (single Directory.GetFiles 5s)
 		private bool HasAtmTemplate(string templateName) => KatAtmTemplateService.Exists(templateName);

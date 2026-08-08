@@ -67,19 +67,19 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 
 			if (IsDailyRiskBreached(out string breachReason))
 			{
-				Position pos = GetInstrumentPosition();
-				bool hasOpenPos = (pos != null && pos.MarketPosition != MarketPosition.Flat);
-				bool hasWorkingOrders = GetAccountOrdersSnapshot().Any(o => IsActiveOrderState(o.OrderState) && o.Instrument == Instrument);
+				bool hasOpenPos = GetAccountPositionsSnapshot().Any(p => p.MarketPosition != MarketPosition.Flat);
+				bool hasWorkingOrders = GetAccountOrdersSnapshot().Any(o => IsActiveOrderState(o.OrderState));
 
 				// ponytail: flatten once per breach episode — flag resets when PnL recovers, prevents order spam from 500ms watchdog
 				// Interlocked: this method runs on BOTH data thread (OnBarUpdate) and UI thread (watchdog) —
 				// check-then-set on a bool raced and could submit ClosePosition twice (position flip).
+				// account-wide PnL breach must flatten entire account, not just this instrument
 				if (hasOpenPos || hasWorkingOrders)
 				{
 					if (System.Threading.Interlocked.CompareExchange(ref dailyRiskFlattened, 1, 0) == 0)
 					{
 						Print(string.Format("[KatTradeManager] EMERGENCY FLATTEN triggered by Daily Risk Protection: {0}", breachReason));
-						ClosePosition();
+						FlattenAllPositions();
 					}
 				}
 			}

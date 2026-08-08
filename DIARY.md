@@ -23,6 +23,14 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.90] — 2026-08-08
+- **Re-audit P0 — ToKatAction + UI freeze + tie + DailyRisk flatten**
+  - `KatTradeManager.AtmMerge:63` `ToKatAction` `Buy ? Buy : Sell` → `(Buy||BuyToCover)?Buy:Sell` — `BuyToCover` trước trả `Sell` sai giá `Low` vs `High` khi `resolvedAction` là `BuyToCover` (shift candle).
+  - `KatTradeManagerUI:42` `stopLimitOnFgStatic/disciplinePurpleBorderStatic/goldBorderBrushStatic/blazeOrangeBrushStatic` frozen static + `UpdateStopLimitButton:804` `UpdateEmaPlaceButton:818` dùng static thay `new SolidColorBrush` mỗi watchdog 500ms — giảm GC.
+  - `UpdateDisciplineAllButton:844` cache `disciplineAllOnPanel/disciplineAllOffTextBlock` lazy tạo 1 lần, reuse — bỏ `new StackPanel+2 TextBlock+2 Brush` mỗi 500ms.
+  - `SwingOps:103,467,151` `GroupBy(...).OrderByDescending(Count).First()` tie non-deterministic → thêm `.ThenBy(g=>g.Key)` Long (0) thắng tie.
+  - `KatTradeManager.DailyRisk:64` `GetInstrumentPosition` + `ClosePosition` instrument-scoped cho PnL account-wide → `GetAccountPositionsSnapshot().Any()` + `GetAccountOrdersSnapshot().Any(IsActive)` + `FlattenAllPositions()` flatten toàn account khi breach.
+
 ### [v1.89] — 2026-08-08
 - **Re-audit P0 — DailyRisk + EmaTouch + GroupBy + UI static + snapshot guards**
   - `KatTradeManager.DailyRisk:72` `Working||Accepted` → `IsActiveOrderState` (11 states `Submitted/TriggerPending/PartFilled/Suspended/ChangePending/CancelPending`) — daily-risk flatten giờ bắt mọi pending, không miss `TriggerPending/PartFilled`.

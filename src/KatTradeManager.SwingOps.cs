@@ -99,10 +99,10 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 						ShowHudStatus("SL: no position or pending", System.Windows.Media.Brushes.OrangeRed);
 						return;
 					}
-					// majority side wins if mixed pending (rare)
-					var grouped = pendingEntries.GroupBy(o => (o.OrderAction == OrderAction.Buy || o.OrderAction == OrderAction.BuyToCover) ? MarketPosition.Long : MarketPosition.Short)
-						.OrderByDescending(g => g.Count()).First();
-					effectivePos = grouped.Key;
+					// majority side wins if mixed pending (rare) — Long wins tie deterministic
+					var grouped = pendingEntries.GroupBy(o => (o.OrderAction == OrderAction.Buy || o.OrderAction == OrderAction.BuyToCover) ? 0 : 1)
+						.OrderByDescending(g => g.Count()).ThenBy(g => g.Key).First();
+					effectivePos = grouped.Key == 0 ? MarketPosition.Long : MarketPosition.Short;
 					var repr = grouped.First();
 					effectiveQty = repr.Quantity > 0 ? repr.Quantity : (atmQuantity > 0 ? atmQuantity : DefaultQuantity);
 					// pending has no average price — track 0 so history resets only on direction change
@@ -148,7 +148,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 							double pendingPrice = 0;
 							try
 							{
-								var seedRepr = pendingEntries.GroupBy(o => (o.OrderAction == OrderAction.Buy || o.OrderAction == OrderAction.BuyToCover) ? 0 : 1).OrderByDescending(g => g.Count()).First().First();
+								var seedRepr = pendingEntries.GroupBy(o => (o.OrderAction == OrderAction.Buy || o.OrderAction == OrderAction.BuyToCover) ? 0 : 1).OrderByDescending(g => g.Count()).ThenBy(g => g.Key).First().First();
 								pendingPrice = seedRepr.StopPrice != 0 ? seedRepr.StopPrice : seedRepr.LimitPrice;
 							} catch {}
 							if (pendingPrice <= 0) pendingPrice = livePrice;
@@ -472,8 +472,8 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				int refBarsAgo = 0;
 				if (workingEntries.Count > 0)
 				{
-					// majority side wins — normalize Buy/BuyToCover → Long, Sell/SellShort → Short (avoid split)
-					var grouped = workingEntries.GroupBy(o => (o.OrderAction == OrderAction.Buy || o.OrderAction == OrderAction.BuyToCover) ? 0 : 1).OrderByDescending(g => g.Count()).First();
+					// majority side wins — normalize Buy/BuyToCover → Long, Sell/SellShort → Short (avoid split) — Long wins tie
+					var grouped = workingEntries.GroupBy(o => (o.OrderAction == OrderAction.Buy || o.OrderAction == OrderAction.BuyToCover) ? 0 : 1).OrderByDescending(g => g.Count()).ThenBy(g => g.Key).First();
 					resolvedAction = grouped.First().OrderAction;
 					bool candleMatch = hasCandleOrder && lastCandleOrderAction == resolvedAction;
 					bool emaMatch = (lastEmaOrderPeriod == 34 || lastEmaOrderPeriod == 89) && lastEmaOrderAction == resolvedAction;

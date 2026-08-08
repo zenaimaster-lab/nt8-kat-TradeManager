@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.89 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.90 (2026-08-08) */
 // ponytail: many catch{} for UI button updates are expected (control not yet created, dispatcher not ready) — silent. Critical watchdog tick already logs.
 
 using System;
@@ -34,11 +34,17 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		private Button[] disciplineButtons;
 		private Button btnDisciplineAll;
 		private readonly SolidColorBrush disciplineOffBg = new SolidColorBrush(Color.FromRgb(45, 50, 65));
+		private StackPanel disciplineAllOnPanel;
+		private TextBlock disciplineAllOffTextBlock;
 		// ponytail: shift controls reuse same dark bg — single static to avoid 3 allocs per rebuild
 		private static readonly SolidColorBrush shiftControlBg = CreateFrozenBrush(Color.FromRgb(20, 20, 20));
 		private static readonly SolidColorBrush toggleOffBgStatic = CreateFrozenBrush(Color.FromRgb(45, 50, 65));
 		private static readonly SolidColorBrush stopLimitOnBgStatic = CreateFrozenBrush(Color.FromRgb(18, 6, 48));
 		private static readonly SolidColorBrush emaOnBgStatic = CreateFrozenBrush(Color.FromRgb(12, 35, 75));
+		private static readonly SolidColorBrush stopLimitOnFgStatic = CreateFrozenBrush(Color.FromArgb(128, 255, 255, 255));
+		private static readonly SolidColorBrush disciplinePurpleBorderStatic = CreateFrozenBrush(Color.FromRgb(75, 30, 110));
+		private static readonly SolidColorBrush goldBorderBrushStatic = CreateFrozenBrush(Color.FromRgb(255, 215, 0));
+		private static readonly SolidColorBrush blazeOrangeBrushStatic = CreateFrozenBrush(Color.FromRgb(255, 140, 0));
 		private static SolidColorBrush CreateFrozenBrush(Color c) { var b = new SolidColorBrush(c); if (b.CanFreeze) b.Freeze(); return b; }
 		// Trading profiles — 8 buttons in 2 rows x4 above account selector, row-based ON colors, height 22 same as ATM row
 		private Button[] tradingProfileButtons;
@@ -812,7 +818,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			if (btnStopLimit == null) return;
 			SetButtonLabel(btnStopLimit, cachedIsStopLimit ? "Stop-Limit: ON" : "Stop-Limit: OFF");
 			btnStopLimit.Background = cachedIsStopLimit ? stopLimitOnBgStatic : toggleOffBgStatic;
-			btnStopLimit.Foreground = cachedIsStopLimit ? new SolidColorBrush(Color.FromArgb(128, 255, 255, 255)) : Brushes.LightGray;
+			btnStopLimit.Foreground = cachedIsStopLimit ? stopLimitOnFgStatic : Brushes.LightGray;
 		}
 
 		private void UpdateEmaPlaceButton()
@@ -829,7 +835,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			}
 			else
 			{
-				btnEmaPlace.BorderBrush = new SolidColorBrush(Color.FromRgb(75, 30, 110));
+				btnEmaPlace.BorderBrush = disciplinePurpleBorderStatic;
 				btnEmaPlace.BorderThickness = new Thickness(1);
 			}
 		}
@@ -845,28 +851,34 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			bool allOn = IsDisciplineAllOn();
 			if (allOn)
 			{
-				StackPanel sp = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-				TextBlock icon = new TextBlock { Text = "⚡", Foreground = new SolidColorBrush(Color.FromRgb(255, 140, 0)), FontSize = 11, Margin = new Thickness(0, 0, 2, 0), VerticalAlignment = VerticalAlignment.Center };
-				TextBlock label = new TextBlock { Text = "DISCIPLINED", Foreground = Brushes.White, FontSize = 11, VerticalAlignment = VerticalAlignment.Center };
-				sp.Children.Add(icon);
-				sp.Children.Add(label);
-				btnDisciplineAll.Content = sp;
+				if (disciplineAllOnPanel == null)
+				{
+					disciplineAllOnPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+					TextBlock icon = new TextBlock { Text = "⚡", Foreground = blazeOrangeBrushStatic, FontSize = 11, Margin = new Thickness(0, 0, 2, 0), VerticalAlignment = VerticalAlignment.Center };
+					TextBlock label = new TextBlock { Text = "DISCIPLINED", Foreground = Brushes.White, FontSize = 11, VerticalAlignment = VerticalAlignment.Center };
+					disciplineAllOnPanel.Children.Add(icon);
+					disciplineAllOnPanel.Children.Add(label);
+				}
+				btnDisciplineAll.Content = disciplineAllOnPanel;
 				btnDisciplineAll.Background = disciplineAllOnBg;
 				btnDisciplineAll.Foreground = Brushes.White;
-				btnDisciplineAll.BorderBrush = new SolidColorBrush(Color.FromRgb(255, 215, 0)); // bright gold
+				btnDisciplineAll.BorderBrush = goldBorderBrushStatic;
 				btnDisciplineAll.BorderThickness = new Thickness(1);
 			}
 			else
 			{
 				// ponytail: bypass SetButtonLabel StackPanel guard — must overwrite blaze panel when switching OFF
-				var tbOff = new TextBlock { Text = "UN-DISCIPLINED", TextAlignment = TextAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap };
-				btnDisciplineAll.Content = tbOff;
+				if (disciplineAllOffTextBlock == null)
+				{
+					disciplineAllOffTextBlock = new TextBlock { Text = "UN-DISCIPLINED", TextAlignment = TextAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap };
+				}
+				btnDisciplineAll.Content = disciplineAllOffTextBlock;
 				btnDisciplineAll.HorizontalContentAlignment = HorizontalAlignment.Center;
 				btnDisciplineAll.VerticalContentAlignment = VerticalAlignment.Center;
 				btnDisciplineAll.Padding = new Thickness(2, 0, 2, 0);
 				btnDisciplineAll.Background = disciplineAllOffBg;
 				btnDisciplineAll.Foreground = Brushes.White;
-				btnDisciplineAll.BorderBrush = new SolidColorBrush(Color.FromRgb(75, 30, 110));
+				btnDisciplineAll.BorderBrush = disciplinePurpleBorderStatic;
 				btnDisciplineAll.BorderThickness = new Thickness(1);
 			}
 		}
