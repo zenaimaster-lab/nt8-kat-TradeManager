@@ -1,4 +1,4 @@
-/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.75 (2026-08-08) */
+/* KatTradeManagerUI.cs - WPF UI partial class for KatTradeManager v1.76 (2026-08-08) */
 // ponytail: many catch{} for UI button updates are expected (control not yet created, dispatcher not ready) — silent. Critical watchdog tick already logs.
 
 using System;
@@ -64,7 +64,7 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 			}
 			catch { var fb = new SolidColorBrush(Color.FromArgb(128, 255, 255, 255)); if (fb.CanFreeze) fb.Freeze(); return fb; }
 		}
-		// Small quick-set (ATM + DailyRisk 6) — fixed 80% transparent per request (alpha 51) + small font via GetQuickSetFontSize
+		// Small quick-set (ATM + DailyRisk 6) — fixed 80% opaque (20% transparent, alpha 204) per request, readable
 		private Brush GetSmallQuickSetLabelBrush()
 		{
 			try
@@ -72,13 +72,13 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 				Brush baseBrush = QuickSetLabelColor ?? Brushes.White;
 				Color baseColor = Colors.White;
 				if (baseBrush is SolidColorBrush scb) baseColor = scb.Color;
-				byte alpha = 51; // 80% transparent (20% opacity) per request
+				byte alpha = 204; // 80% opaque per request (readable, not 51 very faint which looked empty)
 				Color c = Color.FromArgb(alpha, baseColor.R, baseColor.G, baseColor.B);
 				var nb = new SolidColorBrush(c);
 				if (nb.CanFreeze) nb.Freeze();
 				return nb;
 			}
-			catch { var fb = new SolidColorBrush(Color.FromArgb(51, 255, 255, 255)); if (fb.CanFreeze) fb.Freeze(); return fb; }
+			catch { var fb = new SolidColorBrush(Color.FromArgb(204, 255, 255, 255)); if (fb.CanFreeze) fb.Freeze(); return fb; }
 		}
 		private void SetButtonLabel(Button btn, string text)
 		{
@@ -615,12 +615,12 @@ namespace NinjaTrader.NinjaScript.Indicators.KAT
 		{
 			switch (idx)
 			{
-				case 0: return DailyRiskSet1Name == null ? "1" : DailyRiskSet1Name;
-				case 1: return DailyRiskSet2Name == null ? "2" : DailyRiskSet2Name;
-				case 2: return DailyRiskSet3Name == null ? "3" : DailyRiskSet3Name;
-				case 3: return DailyRiskSet4Name == null ? "4" : DailyRiskSet4Name;
-				case 4: return DailyRiskSet5Name == null ? "5" : DailyRiskSet5Name;
-				default: return DailyRiskSet6Name == null ? "6" : DailyRiskSet6Name;
+				case 0: return string.IsNullOrWhiteSpace(DailyRiskSet1Name) ? "1" : DailyRiskSet1Name;
+				case 1: return string.IsNullOrWhiteSpace(DailyRiskSet2Name) ? "2" : DailyRiskSet2Name;
+				case 2: return string.IsNullOrWhiteSpace(DailyRiskSet3Name) ? "3" : DailyRiskSet3Name;
+				case 3: return string.IsNullOrWhiteSpace(DailyRiskSet4Name) ? "4" : DailyRiskSet4Name;
+				case 4: return string.IsNullOrWhiteSpace(DailyRiskSet5Name) ? "5" : DailyRiskSet5Name;
+				default: return string.IsNullOrWhiteSpace(DailyRiskSet6Name) ? "6" : DailyRiskSet6Name;
 			}
 		}
 

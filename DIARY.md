@@ -23,6 +23,11 @@ graph TD
 ---
 
 ## 📜 Version History & Change Log
+### [v1.76] — 2026-08-08
+- **Fix — quick-set label invisible (still empty)**
+  - Root: `GetSmallQuickSetLabelBrush` `alpha 51` 80% transparent trên nền xám 50% → tương phản ~1.5:1, mắt thường thấy trống; `GetDailyRiskPresetName` chỉ fallback `null` nên chart cũ lưu `""` vẫn empty dù setting có text.
+  - Fix: `KatTradeManagerUI.GetSmallQuickSetLabelBrush:75` `51` → `204` 80% opaque (20% transparent) đọc được, vẫn mờ nhẹ; `GetDailyRiskPresetName:598` `null` → `IsNullOrWhiteSpace` fallback `"1".."6"` cho chart cũ; giữ `NormalizeAtmSetName` cho phép `""` empty chỉ khi setting trống.
+
 ### [v1.75] — 2026-08-08
 - **Program ON colors — parity (odd cyan / even pink)**
   - Yêu cầu: P2,4,6,8 hồng (rose `#872341` 135,35,65 ex P5-P8), P1,3,5,7 cyan (`#146E6E` 20,110,110 ex P1-P4).
